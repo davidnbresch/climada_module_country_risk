@@ -1,4 +1,4 @@
-function centroids_hazard_info=centroids_generate_hazard_sets(centroids,force_recalc,check_plots)
+function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots)
 % climada
 % NAME:
 %   centroids_generate_hazard_sets
@@ -17,13 +17,20 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,force_re
 %   you might rather calculate the risk yourself, e.g. using
 %   climada_EDS_calc...)
 % CALLING SEQUENCE:
-%   centroids_hazard_info=centroids_generate_hazard_sets(centroids,force_recalc,check_plots)
+%   centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots)
 % EXAMPLE:
 %   centroids_generate_hazard_sets; % interactive, prompt for centroids
 % INPUTS:
-% OPTIONAL INPUT PARAMETERS:
 %   centroids: a centroid structure, see e.g. climada_centroids_load
-%       > prompted for if empty
+%       > prompted for if empty (using climada_centroids_load, i.e.
+%       centroids need to exist als .mat file already - otherwise run e.g.
+%       climada_centroids_read first)
+% OPTIONAL INPUT PARAMETERS:
+%   probabilistic: if =1, generate probabilistic hazard event sets,
+%       =0 generate 'historic' hazard event sets (default)
+%       While one need fully probabilistic sets for really meaningful
+%       results, the default is 'historic' as this is the first thing to
+%       check.
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
@@ -37,6 +44,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,force_re
 %       hazard_set_file: the full filename of the hazard set generated
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141025, moved out of country_risk_calc
+% David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 %-
 
 centroids_hazard_info = []; % init output
@@ -46,6 +54,7 @@ if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
 if ~exist('centroids','var'), centroids = '';end
+if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
 
@@ -54,11 +63,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
-% whether we run historic only (=0, default, good enough to test) or fully probabilistic (=1)
-TEST_probabilistic = 0; % default=0, since fast to check
-%
 % TEST_location to mark and lable one spot
-% only makes sense if run for one country (not rot 'ALL')
 %TEST_location.name      = '  San Salvador'; % first two spaces for nicer labeling
 %TEST_location.longitude = -89+11/60+24/3600;
 %TEST_location.latitude  =  13+41/60+24/3600;
@@ -235,7 +240,7 @@ for hazard_i=1:hazard_count
             % read tracks from unisys database file (txt)
             [tc_track,tc_track_mat] = climada_tc_read_unisys_database(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
             
-            if TEST_probabilistic
+            if probabilistic
                 
                 if exist('climada_tc_track_wind_decay_calculate','file')
                     % wind speed decay at track nodes after landfall
@@ -272,7 +277,7 @@ for hazard_i=1:hazard_count
                 tc_track_prob_mat = strrep(tc_track_mat,'_proc.mat','_prob.mat');
                 save(tc_track_prob_mat,'tc_track');
                 
-            end % TEST_probabilistic
+            end % probabilistic
             
             hazard = climada_tc_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
             fprintf('TC: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
@@ -304,7 +309,7 @@ for hazard_i=1:hazard_count
                 [fP,fN]=fileparts(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
                 tc_track_mat=[fP filesep fN '_proc.mat'];
                 tc_track_prob_mat = strrep(tc_track_mat,'_proc.mat','_prob.mat');
-                if TEST_probabilistic
+                if probabilistic
                     unisys_file_mat = tc_track_prob_mat;
                 else
                     unisys_file_mat = tc_track_mat;
@@ -375,7 +380,7 @@ for hazard_i=1:hazard_count
             
             if exist('eq_global_hazard_set','file') % the function exists
                 eq_data=eq_centennial_read; % to be on the safe side
-                if TEST_probabilistic,eq_data=eq_global_probabilistic(eq_data,9);end
+                if probabilistic,eq_data=eq_global_probabilistic(eq_data,9);end
                 hazard=eq_global_hazard_set(eq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 if ~isempty(hazard)
                     fprintf('EQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check

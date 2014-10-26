@@ -1,4 +1,4 @@
-function country_risk=country_risk_calc(country_name,force_recalc,check_plots)
+function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
 % climada
 % NAME:
 %   country_risk_calc
@@ -16,21 +16,24 @@ function country_risk=country_risk_calc(country_name,force_recalc,check_plots)
 %   4) run the risk calculation for all hazards
 %
 %   NOTE that centroids_generate_hazard_sets is called for steps 2 and 3
-%   hence you might inspect centroids_generate_hazard_sets for parameters
-%   (e.g. TEST_probabilistic)
 %
 %   next step: country_risk_report
 % CALLING SEQUENCE:
-%   country_risk=country_risk_calc(country_name,force_recalc,check_plots)
+%   country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
 % EXAMPLE:
-%   country_risk_calc; % interactive, select country from dropdown
-%   country_risk=country_risk_calc('ALL',0,0) % whole world, no figures
+%   country_risk=country_risk_calc; % interactive, select country from dropdown
+%   country_risk=country_risk_calc('ALL',0,0,0) % whole world, no figures
 % INPUTS:
-% OPTIONAL INPUT PARAMETERS:
 %   country_name: name of the country, see climada_create_GDP_entity
 %       if set to 'ALL', the code runs recursively through ALL countries
 %       (mind the time this will take...)
 %       > prompted for via dropdown list if empty
+% OPTIONAL INPUT PARAMETERS:
+%   probabilistic: if =1, generate probabilistic hazard event sets,
+%       =0 generate 'historic' hazard event sets (default)
+%       While one need fully probabilistic sets for really meaningful
+%       results, the default is 'historic' as this is the first thing to
+%       check.
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
@@ -52,6 +55,7 @@ function country_risk=country_risk_calc(country_name,force_recalc,check_plots)
 % David N. Bresch, david.bresch@gmail.com, 20140922, three hazards: TC,TS,TR
 % David N. Bresch, david.bresch@gmail.com, 20141020, ready for checkin
 % David N. Bresch, david.bresch@gmail.com, 20141025, major cleanup and EQ added
+% David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 %-
 
 country_risk = []; % init output
@@ -61,16 +65,13 @@ if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
 if ~exist('country_name','var'), country_name = '';end
+if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
-
 % PARAMETERS
-%
-% whether we run historic only (=0, default, good enough to test) or fully probabilistic (=1)
-TEST_probabilistic = 0; % default=0, since fast to check
 %
 % TEST_location to mark and lable one spot
 % only makes sense if run for one country (not rot 'ALL')
@@ -104,12 +105,12 @@ valid_countries      = borders.name(valid_countries_indx);
 if strcmp(country_name,'ALL')
     % call recursively
     [~, sort_index] = sort(valid_countries);
-    %sort_index=sort_index([2 6 9 14 19 21 22 127 183 208]); % TEST subset
+    sort_index=sort_index([2 6 9 14 19 21 22 127 183 208]); % TEST subset
     for country_i = 1:length(sort_index)
         country_name = valid_countries(sort_index(country_i));
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(country_name),country_i,length(sort_index));
-        country_risk_out(country_i)=country_risk_calc(country_name,force_recalc,check_plots);
+        country_risk_out(country_i)=country_risk_calc(country_name,probabilistic,force_recalc,check_plots);
     end % country_i
     close all
     country_risk=country_risk_out;
@@ -168,57 +169,61 @@ end
 % centroids are the ones for the country, not visible in code sinde loaded
 % above with load(centroids_file)
 fprintf('--> calling centroids_generate_hazard_sets...\n');
-country_risk=centroids_generate_hazard_sets(centroids,force_recalc,check_plots);
+country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots);
 fprintf('<-- back from calling centroids_generate_hazard_sets\n');
 
 % 4) risk calculation
 % ===================
 
-hazard_count=length(country_risk.res.hazard);
-
-for hazard_i=1:hazard_count
+if isfield(country_risk.res,'hazard')
     
-    load(entity_file) % load entity
-    load(country_risk.res.hazard(hazard_i).hazard_set_file)
-    [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
+    hazard_count=length(country_risk.res.hazard);
     
-    fprintf('*** risk calculation for %s in %s\n',hazard_name,country_name_char);
+    for hazard_i=1:hazard_count
+        
+        load(entity_file) % load entity
+        load(country_risk.res.hazard(hazard_i).hazard_set_file)
+        [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
+        
+        fprintf('*** risk calculation for %s in %s\n',hazard_name,country_name_char);
+        
+        if ~isempty(hazard)
+            
+            % DUMMY DAMAGE FUNCTIONS FOR TESTS (HERE WE ARE)
+            % just match max scale of hazard.intensity to max
+            % damagefunction.intensity
+            max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
+            max_hazard_intensity=full(max(max(hazard.intensity)));
+            damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
+            
+            %         % a suggestion for hard-wired for comparison would be
+            %         if strcmp(country_risk.res.hazard(3).peril_ID,'TS')
+            %             damagefunction_scale=5;
+            %         elseif strcmp(country_risk.res.hazard(3).peril_ID,'TR')
+            %             damagefunction_scale=500;
+            %         elseif strcmp(country_risk.res.hazard(3).peril_ID,'EQ')
+            %             damagefunction_scale=100;
+            %         end
+            
+            entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
+            
+            fprintf('* %s risk calculation\n',hazard_name);
+            country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
+        else
+            fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
+        end
+        
+    end % hazard_i
     
-    if ~isempty(hazard)
-        
-        % DUMMY DAMAGE FUNCTIONS FOR TESTS (HERE WE ARE)
-        % just match max scale of hazard.intensity to max
-        % damagefunction.intensity
-        max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
-        max_hazard_intensity=full(max(max(hazard.intensity)));
-        damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
-        
-        %         % a suggestion for hard-wired for comparison would be
-        %         if strcmp(country_risk.res.hazard(3).peril_ID,'TS')
-        %             damagefunction_scale=5;
-        %         elseif strcmp(country_risk.res.hazard(3).peril_ID,'TR')
-        %             damagefunction_scale=500;
-        %         elseif strcmp(country_risk.res.hazard(3).peril_ID,'EQ')
-        %             damagefunction_scale=100;
-        %         end
-        
-        entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
-        
-        fprintf('* %s risk calculation\n',hazard_name);
-        country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
-    else
-        fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
+    % show all damage frequency curves
+    
+    if check_plots
+        for hazard_i=1:length(country_risk.res.hazard) % convert into one EDS
+            EDS(hazard_i)=country_risk.res.hazard(hazard_i).EDS;
+        end
+        climada_EDS_DFC(EDS);
     end
-   
-end % hazard_i
-
-% show all damage frequency curves
-
-if check_plots
-    for hazard_i=1:length(country_risk.res.hazard) % convert into one EDS
-        EDS(hazard_i)=country_risk.res.hazard(hazard_i).EDS;
-    end
-    climada_EDS_DFC(EDS);
-end
+    
+end % isfield(country_risk.res,'hazard')
 
 return

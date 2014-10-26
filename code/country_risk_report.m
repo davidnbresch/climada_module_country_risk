@@ -8,9 +8,9 @@ function country_risk_report(country_risk,print_unsorted,plot_DFC)
 %
 %   previous call: country_risk_calc
 % CALLING SEQUENCE:
-%   country_risk_report(country_risk)
+%   country_risk_report(country_risk,print_unsorted,plot_DFC)
 % EXAMPLE:
-%   country_risk_report(country_risk_calc('Barbados',1,1)); % all in one
+%   country_risk_report(country_risk_calc('Barbados')); % all in one
 % INPUTS:
 %   country_risk: a structure with the results from country_risk_calc
 % OPTIONAL INPUT PARAMETERS:
@@ -82,11 +82,13 @@ if plot_DFC
     % rearrange all EDSs to pass on to climada_EDS_DFC
     EDS_i=1;
     for entity_i=1:n_entities
-        n_hazards=length(country_risk(entity_i).res.hazard);
-        for hazard_i=1:n_hazards
-            EDS(EDS_i)=country_risk(entity_i).res.hazard(hazard_i).EDS;
-            EDS_i=EDS_i+1;
-        end % hazard_i
+        if isfield(country_risk(entity_i).res,'hazard') % country exposed
+            n_hazards=length(country_risk(entity_i).res.hazard);
+            for hazard_i=1:n_hazards
+                EDS(EDS_i)=country_risk(entity_i).res.hazard(hazard_i).EDS;
+                EDS_i=EDS_i+1;
+            end % hazard_i
+        end
     end % entity_i
     
     climada_EDS_DFC(EDS);
