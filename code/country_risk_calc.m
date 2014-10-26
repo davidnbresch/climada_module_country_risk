@@ -105,7 +105,7 @@ valid_countries      = borders.name(valid_countries_indx);
 if strcmp(country_name,'ALL')
     % call recursively
     [~, sort_index] = sort(valid_countries);
-    sort_index=sort_index([2 6 9 14 19 21 22 127 183 208]); % TEST subset
+    %sort_index=sort_index([2 6 9 14 19 21 22 127 183 208]); % TEST subset
     for country_i = 1:length(sort_index)
         country_name = valid_countries(sort_index(country_i));
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
