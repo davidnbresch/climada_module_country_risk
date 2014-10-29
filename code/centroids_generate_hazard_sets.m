@@ -75,6 +75,9 @@ TEST_location=''; % set TEST_location='' to omit labeling
 % module (see climada_init_folders to create the required folders automatically)
 local_data_dir = climada_global.data_dir;
 %local_data_dir = module_data_dir;
+%
+% define the WS Europe hazard event set we test for (see module ws_europe)
+WS_Europe_hazard_set_file='WS_ECHAM_CTL.mat'; % with .mat see below
 
 % some folder checks (to be on the safe side)
 if ~exist(local_data_dir,'dir'),mkdir(fileparts(local_data_dir),'data');end
@@ -212,6 +215,37 @@ else
         centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'EQ';
         centroids_hazard_info.res.hazard(hazard_count).unisys_file = []; % for safety, not needed
         fprintf('* hazard EQ detected\n');
+    end
+end
+
+% WS: figure whether the particular country is exposed to European winter storms
+% ------------------------------------------------------------------------------
+
+if length(which('winterstorm_TEST'))<2
+    cprintf([1,0.5,0],'European winterstorm (WS) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_ws_europe\n\n');
+else
+    % test WS exposure
+    WS_module_data_dir=[fileparts(fileparts(which('winterstorm_TEST'))) filesep 'data'];
+
+    load([WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file]);
+    
+    % check for WS centroids within centroids_rect
+    in_ws_poly = inpolygon(hazard.lon,hazard.lat,centroids_edges_x,centroids_edges_y);
+    
+    if check_plots
+        climada_plot_world_borders; hold on;
+        plot(hazard.lon,hazard.lat,'.m','MarkerSize',3);
+        plot(hazard.lon(in_ws_poly),hazard.lat(in_ws_poly),'xg','MarkerSize',4);
+        plot(centroids_edges_x,centroids_edges_y,'-g')
+    else
+        close all
+    end
+    
+    if sum(in_ws_poly)>0
+        hazard_count = hazard_count+1;
+        centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'WS';
+        centroids_hazard_info.res.hazard(hazard_count).unisys_file = []; % for safety, not needed
+        fprintf('* hazard WS Europe detected\n');
     end
 end
 
@@ -393,6 +427,18 @@ for hazard_i=1:hazard_count
             load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
         end
     end % peril_ID,'EQ'
+    
+    
+    if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'WS')
+        hazard_name='Europe'; % once could in theory run more than one 'region', as we do with TC
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            [WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
+        if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file')
+            fprintf('WARNING WS Europe hazard set file not found for %s\n',country_name_char);
+        else
+            load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
+        end
+    end % peril_ID,'WS'
     
     
     if check_plots && ~isempty(hazard)
