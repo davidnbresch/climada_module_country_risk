@@ -45,6 +45,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141025, moved out of country_risk_calc
 % David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
+% David N. Bresch, david.bresch@gmail.com, 20141029, WSEU added
 %-
 
 centroids_hazard_info = []; % init output
@@ -78,6 +79,14 @@ local_data_dir = climada_global.data_dir;
 %
 % define the WS Europe hazard event set we test for (see module ws_europe)
 WS_Europe_hazard_set_file='WS_ECHAM_CTL.mat'; % with .mat see below
+%
+% whether we create a single WS Europe country hazard event set for each WS
+% Europe exposed country (speedup in risk calc, since centroids ordered the
+% exact same way as hazard intensities, if =1). If =0, use the same
+% Europe-wide hazard event set for all exposed countries, which requires
+% re-encoding in risk calc each time (see country_risk calc and set
+% force_re_encoding=1 in the Parameter section in the code).
+WS_Europe_country_hazard_set=1; % default=1 (mainly for speedup)
 
 % some folder checks (to be on the safe side)
 if ~exist(local_data_dir,'dir'),mkdir(fileparts(local_data_dir),'data');end
@@ -437,6 +446,42 @@ for hazard_i=1:hazard_count
             fprintf('WARNING WS Europe hazard set file not found for %s\n',country_name_char);
         else
             load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
+            
+            if WS_Europe_country_hazard_set
+                
+                fprintf('*** hazard generation for WS in %s\n',country_name_char);
+
+                % re-arrange hazard to match centroids and create a hazard
+                % sub-set specific to the country (saves time later in risk
+                % calculation, since centroids and hazard.intensity match)
+                n_centroids=length(centroids.Longitude);
+                centroid_index=zeros(1,n_centroids);
+                hazard.event_count=size(hazard.intensity,1);
+                hazard_intensity = spalloc(hazard.event_count,n_centroids,...
+                    ceil(hazard.event_count*n_centroids*hazard.matrix_density));
+                                
+                if climada_global.waitbar,h = waitbar(0,sprintf('WSEU: Encoding %i records...',n_centroids));end
+                for centroid_i=1:n_centroids
+                    if climada_global.waitbar,waitbar(centroid_i/n_centroids,h);end
+                    dist_m=climada_geo_distance(centroids.Longitude(centroid_i),centroids.Latitude(centroid_i),hazard.lon,hazard.lat);
+                    [~,min_dist_index] = min(dist_m);
+                    centroid_index(centroid_i)=min_dist_index;
+                    hazard_intensity(:,centroid_i)=sparse(hazard.intensity(:,min_dist_index));
+                end % centroid_i
+                if climada_global.waitbar,close(h);end % close waitbar
+                
+                hazard=rmfield(hazard,'intensity');
+                hazard.intensity=hazard_intensity;hazard_intensity=[];
+                hazard.lat=centroids.Latitude;
+                hazard.lon=centroids.Longitude;
+                hazard.centroid_ID=1:n_centroids;
+                
+                centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+                    [local_data_dir filesep 'hazards' filesep country_name_char '_WS_' deblank(hazard_name) '.mat'];
+                hazard.filename=centroids_hazard_info.res.hazard(hazard_i).hazard_set_file;
+                save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard');
+                
+            end
         end
     end % peril_ID,'WS'
     
