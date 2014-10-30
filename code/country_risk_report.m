@@ -49,19 +49,26 @@ for entity_i=1:n_entities
         n_hazards=length(country_risk(entity_i).res.hazard);
         EL=zeros(1,n_hazards);
         for hazard_i=1:n_hazards
-            ED(hazard_i)=country_risk(entity_i).res.hazard(hazard_i).EDS.ED; % we need for sort later
-            res(hazard_i).ED=ED(hazard_i);
-            res(hazard_i).EDoL=country_risk(entity_i).res.hazard(hazard_i).EDS.ED/...
-                country_risk(entity_i).res.hazard(hazard_i).EDS.Value*1000;
-            res(hazard_i).peril_ID=country_risk(entity_i).res.hazard(hazard_i).EDS.hazard.peril_ID;
-            res(hazard_i).annotation_name=country_risk(entity_i).res.hazard(hazard_i).EDS.annotation_name;
-            
-            if print_unsorted
-                fprintf('  %s EL=%f (%f%%oo)   %s\n',...
-                    res(hazard_i).peril_ID,res(hazard_i).ED,res(hazard_i).EDoL,...
-                    res(hazard_i).annotation_name);
-            end % print_unsorted
-            
+            if ~isempty(country_risk(entity_i).res.hazard(hazard_i).EDS)
+                ED(hazard_i)=country_risk(entity_i).res.hazard(hazard_i).EDS.ED; % we need for sort later
+                res(hazard_i).ED=ED(hazard_i);
+                res(hazard_i).EDoL=country_risk(entity_i).res.hazard(hazard_i).EDS.ED/...
+                    country_risk(entity_i).res.hazard(hazard_i).EDS.Value*1000;
+                res(hazard_i).peril_ID=country_risk(entity_i).res.hazard(hazard_i).EDS.hazard.peril_ID;
+                res(hazard_i).annotation_name=country_risk(entity_i).res.hazard(hazard_i).EDS.annotation_name;
+                
+                if print_unsorted
+                    fprintf('  %s EL=%f (%f%%oo)   %s\n',...
+                        res(hazard_i).peril_ID,res(hazard_i).ED,res(hazard_i).EDoL,...
+                        res(hazard_i).annotation_name);
+                end % print_unsorted
+            else
+                ED(hazard_i)=0;
+                res(hazard_i).ED=0;
+                res(hazard_i).EDoL=0;
+                res(hazard_i).peril_ID=country_risk(entity_i).res.hazard(hazard_i).peril_ID;
+                res(hazard_i).annotation_name='EMPTY';
+            end % ~isempty(EDS)
         end % hazard_i
         
         if ~print_unsorted
@@ -86,8 +93,10 @@ if plot_DFC
         if isfield(country_risk(entity_i).res,'hazard') % country exposed
             n_hazards=length(country_risk(entity_i).res.hazard);
             for hazard_i=1:n_hazards
-                EDS(EDS_i)=country_risk(entity_i).res.hazard(hazard_i).EDS;
-                EDS_i=EDS_i+1;
+                if ~isempty(country_risk(entity_i).res.hazard(hazard_i).EDS)
+                    EDS(EDS_i)=country_risk(entity_i).res.hazard(hazard_i).EDS;
+                    EDS_i=EDS_i+1;
+                end
             end % hazard_i
         end
     end % entity_i

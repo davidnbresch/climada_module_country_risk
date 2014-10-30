@@ -196,23 +196,27 @@ if isfield(country_risk.res,'hazard')
     for hazard_i=1:hazard_count
         
         load(entity_file) % load entity
-        load(country_risk.res.hazard(hazard_i).hazard_set_file)
-        [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
-        
-        fprintf('* hazard %s %s\n',hazard.peril_ID,hazard_name);
-        
-        % Note that one would need to re-encode assets to each hazard,
-        % unless one knows that all hazard event sets are valid on the
-        % exact same centroids (the first n elements in the hazard
-        % are matching the n locations of the assets, while the n+1:end
-        % elements in hazard are the ones for the buffer around the
-        % country. The call to centroids_generate_hazard_sets ensures that,
-        % and hence the following code bit is usually not necessary:
-        if force_re_encoding
-            fprintf('re-encoding hazard to the respective centroids\n');
-            assets = climada_assets_encode(entity.assets,hazard);
-            entity=rmfield(entity,'assets');
-            entity.assets=assets; % assign re-encoded assets
+        if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
+            load(country_risk.res.hazard(hazard_i).hazard_set_file)
+            [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
+            
+            fprintf('* hazard %s %s\n',hazard.peril_ID,hazard_name);
+            
+            % Note that one would need to re-encode assets to each hazard,
+            % unless one knows that all hazard event sets are valid on the
+            % exact same centroids (the first n elements in the hazard
+            % are matching the n locations of the assets, while the n+1:end
+            % elements in hazard are the ones for the buffer around the
+            % country. The call to centroids_generate_hazard_sets ensures that,
+            % and hence the following code bit is usually not necessary:
+            if force_re_encoding
+                fprintf('re-encoding hazard to the respective centroids\n');
+                assets = climada_assets_encode(entity.assets,hazard);
+                entity=rmfield(entity,'assets');
+                entity.assets=assets; % assign re-encoded assets
+            end
+        else
+            hazard=[];
         end
         
         if ~isempty(hazard)
