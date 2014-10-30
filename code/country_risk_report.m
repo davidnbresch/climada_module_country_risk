@@ -18,6 +18,7 @@ function country_risk_report(country_risk,print_unsorted,plot_DFC)
 %       calculated, if =0, show by descending losses (default)
 %   plot_DFC: if =1, plot damage frequency curves (DFC) of all EDSs (!) in
 %       country_risk, =0 not (default)
+%       if =2, plot logarithmic scale both axes
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141024, initial
@@ -91,7 +92,8 @@ if plot_DFC
         end
     end % entity_i
     
-    climada_EDS_DFC(EDS);
+    plot_loglog=0;if plot_DFC==2,plot_loglog=1;end
+    climada_EDS_DFC(EDS,'',0,plot_loglog);
 end
 
 return
