@@ -155,7 +155,7 @@ if ~exist(centroids_file,'file') || force_recalc
     country_name_char_tmp=country_name_char;
     if strcmp(country_name_char,'Vietnam')   , country_name_char_tmp='Viet Nam';end
     if strcmp(country_name_char,'ElSalvador'), country_name_char_tmp='El Salvador';end
-    [centroids, entity, entity_future] = climada_create_GDP_entity(country_name_char_tmp,[],0,1);
+    [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char_tmp,[],0,1);
     save(centroids_file,'centroids');
     save(entity_file,'entity');
     entity = entity_future; %replace with entity future
@@ -195,10 +195,11 @@ if isfield(country_risk.res,'hazard')
     
     for hazard_i=1:hazard_count
         
+        [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
+
         load(entity_file) % load entity
         if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
             load(country_risk.res.hazard(hazard_i).hazard_set_file)
-            [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
             
             fprintf('* hazard %s %s\n',hazard.peril_ID,hazard_name);
             
