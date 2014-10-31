@@ -197,6 +197,7 @@ if isfield(country_risk.res,'hazard')
         
         load(entity_file) % load entity
         
+        hazard=[]; % init
         [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
 
         if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
@@ -216,8 +217,6 @@ if isfield(country_risk.res,'hazard')
                 entity=rmfield(entity,'assets');
                 entity.assets=assets; % assign re-encoded assets
             end
-        else
-            hazard=[];
         end
         
         if ~isempty(hazard)
