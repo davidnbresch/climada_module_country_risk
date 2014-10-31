@@ -189,7 +189,7 @@ for file_i=1:length(D)
                 hazard_count = hazard_count+1;
                 centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
                 centroids_hazard_info.res.hazard(hazard_count).unisys_file = [tc_tracks_folder filesep unisys_file_temp];
-                fprintf('* hazard TC %s detected\n',unisys_file_temp);
+                fprintf('* hazard TC %s detected\n',strrep(unisys_file_temp,'.txt',''));
             end
             
         end % only *.txt files
