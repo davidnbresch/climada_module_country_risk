@@ -195,14 +195,14 @@ if isfield(country_risk.res,'hazard')
     
     for hazard_i=1:hazard_count
         
+        load(entity_file) % load entity
+        
         [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
 
-        load(entity_file) % load entity
         if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
+            
             load(country_risk.res.hazard(hazard_i).hazard_set_file)
-            
-            fprintf('* hazard %s %s\n',hazard.peril_ID,hazard_name);
-            
+                        
             % Note that one would need to re-encode assets to each hazard,
             % unless one knows that all hazard event sets are valid on the
             % exact same centroids (the first n elements in the hazard
@@ -222,6 +222,8 @@ if isfield(country_risk.res,'hazard')
         
         if ~isempty(hazard)
             
+            fprintf('* hazard %s %s\n',hazard.peril_ID,hazard_name);
+
             % DUMMY DAMAGE FUNCTIONS FOR TESTS (HERE WE ARE)
             % just match max scale of hazard.intensity to max
             % damagefunction.intensity
