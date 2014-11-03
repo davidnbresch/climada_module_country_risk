@@ -58,6 +58,7 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 % David N. Bresch, david.bresch@gmail.com, 20141025, major cleanup and EQ added
 % David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 % David N. Bresch, david.bresch@gmail.com, 20141029, force_re_encoding
+% David N. Bresch, david.bresch@gmail.com, 20141103, matching peril_ID for damagefunction added
 %-
 
 country_risk = []; % init output
@@ -221,25 +222,39 @@ if isfield(country_risk.res,'hazard')
         
         if ~isempty(hazard)
             
-            fprintf('* hazard %s %s\n',hazard.peril_ID,hazard_name);
+            fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
+            
+            % find the damagefunctions for the peril under consideration
+            if isfield(entity.damagefunctions,'peril_ID') % refine for peril
+                if sum(strcmp(entity.damagefunctions.peril_ID,hazard.peril_ID(1:2)))>0
+                    % peril_ID found, reasonable damage calculation
+                    fprintf('\n');
+                else
+                    
+                    % find the TC damagefunction (to start from)
+                    asset_damfun_pos = find(entity.damagefunctions.DamageFunID == entity.assets.DamageFunID(1)); % keep it simple (1)
+                    asset_damfun_pos = asset_damfun_pos(strcmp(entity.damagefunctions.peril_ID(asset_damfun_pos),'TC')); % use TC
+                    
+                    entity.damagefunctions.DamageFunID=entity.damagefunctions.DamageFunID(asset_damfun_pos);
+                    entity.damagefunctions.Intensity=entity.damagefunctions.Intensity(asset_damfun_pos);
+                    entity.damagefunctions.MDD=entity.damagefunctions.MDD(asset_damfun_pos);
+                    entity.damagefunctions.PAA=entity.damagefunctions.PAA(asset_damfun_pos);
+                    entity.damagefunctions.MDR=entity.damagefunctions.MDR(asset_damfun_pos);
 
-            % DUMMY DAMAGE FUNCTIONS FOR TESTS (HERE WE ARE)
-            % just match max scale of hazard.intensity to max
-            % damagefunction.intensity
-            max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
-            max_hazard_intensity=full(max(max(hazard.intensity)));
-            damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
-            
-            %         % a suggestion for hard-wired for comparison would be
-            %         if strcmp(country_risk.res.hazard(3).peril_ID,'TS')
-            %             damagefunction_scale=5;
-            %         elseif strcmp(country_risk.res.hazard(3).peril_ID,'TR')
-            %             damagefunction_scale=500;
-            %         elseif strcmp(country_risk.res.hazard(3).peril_ID,'EQ')
-            %             damagefunction_scale=100;
-            %         end
-            
-            entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
+                    entity.damagefunctions=rmfield(entity.damagefunctions,'peril_ID'); % get rid of the peril_ID
+                        
+                    % DUMMY DAMAGE FUNCTIONS FOR TESTS
+                    % just match max scale of hazard.intensity to max
+                    % damagefunction.intensity
+                    max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
+                    max_hazard_intensity=full(max(max(hazard.intensity)));
+                    damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
+                    
+                    entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
+                    fprintf(' (dummy damage)\n');
+
+                end
+            end % isfield 'peril_ID'
             
             country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
         else
