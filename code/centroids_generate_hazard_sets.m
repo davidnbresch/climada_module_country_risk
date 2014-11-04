@@ -149,7 +149,7 @@ for file_i=1:length(D)
         if strcmp(fE,'.txt') && isempty(strfind(unisys_file_temp,'TEST'))
             
             tc_track_nodes_file=strrep([tc_tracks_folder filesep unisys_file_temp],'.txt','_nodes.mat');
-            if ~exist(tc_track_nodes_file,'file')
+            if ~climada_check_matfile([tc_tracks_folder filesep unisys_file_temp],tc_track_nodes_file)
                 % read tracks from unisys database file
                 tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep unisys_file_temp]);
                 
