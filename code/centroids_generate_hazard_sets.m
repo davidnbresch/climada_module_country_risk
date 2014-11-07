@@ -12,6 +12,12 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %      - climada_ts_hazard_set (surge)
 %      - eq_global_hazard_set (earthquake)
 %
+%   Note that the code supports both TC tracks from unisys database files
+%   and (NCAR) netCDF TC track files. Should both exist in the active
+%   ..\data\tc_tracks folder, the user NEEDS to 'hide' the ones not needed
+%   (e.g. by moving them into a temporary subfolder). Otherwise, the code
+%   takes what comes first (depends then on filename's alphabetical order)
+%
 %   previous step: country_risk_calc or climada_create_GDP_entity
 %   next step: see country_risk_calc (if you start with your own centroids,
 %   you might rather calculate the risk yourself, e.g. using
@@ -40,7 +46,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   centroids_hazard_info(centroids_i): a structure with hazard information for
 %       each set of centroids. See centroids_hazard_info.res.hazard with
 %       peril_ID: 'TC' or ...
-%       unisys_file: for TC only: the file sused to generste the event set
+%       raw_data_file: for TC only: the file sused to generste the event set
 %       hazard_set_file: the full filename of the hazard set generated
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141025, moved out of country_risk_calc
@@ -144,15 +150,22 @@ fprintf('*** hazard detection (%s)\n',country_name_char);
 D = dir(tc_tracks_folder); % get content
 for file_i=1:length(D)
     if ~D(file_i).isdir
-        unisys_file_temp=D(file_i).name;
-        [~,~,fE]=fileparts(unisys_file_temp);
-        if strcmp(fE,'.txt') && isempty(strfind(unisys_file_temp,'TEST'))
+        raw_data_file_temp=D(file_i).name;
+        [~,~,fE]=fileparts(raw_data_file_temp);
+        if (strcmp(fE,'.txt') || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
             
-            tc_track_nodes_file=strrep([tc_tracks_folder filesep unisys_file_temp],'.txt','_nodes.mat');
-            if ~climada_check_matfile([tc_tracks_folder filesep unisys_file_temp],tc_track_nodes_file)
-                % read tracks from unisys database file
-                tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep unisys_file_temp]);
-                
+            tc_track_nodes_file=strrep([tc_tracks_folder filesep raw_data_file_temp],fE,'_nodes.mat');
+                        
+            if ~climada_check_matfile([tc_tracks_folder filesep raw_data_file_temp],tc_track_nodes_file)
+                if  (strcmp(fE,'.txt'))
+                    % read tracks from unisys database file
+                    tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep raw_data_file_temp]);
+                elseif  (strcmp(fE,'.nc'))
+                    % read tracks from (NCAR) netCDF file
+                    tc_track=climada_tc_read_cam_ibtrac_v02([tc_tracks_folder filesep raw_data_file_temp]);                
+                else
+                    fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
+                end
                 tc_track_nodes.lon=[];
                 tc_track_nodes.lat=[];
                 fprintf('collecting all nodes for %i TC tracks\n',length(tc_track));
@@ -182,14 +195,14 @@ for file_i=1:length(D)
             if sum(in_track_poly)>0
                 hazard_count = hazard_count+1;
                 centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TC';
-                centroids_hazard_info.res.hazard(hazard_count).unisys_file = [tc_tracks_folder filesep unisys_file_temp];
+                centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
                 hazard_count = hazard_count+1;
                 centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TS';
-                centroids_hazard_info.res.hazard(hazard_count).unisys_file = [tc_tracks_folder filesep unisys_file_temp];
+                centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
                 hazard_count = hazard_count+1;
                 centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
-                centroids_hazard_info.res.hazard(hazard_count).unisys_file = [tc_tracks_folder filesep unisys_file_temp];
-                fprintf('* hazard TC %s detected\n',strrep(unisys_file_temp,'.txt',''));
+                centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                fprintf('* hazard TC %s detected\n',strrep(raw_data_file_temp,'.txt',''));
             end
             
         end % only *.txt files
@@ -222,7 +235,7 @@ else
     if sum(in_seismic_poly)>0
         hazard_count = hazard_count+1;
         centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'EQ';
-        centroids_hazard_info.res.hazard(hazard_count).unisys_file = []; % for safety, not needed
+        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
         fprintf('* hazard EQ detected\n');
     end
 end
@@ -253,7 +266,7 @@ else
     if sum(in_ws_poly)>0
         hazard_count = hazard_count+1;
         centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'WS';
-        centroids_hazard_info.res.hazard(hazard_count).unisys_file = []; % for safety, not needed
+        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
         fprintf('* hazard WS Europe detected\n');
     end
 end
@@ -270,7 +283,7 @@ for hazard_i=1:hazard_count
     
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'TC')
         
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
@@ -280,16 +293,26 @@ for hazard_i=1:hazard_count
             
             fprintf('*** hazard generation for TC %s in %s\n',hazard_name,country_name_char);
             
-            % read tracks from unisys database file (txt)
-            [tc_track,tc_track_mat] = climada_tc_read_unisys_database(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
-            
+            [~,~,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
+
+            % read tracks from database file (.txt or .nc)
+            if (strcmp(fE,'.txt'))
+                % read tracks from unisys database file (txt)
+                [tc_track,tc_track_mat] = climada_tc_read_unisys_database(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
+            elseif  (strcmp(fE,'.nc'))
+                % read tracks from (NCAR) netCDF files
+                [tc_track,tc_track_mat] = climada_tc_read_cam_ibtrac_v02(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
+            else
+                fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
+            end
+                        
             if probabilistic
                 
                 if exist('climada_tc_track_wind_decay_calculate','file')
                     % wind speed decay at track nodes after landfall
-                    [a p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,1);
+                    [~,p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,1);
                 else
-                    fprintf('NO inland decay, consider module tc_hazard_advanced\n');
+                    fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
                 end
                 
                 tc_track = climada_tc_random_walk(tc_track); % overwrites tc_track to save memory
@@ -336,7 +359,7 @@ for hazard_i=1:hazard_count
         
         % NOTE: TC has to have run before (usually the case)
         
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
@@ -349,16 +372,16 @@ for hazard_i=1:hazard_count
             if exist('climada_tr_hazard_set', 'file') % the function exists
                 
                 % we need the TC track set to start with
-                [fP,fN]=fileparts(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
+                [fP,fN]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
                 tc_track_mat=[fP filesep fN '_proc.mat'];
                 tc_track_prob_mat = strrep(tc_track_mat,'_proc.mat','_prob.mat');
                 if probabilistic
-                    unisys_file_mat = tc_track_prob_mat;
+                    raw_data_file_mat = tc_track_prob_mat;
                 else
-                    unisys_file_mat = tc_track_mat;
+                    raw_data_file_mat = tc_track_mat;
                 end
-                fprintf('loading tc tracks from %s\n',unisys_file_mat);
-                load(unisys_file_mat)
+                fprintf('loading tc tracks from %s\n',raw_data_file_mat);
+                load(raw_data_file_mat)
                 
                 hazard = climada_tr_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 fprintf('TR: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
@@ -376,7 +399,7 @@ for hazard_i=1:hazard_count
         
         % NOTE: TC has to have run before (usually the case)
         
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).unisys_file);
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...

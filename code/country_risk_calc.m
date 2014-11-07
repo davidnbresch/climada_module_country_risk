@@ -59,6 +59,7 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 % David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 % David N. Bresch, david.bresch@gmail.com, 20141029, force_re_encoding
 % David N. Bresch, david.bresch@gmail.com, 20141103, matching peril_ID for damagefunction added
+% David N. Bresch, david.bresch@gmail.com, 20141107, add ncetCFD tc_track file treatment (NCAR) (on flight to Dubai)
 %-
 
 country_risk = []; % init output
@@ -72,23 +73,15 @@ if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
 
-module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
-%
-% TEST_location to mark and lable one spot
-% only makes sense if run for one country (not rot 'ALL')
-%TEST_location.name      = '  San Salvador'; % first two spaces for nicer labeling
-%TEST_location.longitude = -89+11/60+24/3600;
-%TEST_location.latitude  =  13+41/60+24/3600;
-TEST_location=''; % set TEST_location='' to omit labeling
 %
 % the folder all data will be stored to, usually the standard climada
 % data tree. But since the option country_name='ALL' creates so many
 % files, one might divert to e.g. a data folder structure within the
-% module (see climada_init_folders to create the required folders automatically)
-country_data_dir = climada_global.data_dir;
-%country_data_dir = module_data_dir;
+% module
+country_data_dir = climada_global.data_dir; % default
+%country_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data']; % to store within module
 %
 % Note that one would need to re-encode assets to each hazard prior to
 % calling the damage calculation (as climada_EDS_calc assumes matching
@@ -97,8 +90,11 @@ country_data_dir = climada_global.data_dir;
 % matching the n locations of the assets, while the n+1:end elements in
 % hazard are the ones for the buffer around the country). The call to
 % centroids_generate_hazard_sets ensures that, and hence no need for
-% re-encoding (force_re_encoding=0)
+% re-encoding (force_re_encoding=0). But in case you're in doubt, set
+% force_re_encoding=1 and check whether you get the same results (if yes,
+% very likely no need for force_re_encoding=1, otherwise keep =1).
 force_re_encoding=0; % default=0
+
 
 % some folder checks (to be on the safe side)
 if ~exist(country_data_dir,'dir'),mkdir(fileparts(country_data_dir),'data');end
