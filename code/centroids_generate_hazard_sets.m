@@ -11,12 +11,13 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %      - climada_tr_hazard_set (rain)
 %      - climada_ts_hazard_set (surge)
 %      - eq_global_hazard_set (earthquake)
+%      - European winter storm module (existing hazard)
 %
 %   Note that the code supports both TC tracks from unisys database files
 %   and (NCAR) netCDF TC track files. Should both exist in the active
 %   ..\data\tc_tracks folder, the user NEEDS to 'hide' the ones not needed
 %   (e.g. by moving them into a temporary subfolder). Otherwise, the code
-%   takes what comes first (depends then on filename's alphabetical order)
+%   produces two hazard event sets (which might be intended).
 %
 %   previous step: country_risk_calc or climada_create_GDP_entity
 %   next step: see country_risk_calc (if you start with your own centroids,

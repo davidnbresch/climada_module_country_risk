@@ -4,8 +4,9 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 %   country_risk_calc
 % PURPOSE:
 %   run all (available) perils for one country. I.e. generate earthquake (EQ),
-%   tropical cyclone (TC), torrential rain (TR) and storm surge (TS) hazard 
-%   event sets and run risk calculation for a given country
+%   tropical cyclone (TC), torrential rain (TR), storm surge (TS) and
+%   European winter storm (WS) hazard event sets and run risk calculation
+%   for a given country:
 %   1) generate centroids for the country (uses climada_create_GDP_entity)
 %   2) figure which hazards affect the country
 %   3) create the hazard event sets, uses
@@ -16,7 +17,9 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 %      - European winter storms (existing European hazard set)
 %   4) run the risk calculation for all hazards
 %
-%   NOTE that centroids_generate_hazard_sets is called for steps 2 and 3
+%   NOTE that centroids_generate_hazard_sets is called for steps 2 and 3.
+%   Note further that should there be more than one source for TC tracks,
+%   more than one TC hazard set is generated (see centroids_generate_hazard_sets)
 %
 %   next step: country_risk_report
 % CALLING SEQUENCE:
