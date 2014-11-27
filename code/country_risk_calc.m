@@ -21,17 +21,20 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 %   Note further that should there be more than one source for TC tracks,
 %   more than one TC hazard set is generated (see centroids_generate_hazard_sets)
 %
-%   next step: country_risk_report
+%   next step: country_risk_report, see also country_admin1_risk_calc
 % CALLING SEQUENCE:
 %   country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
 % EXAMPLE:
 %   country_risk=country_risk_calc; % interactive, select country from dropdown
 %   country_risk=country_risk_calc('ALL',0,0,0) % whole world, no figures
 % INPUTS:
-%   country_name: name of the country, see climada_create_GDP_entity
-%       if set to 'ALL', the code runs recursively through ALL countries
-%       (mind the time this will take...)
-%       > prompted for via dropdown list if empty
+%   country_name: name of the country, like 'Switzerland', or a list of
+%       countries, like {'Switzerland','Germany','France'}, see
+%       climada_create_GDP_entity. 
+%       If set to 'ALL', the code runs recursively through ALL countries
+%       (mind the time this will take...) 
+%       > prompted for via dropdown list if empty (allows for single or
+%       multiple country selection)
 % OPTIONAL INPUT PARAMETERS:
 %   probabilistic: if =1, generate probabilistic hazard event sets,
 %       =0 generate 'historic' hazard event sets (default)
@@ -63,6 +66,7 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 % David N. Bresch, david.bresch@gmail.com, 20141029, force_re_encoding
 % David N. Bresch, david.bresch@gmail.com, 20141103, matching peril_ID for damagefunction added
 % David N. Bresch, david.bresch@gmail.com, 20141107, add ncetCFD tc_track file treatment (NCAR) (on flight to Dubai)
+% David N. Bresch, david.bresch@gmail.com, 20141126, country list enabled and multiple selection added
 %-
 
 country_risk = []; % init output
@@ -76,6 +80,11 @@ if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
 
+% check for module GDP_entity, as it otherwise fails anyway
+if length(which('climada_create_GDP_entity'))<2
+    fprintf('ERROR: GDP_entity module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_GDP_entity\n');
+    return
+end
 
 % PARAMETERS
 %
@@ -114,31 +123,37 @@ if isempty(borders), fprintf('no map found\n'), return, end
 valid_countries_indx = ~strcmp(borders.ISO3,'-');
 valid_countries      = borders.name(valid_countries_indx);
 
+if isempty(country_name) % prompt for country or region
+    country_name = climada_ask_country_name('multiple');
+    if isempty(country_name),return,end % Cancel selected
+end
+
 if strcmp(country_name,'ALL')
-    % call recursively
-    [~, sort_index] = sort(valid_countries);
-    %sort_index=sort_index([2 6 9 14 19 21 22 127 183 208]); % TEST subset
-    for country_i = 1:length(sort_index)
-        country_name = valid_countries(sort_index(country_i));
+    % compile list of all countries, then call recursively below
+    country_name = sort(valid_countries); % alphabetical
+end
+
+if ~iscell(country_name),country_name = {country_name};end % check that country_name is a cell
+
+if length(country_name)>1 % more than one country, process recursively
+    n_countries=length(country_name);
+    for country_i = 1:n_countries
+        single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
-            char(country_name),country_i,length(sort_index));
-        country_risk_out(country_i)=country_risk_calc(country_name,probabilistic,force_recalc,check_plots);
+            char(single_country_name),country_i,n_countries);
+        country_risk_out(country_i)=country_risk_calc(single_country_name,probabilistic,force_recalc,check_plots);
     end % country_i
     close all
     country_risk=country_risk_out;
     return
 end
 
-% ask for country or region
-if isempty(country_name)
-    country_name = climada_ask_country_name;
-end
-if isempty(country_name),return, end
+% to TEST country name stuff:
+% fprintf('STOP %s\n',char(country_name));
+% country_risk.name=country_name;
+% return
 
-%check that country_name is a cell
-if ~iscell(country_name),country_name = {country_name};end
-
-country_name_char         = char(country_name); % as to create filenames etc., needs to be char
+country_name_char = char(country_name); % as to create filenames etc., needs to be char
 country_risk.res.country_name = country_name_char;
 
 % define easy to read filenames
@@ -150,7 +165,7 @@ entity_future_file = [country_data_dir filesep 'entities' filesep country_name_c
 % 1) read the centroids
 % =====================
 
-if ~exist(centroids_file,'file') || force_recalc
+if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
     % invoke the GDP_entity moduke to generate centroids and entity
     country_name_char_tmp=country_name_char;
     if strcmp(country_name_char,'Vietnam')   , country_name_char_tmp='Viet Nam';end
@@ -253,6 +268,8 @@ if isfield(country_risk.res,'hazard')
                     fprintf(' (dummy damage)\n');
 
                 end
+            else
+                fprintf(' (default damage)\n');
             end % isfield 'peril_ID'
             
             country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);

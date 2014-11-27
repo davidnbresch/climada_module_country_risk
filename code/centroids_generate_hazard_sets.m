@@ -19,6 +19,10 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   (e.g. by moving them into a temporary subfolder). Otherwise, the code
 %   produces two hazard event sets (which might be intended).
 %
+%   Please not further that the WS_Europe hazard event set is defined in
+%   PARAMETERS, as this is not freshly generated, but the country hazard
+%   event set is just a subset (see also climada module ws_europe)
+%
 %   previous step: country_risk_calc or climada_create_GDP_entity
 %   next step: see country_risk_calc (if you start with your own centroids,
 %   you might rather calculate the risk yourself, e.g. using
@@ -68,7 +72,6 @@ if ~exist('check_plots' ,'var'), check_plots  = 0;end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
-
 % PARAMETERS
 %
 % TEST_location to mark and lable one spot
@@ -85,7 +88,8 @@ local_data_dir = climada_global.data_dir;
 %local_data_dir = module_data_dir;
 %
 % define the WS Europe hazard event set we test for (see module ws_europe)
-WS_Europe_hazard_set_file='WS_ECHAM_CTL.mat'; % with .mat see below
+WS_Europe_hazard_set_file='WS_ERA40.mat'; % with .mat
+%WS_Europe_hazard_set_file='WS_ECHAM_CTL.mat'; % until 20141126
 %
 % whether we create a single WS Europe country hazard event set for each WS
 % Europe exposed country (speedup in risk calc, since centroids ordered the
