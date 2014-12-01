@@ -88,7 +88,8 @@ local_data_dir = climada_global.data_dir;
 %local_data_dir = module_data_dir;
 %
 % define the WS Europe hazard event set we test for (see module ws_europe)
-WS_Europe_hazard_set_file='WS_ERA40.mat'; % with .mat
+WS_Europe_hazard_set_file='WS_Europe.mat'; % with .mat
+%WS_Europe_hazard_set_file='WS_ERA40.mat'; % until 20141201
 %WS_Europe_hazard_set_file='WS_ECHAM_CTL.mat'; % until 20141126
 %
 % whether we create a single WS Europe country hazard event set for each WS
@@ -254,7 +255,13 @@ else
     % test WS exposure
     WS_module_data_dir=[fileparts(fileparts(which('winterstorm_TEST'))) filesep 'data'];
     
-    load([WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file]);
+    full_WS_Europe_hazard_set_file=[WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
+    if exist(full_WS_Europe_hazard_set_file,'file')
+        load([WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file]);
+    else
+        % generate the blended WS_Europe hazard set first
+        hazard=winterstorm_blend_hazard_event_sets;
+    end
     
     % check for WS centroids within centroids_rect
     in_ws_poly = inpolygon(hazard.lon,hazard.lat,centroids_edges_x,centroids_edges_y);
