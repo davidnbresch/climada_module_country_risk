@@ -220,11 +220,12 @@ end %
 % EQ: figure whether the particular country is exposed
 % ----------------------------------------------------
 
-if length(which('eq_centennial_read'))<2
+if length(which('eq_isc_gem_read'))<2
     cprintf([1,0.5,0],'Earthquake (EQ) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n\n');
 else
     % test EQ exposure
-    eq_data=eq_centennial_read;
+    %eq_data=eq_centennial_read; % until 20141203
+    eq_data=eq_isc_gem_read;
     
     % check for track nodes within centroids_rect
     in_seismic_poly = inpolygon(eq_data.glon,eq_data.glat,centroids_edges_x,centroids_edges_y);
@@ -457,7 +458,9 @@ for hazard_i=1:hazard_count
             fprintf('*** hazard generation for EQ in %s\n',country_name_char);
             
             if exist('eq_global_hazard_set','file') % the function exists
-                eq_data=eq_centennial_read; % to be on the safe side
+                %eq_data=eq_centennial_read; % to be on the safe side, until 20141203
+                eq_data=eq_isc_gem_read; % to be on the safe side
+    
                 if probabilistic,eq_data=eq_global_probabilistic(eq_data,9);end
                 hazard=eq_global_hazard_set(eq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 if ~isempty(hazard)
