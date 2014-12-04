@@ -1,9 +1,9 @@
-function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,admin0_name,admin1_name)
-% world border map country political
+function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,admin0_name,admin1_name,scale_Value)
+% country admin0 admin1 entity high resolution
 % NAME:
 %	climada_high_res_entity
 % PURPOSE:
-%   Construct an entity file baed on high-res night light data. Reads an
+%   Construct an entity file based on high-res night light data. Reads an
 %   image file with nightlight density and matches it to the local geography
 %
 %   Prompts for country (admin0) and state/province (admin1), fetches the
@@ -14,6 +14,9 @@ function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,ad
 %   Since we're dealing with admin1, no automatic scaling or allocation of
 %   GDP to centroids is performed (see climada_create_GDP_entity)
 %
+%   Programmer's remark: see fetch_mapserver_ngdc_noaa_gov_gcv4 at the
+%   bottom of the code, which could in theory fetch the tile from www
+%
 %   See also climada_create_GDP_entity
 % CALLING SEQUENCE:
 %   entity=climada_high_res_entity(img_filename,check_plot,select_admin0,admin0_name,admin1_name)
@@ -21,26 +24,29 @@ function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,ad
 %   entity=climada_high_res_entity('ASK',0,0,'Austria','Steiermark') % prompts for image file, then restricts entity to Steiermark
 %   entity=climada_high_res_entity;
 %   climada_entity_plot(entity)
+%   entity=climada_high_res_entity('ASK',0,0,'Bangladesh','Barisal',[0 1 0 1003570224.438]);
 % INPUTS:
 %   img_filename: the filename of an image with night light density, as
 %       created using the GUI at http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/
 %       and select Satellite F18, 2010, avg_lights_x_pct, then 'Download
 %       data' and enter the coordinates
-%       The filename has to be of form A_B_C_D_*..lzw.tiff with A,B,C and D
+%       The filename has to be of form A_B_C_D_{|E_F}*..lzw.tiff with A,B,C and D
 %       the min lon, min lat, max lon and max lat (integer), like
-%       87_20_94_27_F182010.v4c.avg_lights_x_pct.lzw.tiff
-%       You find the four edge coordinates also in the html code to get the
-%       tile of the nightlight data, as the bbox parameters, e.g.
-%       http://mapserver.ngdc.noaa.gov/cgi-bin/public/gcv4/
-%       F182010.v4c.avg_lights_x_pct.lzw.tif?request=GetCoverage&service=WCS
-%       &version=1.0.0&COVERAGE=F182010.v4c.avg_lights_x_pct.lzw.tif
-%       &crs=EPSG:4326&format=geotiff&resx=0.0083333333&resy=0.0083333333
-%       &bbox=87,20,94,27
-%       If empty, we ask for a country and state/province (see
-%       select_admin0) and fetch the image with night light density from
-%       www.
-%       ='ASK' prompt for an image file, rather than fetching it (again)
-%       from www.
+%       87_20_94_27_F182010.v4c.avg_lights_x_pct.lzw.tiff and E and F the
+%       country (admin0) and state/province (admin1) name, like
+%       -88_24_-79_32_United States of America_Florida_high_res.avg_lights.lzw.tiff
+%       
+%       If empty (eg run the code without any argument), it prompts for country
+%       and admin1 name and constructs the URL to get the corresponding
+%       tile from the nightlight data, e.g. a string such as:
+%       http://mapserver.ngdc.noaa.gov/cgi-bin/public/gcv4/F182010.v4c.
+%           avg_lights_x_pct.lzw.tif?request=GetCoverage&service=WCS&
+%           version=1.0.0&COVERAGE=F182010.v4c.avg_lights_x_pct.lzw.tif&
+%           crs=EPSG:4326&format=geotiff&resx=0.0083333333&resy=0.0083333333&
+%           bbox=-88,24,-79,32
+%       
+%       ='ASK' prompt for an image file (without first asking for country
+%       where one has to press 'Cancel') to get the to filename prompt
 % OPTIONAL INPUT PARAMETERS:
 %   check_plot: if =1: plot nightlight data with admin0 (countries)
 %       superimposed, if=2 also admin1 (country states/provinces)
@@ -55,8 +61,13 @@ function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,ad
 %       Most useful for subsequent calls, i.e. once one knows the exact
 %       admin1 name. Also useful if a img_filename is passed and thus if
 %       admin1_name is defined, the respective admin1 is cut out.
-%       NOTE: Still an issue with ?..., i.e. Zrich does not work if entered
-%       as admin1_name, but works if selected from list-dialog
+%       NOTE: Still an issue with ???..., i.e. Zrich does not work if entered
+%       as admin1_name, but works if selected from list-dialog.
+%   scale_Value: =[a b c], scale entity.assets.Value to account for high
+%       nightlihgt intensity to represent larger share of values, as
+%       entity.assets.Value =  a + b*entity.assets.Value + c*entity.assets.Value.^2
+%       If = [a b c d], normalize after scaling and multziply by d
+%       Default= [0 1 0 1e9].
 % OUTPUTS:
 %   entity: a full climada entity, see climada_entity_read
 %       and see e.g. climada_entity_plot to check
@@ -64,7 +75,7 @@ function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,ad
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141202
 % David N. Bresch, david.bresch@gmail.com, 20141203, country and admin1 selection
-% David N. Bresch, david.bresch@gmail.com, 20141204, 'ASK' debugged
+% David N. Bresch, david.bresch@gmail.com, 20141204, 'ASK' debugged, cleaned up
 %-
 
 entity=[]; % init
@@ -79,6 +90,7 @@ if ~exist('check_plot','var'),check_plot=0; end
 if ~exist('select_admin0','var'),select_admin0=[]; end
 if ~exist('admin0_name','var'),admin0_name=''; end
 if ~exist('admin1_name','var'),admin1_name=''; end
+if ~exist('scale_Value','var'),scale_Value=[0 1 0 1e9]; end
 
 % locate the moduel's data
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
@@ -108,10 +120,14 @@ admin1_shape_file=[country_risk_data_folder filesep 'ne_10m_admin_1_states_provi
 % base entity file, borrowed from climada module GDP_entity:
 GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
 entity_file=[GDP_entity_data_folder filesep 'entity_global_without_assets.xls'];
+%
 % TEST
-% a tile of nightlights downloaded from http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/
-% e.g. http://mapserver.ngdc.noaa.gov/cgi-bin/public/gcv4/F182010.v4c.avg_lights_x_pct.lzw.tif?request=GetCoverage&service=WCS&version=1.0.0&COVERAGE=F182010.v4c.avg_lights_x_pct.lzw.tif&crs=EPSG:4326&format=geotiff&resx=0.0083333333&resy=0.0083333333&bbox=87,20,94,27
-%img_filename=[module_data_dir filesep 'system' filesep '87_20_94_27_F182010.v4c.avg_lights_x_pct.lzw.tiff'];
+% img_filename=[climada_global.data_dir filesep 'results' filesep ...
+%     '89_21_91_24_Bangladesh_Barisal_F182010.v4c.avg_lights_x_pct.lzw.tiff'];
+% check_plot=0;
+% select_admin0=0;
+% admin0_name='Bangladesh';
+% admin1_name='Barisal';
 close all % for TEST
 
 % read admin0 (country) shape file (we need this in any case)
@@ -146,17 +162,16 @@ if isempty(img_filename) % local GUI
         
     end % isempty(admin0_name)
     
-    % find the country in the shape file
-    admin0_shape_i=0;
-    for shape_i=1:length(admin0_shapes)
-        if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
-            admin0_shape_i=shape_i;
-        end
-    end % shape_i
-    
-    selection_admin0_shape_i=admin0_shape_i;
-    
     if ~strcmp(img_filename,'ASK')
+        
+        % find the country in the shape file
+        admin0_shape_i=0;
+        for shape_i=1:length(admin0_shapes)
+            if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
+                admin0_shape_i=shape_i;
+            end
+        end % shape_i
+        selection_admin0_shape_i=admin0_shape_i;
         
         if select_admin0
             
@@ -208,7 +223,7 @@ if isempty(img_filename) % local GUI
                 if ~ok,return;end
                 pause(0.1)
                 if ~isempty(selection)
-                    admin1_name=['_' deblank(liststr{selection})]; % _ for filename, see below
+                    admin1_name=deblank(liststr{selection});
                     selection_admin1_shape_i=admin1_shape_i(selection);                    
                 else
                     return
@@ -242,10 +257,13 @@ if isempty(img_filename) % local GUI
             
             % construct the filename and fetch the image tile from www
             
-            img_filename=[climada_global.data_dir filesep 'results' filesep bbox_file_pref admin0_name admin1_name '_high_res.avg_lights.lzw.tiff'];
+            img_filename=[climada_global.data_dir filesep 'results' filesep bbox_file_pref admin0_name '_' admin1_name '_high_res.avg_lights.lzw.tiff'];
             fprintf('%s\n',img_filename);
             
-            if ~fetch_mapserver_ngdc_noaa_gov_gcv4(bbox,img_filename),return;end
+            if ~fetch_mapserver_ngdc_noaa_gov_gcv4(bbox,img_filename)
+                fprintf('re-start %s(''ASK'') and select the filename you saved\n',mfilename);
+                return
+            end
         end
         
     end % ~strcmp(img_filename,'ASK')
@@ -263,25 +281,6 @@ if strcmp(img_filename,'ASK')
     end
 end
 
-% some double-checks (for the special case where an img_filename and
-% admin0_name and admin1_name are passed)
-if isempty(selection_admin0_shape_i) && ~isempty(admin0_name)
-    admin0_name=admin0_name;
-    for shape_i=1:length(admin0_shapes)
-        if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
-            selection_admin0_shape_i=shape_i;
-        end
-    end % shape_i
-end
-if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
-    if isempty(admin1_shapes),admin1_shapes=shaperead(admin1_shape_file);end % read admin1 shape file
-    for shape_i=1:length(admin1_shapes)
-        if strcmp(admin1_shapes(shape_i).name,admin1_name)
-            selection_admin1_shape_i=shape_i;
-        end
-    end % shape_i
-end
-
 % read the image
 img=imread(img_filename);
 img=img(end:-1:1,:); % switch for correct order in lattude (images are saved 'upside down')
@@ -297,15 +296,43 @@ try
     bbox(3)=str2num(single_token);
     [single_token,remaining_str]=strtok(remaining_str,'_');
     bbox(4)=str2num(single_token);
-    % entity_save_file=strrep(remaining_str,'.tiff',''); % start from filename withoput bbox
-    entity_save_file=strrep(fN,'.tiff',''); % name with bbox
-    entity_save_file=strrep(entity_save_file,'.lzw','');
-    entity_save_file=[climada_global.data_dir filesep 'entities' ...
-        filesep strrep(entity_save_file,'.','') '.mat'];
+    [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
+    if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin0_name),admin0_name=admin_name_tmp;end
+    [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
+    if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin1_name),admin1_name=admin_name_tmp;end
+
+%     entity_save_file=strrep(fN,'.tiff',''); % name with bbox
+%     entity_save_file=strrep(entity_save_file,'.lzw','');
+%     entity_save_file=[climada_global.data_dir filesep 'entities' ...
+%         filesep strrep(entity_save_file,'.','') '.mat'];
 catch
     fprintf('ERROR: filename does not contain boundig box coordinates, please\n');
     fprintf('make sure it is of form A_B_C_D_*.lzw.tiff with A,B,C and D the min lon, min lat, max lon and max lat (integer)\n');
     return
+end
+
+entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',admin0_name,admin1_name,bbox);
+entity_save_file=[climada_global.data_dir filesep 'entities' ...
+    filesep strrep(entity_save_file,'.','') '.mat'];
+
+% some double-checks (for the special case where an img_filename and
+% admin0_name and admin1_name are passed)
+if isempty(selection_admin0_shape_i) && ~isempty(admin0_name)
+    for shape_i=1:length(admin0_shapes)
+        %fprintf('|%s|%s|\n',admin0_shapes(shape_i).ADMIN,admin0_name)
+        if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
+            selection_admin0_shape_i=shape_i;
+        end
+    end % shape_i
+end
+if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
+    if isempty(admin1_shapes),admin1_shapes=shaperead(admin1_shape_file);end % read admin1 shape file
+    for shape_i=1:length(admin1_shapes)
+        %fprintf('|%s|%s|\n',admin1_shapes(shape_i).name,admin1_name)
+        if strcmp(admin1_shapes(shape_i).name,admin1_name)
+            selection_admin1_shape_i=shape_i;
+        end
+    end % shape_i
 end
 
 % define the corresponding x and y axes:
@@ -319,8 +346,6 @@ VALUES=double(img);
 
 % figure which admin0 (country) shapes we need
 % done before check_plot, as used below again
-fprintf('processing admin0 shapes ...\n');
-admin0_shapes=shaperead(admin0_shape_file); % read admin0 (country) shape file
 x=[bbox(1) bbox(1) bbox(3) bbox(3) (bbox(1)+bbox(3))/2];
 y=[bbox(2) bbox(4) bbox(2) bbox(4) (bbox(2)+bbox(4))/2];
 admin0_shape_i=0;next_admin0=1; % init
@@ -414,6 +439,14 @@ if exist(entity_file,'file')
     entity.assets.Cover=entity.assets.Value;
     entity.assets.DamageFunID=entity.assets.Value*0+1;
     entity.assets.reference_year=climada_global.present_reference_year;
+    if sum(scale_Value)>0
+        entity.assets.Value = scale_Value(1) + scale_Value(2)*entity.assets.Value + scale_Value(3)*entity.assets.Value.^2;
+        entity.assets.comment=sprintf('%s: y = %2.2f + %2.2f*x^1 + %2.2f*x^2',mfilename,scale_Value(1:3));
+        if length(scale_Value)==4
+            entity.assets.Value = entity.assets.Value/sum(entity.assets.Value)*scale_Value(4); % normalize, multiply
+            entity.assets.comment=[entity.assets.comment sprintf(', normalized, then *%2.2f',scale_Value(4))];
+        end
+    end
     fprintf('saving entity as %s\n',entity_save_file);
     save(entity_save_file,'entity');
     fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');
@@ -434,19 +467,23 @@ bbox_str=sprintf('&bbox=%i,%i,%i,%i',bbox);
 bbox_file_pref=sprintf('%i_%i_%i_%i_',bbox);
 www_filename=[http_str bbox_str];
 
-fprintf('issueing %s\n',www_filename);
-fprintf('should it fails, please enter in a browser, it often works better, start the filename with %s\n',bbox_file_pref);
+fprintf('please enter the following URL in a browser:\n\n');
+fprintf('%s\n\n',www_filename);
+fprintf('please save the .tiff file as:\n\n');
+fprintf('%s\n\n',img_filename);
+ok=0;
 
-[S,STATUS] = urlread(www_filename);
-if STATUS==1
-    fid=fopen(img_filename,'w');
-    fprintf(fid,'%s',S);
-    fclose(fid);
-    fprintf('%s (fetch_mapserver_ngdc_noaa_gov_gcv4) done\n',mfilename)
-    ok=1;
-else
-    fprintf('%s (fetch_mapserver_ngdc_noaa_gov_gcv4) FAILED\n',mfilename)
-    ok=0;
-end
+% the following does not work, since urlread returns garbage for non-text
+% [S,STATUS] = urlread(www_filename);
+% if STATUS==1
+%     fid=fopen(img_filename,'w');
+%     fprintf(fid,'%s',S);
+%     fclose(fid);
+%     fprintf('%s (fetch_mapserver_ngdc_noaa_gov_gcv4) done\n',mfilename)
+%     ok=1;
+% else
+%     fprintf('%s (fetch_mapserver_ngdc_noaa_gov_gcv4) FAILED\n',mfilename)
+%     ok=0;
+% end
 
 return % fetch_mapserver_ngdc_noaa_gov_gcv4
