@@ -107,6 +107,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 % David N. Bresch, david.bresch@gmail.com, 20141202
 % David N. Bresch, david.bresch@gmail.com, 20141203, country and admin1 selection
 % David N. Bresch, david.bresch@gmail.com, 20141204, 'ASK' debugged, cleaned up
+% David N. Bresch, david.bresch@gmail.com, 20141205, high-res locally stored
 %-
 
 entity=[]; % init
@@ -186,7 +187,7 @@ admin1_shapes=[]; % init
 selection_admin0_shape_i=[]; % init
 selection_admin1_shape_i=[]; % init
 
-% check for full global dataset being locally available
+% check for full global night light image being locally available
 for i=1:2
     if i==2 % check for alterantive location of the file, GDP_entity_CHECK
         if ~isempty(which('climada_create_GDP_entity')) % check for module to be present
