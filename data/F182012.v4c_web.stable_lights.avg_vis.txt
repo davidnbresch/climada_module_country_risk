@@ -1,0 +1,7 @@
+The high-resolution (1km!) night light data, see code climada_high_res_entity
+
+The climada module country_risk comes with the .mat file F182012.v4c_web.stable_lights.avg_vis (24MB), since the .tif image is about 700MB.
+
+See http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3 to obtain the file http://ngdc.noaa.gov/eog/data/web_data/v4composites/F182012.v4.tar and unzip the file F182012.v4c_web.stable_lights.avg_vis.tif in there to the /data folder of country_risk module. As the .tif is so much larger, the climada module country_risk comes with the .mat file, but does not contain the original (.tif). Please note that the GDP_entity could also deal with such a high-res dataset (see respective documentation).
+
+copyright (c) 2014, David N. Bresch, david.bresch@gmail.com

@@ -1,31 +1,83 @@
-function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,admin0_name,admin1_name,scale_Value)
+function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename)
 % country admin0 admin1 entity high resolution
 % NAME:
 %	climada_high_res_entity
 % PURPOSE:
-%   Construct an entity file based on high-res night light data. Reads an
-%   image file with nightlight density and matches it to the local geography
+%   Construct an entity file based on high-res (1km!) night light data. 
 %
-%   Prompts for country (admin0) and state/province (admin1), fetches the
-%   tile of night light density from www, constrains the active centroids
-%   (with values>0) to the selected country or admin1 (see
-%   restrict_Values_to_admin in PARAMETERS in code) and saves the entity.
+%   Reads an image file with nightlight density and matches it to the local
+%   geography.
+%
+%   Prompts for country (admin0) and state/province (admin1), obtains the
+%   high-resolution night lights for this area and constrains the active
+%   centroids (with values>0) to the selected country or admin1 (see input
+%   parameter selections) and saves the entity.
 %
 %   Since we're dealing with admin1, no automatic scaling or allocation of
-%   GDP to centroids is performed (see climada_create_GDP_entity)
+%   GDP to centroids is performed (for this, see climada_create_GDP_entity)
+%
+%   If the high-resolution night light image is stored locally (about 700MB
+%   as tiff, after first call about 24MB as .mat), the code works from
+%   there. See http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3
+%   to obtain the file http://ngdc.noaa.gov/eog/data/web_data/v4composites/F182012.v4.tar
+%   and unzip the file F182012.v4c_web.stable_lights.avg_vis.tif in there
+%   to the /data folder of country_risk module. As the .tif is so much
+%   larger, the climada module country_risk comes with the .mat file, but
+%   does not contain the original (.tif). Please note that the GDP_entity
+%   could also deal with such a high-res dataset (see respective
+%   documentation) - that's why the present code does also check for the
+%   night light data to be stored there (see GDP_entity_CHECK in code)
+%
+%   If the high-resolution night light image is stored locally, it fetches
+%   the tile of night light density from www (i.e. asks the user to enter a
+%   specific URL, to locally store the respective file) and works from
+%   there. (See also http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/ to obtain
+%   a specific 'tile' of the global high res via a web-GUI (but method with
+%   the coe suggesting the URL is strongly recommended).
 %
 %   Programmer's remark: see fetch_mapserver_ngdc_noaa_gov_gcv4 at the
 %   bottom of the code, which could in theory fetch the tile from www
 %
 %   See also climada_create_GDP_entity
 % CALLING SEQUENCE:
-%   entity=climada_high_res_entity(img_filename,check_plot,select_admin0,admin0_name,admin1_name)
+%   entity=climada_high_res_entity(img_filename,check_plot,selections,admin0_name,admin1_name)
 % EXAMPLE:
-%   entity=climada_high_res_entity('ASK',0,0,'Austria','Steiermark') % prompts for image file, then restricts entity to Steiermark
-%   entity=climada_high_res_entity;
-%   climada_entity_plot(entity)
-%   entity=climada_high_res_entity('ASK',0,0,'Bangladesh','Barisal',[0 1 0 1003570224.438]);
+%   entity=climada_high_res_entity('Italy','',2); % good for test, as shape of Italy is well-known
+%   entity=climada_high_res_entity('United States of America','Florida',2,2);
+%   entity=climada_high_res_entity % all interacrtive
+%   climada_entity_plot(entity) % to check the content of the final entity
 % INPUTS:
+% OPTIONAL INPUT PARAMETERS:
+%   admin0_name: if passed on, do not prompt for country name
+%       > If empty, a list dialog lets the user select (default)
+%       Also useful if a img_filename is passed and thus if admin0_name is
+%       defined, the respective country is cut out
+%   admin1_name: if passed on, do not prompt for admin1 name
+%       > If empty, a list dialog lets the user select (default)
+%       Most useful for subsequent calls, i.e. once one knows the exact
+%       admin1 name. Also useful if a img_filename is passed and thus if
+%       admin1_name is defined, the respective admin1 is cut out.
+%       NOTE: Still an issue with some characters, i.e. Zrich does not work
+%       if entered as admin1_name, but works if selected from list-dialog. 
+%   selections: =0 (default): select admin1 and constrain the active
+%       centroids (with values>0) to the selected state/province
+%       =1: select admin0 (full country), not admin1 (country
+%       state/province). Note that select_admin0=1 might lead to memory
+%       issues for large(r) countries, see option =2, too.
+%       =2: select admin0 (like =1) and do not constrain the active
+%       centroids (with values>0) to the selected country (good for initial
+%       test and speedup, but less useful as an entity for damage
+%       calculation later). 
+%       =3: select admin1 and do not constrain the active
+%       centroids (with values>0) to the selected state/province, see 2.
+%   check_plot: if =1: plot nightlight data with admin0 (countries)
+%       superimposed, if=2 also admin1 (country states/provinces)
+%       =0: no plot (default)
+%   scale_Value: =[a b c], scale entity.assets.Value to account for high
+%       nightlihgt intensity to represent larger share of values, as
+%       entity.assets.Value =  a + b*entity.assets.Value + c*entity.assets.Value.^2
+%       If = [a b c d], normalize after scaling and multziply by d
+%       Default= [0 1 0 1e9].
 %   img_filename: the filename of an image with night light density, as
 %       created using the GUI at http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/
 %       and select Satellite F18, 2010, avg_lights_x_pct, then 'Download
@@ -47,27 +99,6 @@ function entity=climada_high_res_entity(img_filename,check_plot,select_admin0,ad
 %       
 %       ='ASK' prompt for an image file (without first asking for country
 %       where one has to press 'Cancel') to get the to filename prompt
-% OPTIONAL INPUT PARAMETERS:
-%   check_plot: if =1: plot nightlight data with admin0 (countries)
-%       superimposed, if=2 also admin1 (country states/provinces)
-%       =0: no plot (default)
-%   select_admin0: =1: select admin0 (full country), not admin1 (country
-%       state/province). Note that select_admin0=1 might lead to memory issues
-%       for large(r) countries. Default=0
-%   admin0_name: if passed on, do not prompt for country name
-%       Also useful if a img_filename is passed and thus if admin0_name is
-%       defined, the respective country is cut out
-%   admin1_name: if passed on, do not prompt for admin1 name
-%       Most useful for subsequent calls, i.e. once one knows the exact
-%       admin1 name. Also useful if a img_filename is passed and thus if
-%       admin1_name is defined, the respective admin1 is cut out.
-%       NOTE: Still an issue with ???..., i.e. Zrich does not work if entered
-%       as admin1_name, but works if selected from list-dialog.
-%   scale_Value: =[a b c], scale entity.assets.Value to account for high
-%       nightlihgt intensity to represent larger share of values, as
-%       entity.assets.Value =  a + b*entity.assets.Value + c*entity.assets.Value.^2
-%       If = [a b c d], normalize after scaling and multziply by d
-%       Default= [0 1 0 1e9].
 % OUTPUTS:
 %   entity: a full climada entity, see climada_entity_read
 %       and see e.g. climada_entity_plot to check
@@ -87,7 +118,7 @@ if ~climada_init_vars,return;end;
 % check for arguments
 if ~exist('img_filename','var'),img_filename=''; end
 if ~exist('check_plot','var'),check_plot=0; end
-if ~exist('select_admin0','var'),select_admin0=[]; end
+if ~exist('selections','var'),selections=0; end
 if ~exist('admin0_name','var'),admin0_name=''; end
 if ~exist('admin1_name','var'),admin1_name=''; end
 if ~exist('scale_Value','var'),scale_Value=[0 1 0 1e9]; end
@@ -108,9 +139,11 @@ end
 
 % PARAMETERS
 %
-% crate the entity for the rectangular are, but store the values only for
-% the (center/selected) country
-restrict_Values_to_coutry=1;
+% the file with the full (whole earth) 1km nightlights
+% see http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3
+full_img_filename=[module_data_dir filesep 'F182012.v4c_web.stable_lights.avg_vis.tif'];
+min_South=-65; % degree, defined on the webpage above
+max_North=75; % defined on the webpage above
 %
 % admin0 and admin1 shap files, borrowed from climada module country_risk:
 country_risk_data_folder=[fileparts(fileparts(which('country_admin1_risk_calc'))) filesep 'data'];
@@ -121,14 +154,30 @@ admin1_shape_file=[country_risk_data_folder filesep 'ne_10m_admin_1_states_provi
 GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
 entity_file=[GDP_entity_data_folder filesep 'entity_global_without_assets.xls'];
 %
-% TEST
-% img_filename=[climada_global.data_dir filesep 'results' filesep ...
-%     '89_21_91_24_Bangladesh_Barisal_F182010.v4c.avg_lights_x_pct.lzw.tiff'];
-% check_plot=0;
-% select_admin0=0;
-% admin0_name='Bangladesh';
-% admin1_name='Barisal';
-close all % for TEST
+% Parameters below very unlikely to change, see input parameter selections
+% crate the entity for the rectangular are, but store the values only for
+% the (center/selected) country or admin1 (see parameter selections)
+restrict_Values_to_coutry=1; % default=1
+%
+% whether we select admin0 or admin1 (see parameter selections)
+select_admin0=0; % default=0, to select admin1
+
+
+% switch the different selections for admin0/1 selection and restriction of values
+if selections==1
+    % admin0
+    select_admin0=1;
+    restrict_Values_to_coutry=1;
+elseif selections==2
+    % admin0, but no restriction of values
+    select_admin0=1;
+    restrict_Values_to_coutry=0; % fast
+elseif selections==3
+    % admin1, but no restriction of values
+    select_admin0=0;
+    restrict_Values_to_coutry=0; % fast
+end
+
 
 % read admin0 (country) shape file (we need this in any case)
 admin0_shapes=shaperead(admin0_shape_file);
@@ -137,6 +186,35 @@ admin1_shapes=[]; % init
 selection_admin0_shape_i=[]; % init
 selection_admin1_shape_i=[]; % init
 
+% check for full global dataset being locally available
+for i=1:2
+    if i==2 % check for alterantive location of the file, GDP_entity_CHECK
+        if ~isempty(which('climada_create_GDP_entity')) % check for module to be present
+            GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
+            full_img_filename=[GDP_entity_data_folder filesep fN fE];
+            full_img_filename
+        end
+    end
+    [fP,fN,fE]=fileparts(full_img_filename);
+    full_img_filename_mat=[fP filesep fN '.mat'];
+    if ~exist(full_img_filename_mat,'file')
+        full_img_filename_mat=''; % not .mat file
+        if ~exist(full_img_filename,'file')
+            full_img_filename='';
+            full_img_exists=0;
+        else
+            full_img_exists=1; % .mat of full image exists
+            break
+        end % not full file
+    else
+        full_img_filename=''; % no need for riginal, since .mat exists
+        full_img_exists=1;
+        break
+    end
+end % i
+
+bbox=[]; % init
+
 if isempty(img_filename) % local GUI
     
     % no filename passed, we ask for admin0 and admin1...
@@ -144,6 +222,7 @@ if isempty(img_filename) % local GUI
     if isempty(admin0_name)
         
         % generate the list of countries
+        admin0_name_list={};
         for shape_i=1:length(admin0_shapes)
             admin0_name_list{shape_i}=admin0_shapes(shape_i).ADMIN;
         end % shape_i
@@ -209,22 +288,24 @@ if isempty(img_filename) % local GUI
                 set(gcf,'Color',[1 1 1]) % whithe figure background
                 
                 % plot admin1 (country states/provinces) shapes
-                liststr=[]; % reset
+                admin1_name_list={};
                 for admin1_i=1:length(admin1_shape_i)
                     shape_i=admin1_shape_i(admin1_i);
                     plot(admin1_shapes(shape_i).X,admin1_shapes(shape_i).Y,'-r','LineWidth',1);
                     text(admin1_shapes(shape_i).longitude,admin1_shapes(shape_i).latitude,admin1_shapes(shape_i).name);
-                    liststr{admin1_i}=admin1_shapes(shape_i).name; % compile list of admin1 names
+                    admin1_name_list{admin1_i}=admin1_shapes(shape_i).name; % compile list of admin1 names
                 end % admin1_i
                 
+                [liststr,sort_index] = sort(admin1_name_list);
+
                 % show list dialog to select admin1 (now easy as names shown on plot)
                 [selection,ok] = listdlg('PromptString','Select admin1:',...
                     'ListString',liststr,'SelectionMode','single');
                 if ~ok,return;end
                 pause(0.1)
                 if ~isempty(selection)
-                    admin1_name=deblank(liststr{selection});
-                    selection_admin1_shape_i=admin1_shape_i(selection);                    
+                    admin1_name = admin1_name_list{sort_index(selection)};
+                    selection_admin1_shape_i=admin1_shape_i(sort_index(selection));                    
                 else
                     return
                 end % ~isempty(selection)
@@ -253,13 +334,14 @@ if isempty(img_filename) % local GUI
         % prepare parameters for www call to fetch the tile of the global map
         bbox_file_pref=sprintf('%i_%i_%i_%i_',bbox);
         
-        if isempty(img_filename)
+        if isempty(img_filename) && ~full_img_exists
+            % we need a tile, since the full file does not exist
             
-            % construct the filename and fetch the image tile from www
-            
+            % construct the filename
             img_filename=[climada_global.data_dir filesep 'results' filesep bbox_file_pref admin0_name '_' admin1_name '_high_res.avg_lights.lzw.tiff'];
-            fprintf('%s\n',img_filename);
+            %fprintf('%s\n',img_filename);
             
+            % fetch the image tile from www
             if ~fetch_mapserver_ngdc_noaa_gov_gcv4(bbox,img_filename)
                 fprintf('re-start %s(''ASK'') and select the filename you saved\n',mfilename);
                 return
@@ -281,37 +363,89 @@ if strcmp(img_filename,'ASK')
     end
 end
 
-% read the image
-img=imread(img_filename);
-img=img(end:-1:1,:); % switch for correct order in lattude (images are saved 'upside down')
+if isempty(img_filename)
+    % we get there if filename is empty on input and full_img_exists
+    % hence will use the full img
+    if ~isempty(full_img_filename_mat)
+        % there is a previously saved .mat version of the full image
+        load(full_img_filename_mat) % loads img
+        
+        xx=360*(1:size(img,2))/size(img,2)+(-180); % -180..180
+        yy=(max_North-min_South)*(1:size(img,1))/size(img,1)+min_South;
+        
+    elseif ~isempty(full_img_filename)
+        % there is a full image
+        fprintf('reading full global high-res image, takes ~20 sec (%s)\n',full_img_filename);
+        img=imread(full_img_filename);
+        img=img(end:-1:1,:); % switch for correct order in lattude (images are saved 'upside down')
+        
+        xx=360*(1:size(img,2))/size(img,2)+(-180); % -180..180
+        yy=(max_North-min_South)*(1:size(img,1))/size(img,1)+min_South;
+        
+        [fP,fN]=fileparts(full_img_filename);
+        full_img_filename_mat=[fP filesep fN '.mat'];
+        save(full_img_filename_mat,'img','xx','yy'); % for fast access next time
+    else
+        fprintf('STUCK, aborted\n')
+        return
+    end
+    
+    % img holds the full global image, crop to what we need (for speedup)
+    fprintf('cropping lon=%i..%i, lat=%i..%i\n',bbox(1),bbox(3),bbox(2),bbox(4));
 
-% infer the edge coordiantes from the filename
-try
-    [~,fN]=fileparts(img_filename);
-    [single_token,remaining_str]=strtok(fN,'_');
-    bbox=str2num(single_token);
-    [single_token,remaining_str]=strtok(remaining_str,'_');
-    bbox(2)=str2num(single_token);
-    [single_token,remaining_str]=strtok(remaining_str,'_');
-    bbox(3)=str2num(single_token);
-    [single_token,remaining_str]=strtok(remaining_str,'_');
-    bbox(4)=str2num(single_token);
-    [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
-    if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin0_name),admin0_name=admin_name_tmp;end
-    [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
-    if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin1_name),admin1_name=admin_name_tmp;end
-
-%     entity_save_file=strrep(fN,'.tiff',''); % name with bbox
-%     entity_save_file=strrep(entity_save_file,'.lzw','');
-%     entity_save_file=[climada_global.data_dir filesep 'entities' ...
-%         filesep strrep(entity_save_file,'.','') '.mat'];
-catch
-    fprintf('ERROR: filename does not contain boundig box coordinates, please\n');
-    fprintf('make sure it is of form A_B_C_D_*.lzw.tiff with A,B,C and D the min lon, min lat, max lon and max lat (integer)\n');
-    return
+    pos_x=find(xx>=bbox(1) & xx<=bbox(3));
+    pos_y=find(yy>=bbox(2) & yy<=bbox(4));
+    
+    fprintf('cropping x=%i..%i, y=%i..%i\n',min(pos_x),max(pos_x),min(pos_y),max(pos_y));
+    
+    % crop to the area we need
+    img=img(pos_y,pos_x); 
+    xx=xx(pos_x);
+    yy=yy(pos_y);
+    
+else
+    
+    % read the image (a tile, not the full global one, see just above)
+    img=imread(img_filename);
+    img=img(end:-1:1,:); % switch for correct order in lattude (images are saved 'upside down')
+    
 end
 
-entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',admin0_name,admin1_name,bbox);
+% instead of bbox, the plotting further down needs another order
+img_area=[bbox(1) bbox(3) bbox(2) bbox(4)]; % [minlon maxlon minlat maxlat]
+
+if isempty(xx) && isempty(yy)
+    % infer the edge coordiantes from the filename
+    try
+        [~,fN]=fileparts(img_filename);
+        [single_token,remaining_str]=strtok(fN,'_');
+        bbox=str2num(single_token);
+        [single_token,remaining_str]=strtok(remaining_str,'_');
+        bbox(2)=str2num(single_token);
+        [single_token,remaining_str]=strtok(remaining_str,'_');
+        bbox(3)=str2num(single_token);
+        [single_token,remaining_str]=strtok(remaining_str,'_');
+        bbox(4)=str2num(single_token);
+        [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
+        if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin0_name),admin0_name=admin_name_tmp;end
+        [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
+        if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin1_name),admin1_name=admin_name_tmp;end
+        
+        % define the corresponding x and y axes:
+        xx=(img_area(2)-img_area(1))*(1:size(img,2))/size(img,2)+img_area(1);
+        yy=(img_area(4)-img_area(3))*(1:size(img,1))/size(img,1)+img_area(3);
+    catch
+        fprintf('ERROR: filename does not contain boundig box coordinates, please\n');
+        fprintf('make sure it is of form A_B_C_D_*.lzw.tiff with A,B,C and D the min lon, min lat, max lon and max lat (integer)\n');
+        return
+    end
+end % isempty(xx) && isempty(yy)
+
+if isempty(admin1_name)
+    entity_save_file=sprintf('%s_%i_%i_%i_%i',admin0_name,bbox);
+else
+    entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',admin0_name,admin1_name,bbox);
+end
 entity_save_file=[climada_global.data_dir filesep 'entities' ...
     filesep strrep(entity_save_file,'.','') '.mat'];
 
@@ -335,10 +469,6 @@ if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
     end % shape_i
 end
 
-% define the corresponding x and y axes:
-img_area=[bbox(1) bbox(3) bbox(2) bbox(4)]; % [minlon maxlon minlat maxlat]
-xx=(img_area(2)-img_area(1))*(1:size(img,2))/size(img,2)+img_area(1);
-yy=(img_area(4)-img_area(3))*(1:size(img,1))/size(img,1)+img_area(3);
 [X,Y]=meshgrid(xx,yy); % construct regular grid
 
 % patch zeros
@@ -356,6 +486,8 @@ for shape_i=1:length(admin0_shapes)
         next_admin0=next_admin0+1;
     end
 end % shape_i
+if ~isempty(selection_admin0_shape_i),...
+        admin0_shape_i(next_admin0)=selection_admin0_shape_i;end % to be safe
 
 if check_plot
     % plot the image (kind of 'georeferenced')
@@ -372,7 +504,7 @@ if check_plot
     end % country_i
     
     if check_plot>1
-        fprintf('processing admin1 shapes ...\n');
+        fprintf('adding admin1 shapes to plot ...\n');
         % figure which admin1 (country states/provinces) shapes we need
         if isempty(admin1_shapes),admin1_shapes=shaperead(admin1_shape_file);end % read admin1 shape file
         admin1_shape_i=0;next_admin1=1; % init
@@ -421,11 +553,11 @@ if exist(entity_file,'file')
             
         end
         if isempty(selection_admin1_shape_i)
-            fprintf('restricting %i assets to country %s...\n',length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).ADMIN);
+            fprintf('restricting %i assets to country %s (can take some time) ...\n',length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).ADMIN);
             admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
                 admin0_shapes(selection_admin0_shape_i).X,admin0_shapes(selection_admin0_shape_i).Y);
         else
-            fprintf('restricting %i assets to admin1 %s...\n',length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name);
+            fprintf('restricting %i assets to admin1 %s (can take some time) ...\n',length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name);
             admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
                 admin1_shapes(selection_admin1_shape_i).X,admin1_shapes(selection_admin1_shape_i).Y);
         end
