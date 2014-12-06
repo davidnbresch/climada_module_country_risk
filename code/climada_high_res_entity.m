@@ -3,7 +3,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 % NAME:
 %	climada_high_res_entity
 % PURPOSE:
-%   Construct an entity file based on high-res (1km!) night light data. 
+%   Construct an entity file based on high-res (1km!) night light data.
 %
 %   Reads an image file with nightlight density and matches it to the local
 %   geography.
@@ -44,6 +44,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 % EXAMPLE:
 %   entity=climada_high_res_entity('Italy','',2); % good for test, as shape of Italy is well-known
 %   entity=climada_high_res_entity('United States of America','Florida',2,2);
+%   entity=climada_high_res_entity('Sswitzerland','',1,0,[0 1 0 -1]); % scale by GDP (the -1)
 %   entity=climada_high_res_entity % all interacrtive
 %   climada_entity_plot(entity) % to check the content of the final entity
 % INPUTS:
@@ -58,16 +59,19 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %       admin1 name. Also useful if a img_filename is passed and thus if
 %       admin1_name is defined, the respective admin1 is cut out.
 %       NOTE: Still an issue with some characters, i.e. Zrich does not work
-%       if entered as admin1_name, but works if selected from list-dialog. 
+%       if entered as admin1_name, but works if selected from list-dialog.
 %   selections: =0 (default): select admin1 and constrain the active
 %       centroids (with values>0) to the selected state/province
 %       =1: select admin0 (full country), not admin1 (country
-%       state/province). Note that select_admin0=1 might lead to memory
-%       issues for large(r) countries, see option =2, too.
+%       state/province). The assets are scaled by country GDP and further
+%       multiplied by 6 (as a proxy to scale up for insurable values). 
+%       Note that select_admin0=1 might lead to memory issues for large(r)
+%       countries, see option =2, too. This usage gets close to
+%       climada_create_GDP_entity.
 %       =2: select admin0 (like =1) and do not constrain the active
 %       centroids (with values>0) to the selected country (good for initial
 %       test and speedup, but less useful as an entity for damage
-%       calculation later). 
+%       calculation later).
 %       =3: select admin1 and do not constrain the active
 %       centroids (with values>0) to the selected state/province, see 2.
 %   check_plot: if =1: plot nightlight data with admin0 (countries)
@@ -76,8 +80,13 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %   scale_Value: =[a b c], scale entity.assets.Value to account for high
 %       nightlihgt intensity to represent larger share of values, as
 %       entity.assets.Value =  a + b*entity.assets.Value + c*entity.assets.Value.^2
-%       If = [a b c d], normalize after scaling and multziply by d
-%       Default= [0 1 0 1e9].
+%       If = [a b c d], normalize after scaling and multziply by d. If d is
+%       negative, scale with country GDP (only makes sense if selections=1
+%       or =2), but works in other cases, too (as the user might find it
+%       useful).
+%       Default= [0 1 0 1e9], except for selections=1, in which case the
+%       assets are scaled by country GDP and further multiplied by 6 (as a
+%       proxy to scale up for insurable values)
 %   img_filename: the filename of an image with night light density, as
 %       created using the GUI at http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/
 %       and select Satellite F18, 2010, avg_lights_x_pct, then 'Download
@@ -87,7 +96,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %       87_20_94_27_F182010.v4c.avg_lights_x_pct.lzw.tiff and E and F the
 %       country (admin0) and state/province (admin1) name, like
 %       -88_24_-79_32_United States of America_Florida_high_res.avg_lights.lzw.tiff
-%       
+%
 %       If empty (eg run the code without any argument), it prompts for country
 %       and admin1 name and constructs the URL to get the corresponding
 %       tile from the nightlight data, e.g. a string such as:
@@ -96,7 +105,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %           version=1.0.0&COVERAGE=F182010.v4c.avg_lights_x_pct.lzw.tif&
 %           crs=EPSG:4326&format=geotiff&resx=0.0083333333&resy=0.0083333333&
 %           bbox=-88,24,-79,32
-%       
+%
 %       ='ASK' prompt for an image file (without first asking for country
 %       where one has to press 'Cancel') to get the to filename prompt
 % OUTPUTS:
@@ -108,6 +117,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 % David N. Bresch, david.bresch@gmail.com, 20141203, country and admin1 selection
 % David N. Bresch, david.bresch@gmail.com, 20141204, 'ASK' debugged, cleaned up
 % David N. Bresch, david.bresch@gmail.com, 20141205, high-res locally stored
+% David N. Bresch, david.bresch@gmail.com, 20141206, GDP scaling added
 %-
 
 entity=[]; % init
@@ -127,17 +137,6 @@ if ~exist('scale_Value','var'),scale_Value=[0 1 0 1e9]; end
 % locate the moduel's data
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
-% check for other modules which are needed:
-if isempty(which('country_admin1_risk_calc'))
-    fprintf('install climada module country_risk first, see https://github.com/davidnbresch/climada_module_country_risk\n');
-    return
-end
-
-if isempty(which('climada_create_GDP_entity'))
-    fprintf('install climada module GDP_entity first, see https://github.com/davidnbresch/climada_module_GDP_entity\n');
-    return
-end
-
 % PARAMETERS
 %
 % the file with the full (whole earth) 1km nightlights
@@ -146,14 +145,21 @@ full_img_filename=[module_data_dir filesep 'F182012.v4c_web.stable_lights.avg_vi
 min_South=-65; % degree, defined on the webpage above
 max_North=75; % defined on the webpage above
 %
-% admin0 and admin1 shap files, borrowed from climada module country_risk:
-country_risk_data_folder=[fileparts(fileparts(which('country_admin1_risk_calc'))) filesep 'data'];
-admin0_shape_file=[country_risk_data_folder filesep 'ne_10m_admin_0_countries' filesep 'ne_10m_admin_0_countries.shp'];
-admin1_shape_file=[country_risk_data_folder filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.shp'];
+% admin0 and admin1 shap files (in climada module country_risk):
+admin0_shape_file=[module_data_dir filesep 'ne_10m_admin_0_countries' filesep 'ne_10m_admin_0_countries.shp'];
+admin1_shape_file=[module_data_dir filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.shp'];
 %
 % base entity file, borrowed from climada module GDP_entity:
 GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
 entity_file=[GDP_entity_data_folder filesep 'entity_global_without_assets.xls'];
+%
+% the Excel file with latest GDP for admin0 (country)
+%GDP_data_file=[GDP_entity_data_folder filesep 'World_GDP_current_1960_2010.xls']; % GDP_entity
+GDP_data_file=[module_data_dir filesep 'WorldBank_GDP_admin0.xls'];
+%
+% the annual growht rate we use to correct should latest GDP data in table
+% GDP_data_file not be the same as climada_global.present_reference_year:
+GDP_AGR=0.02; % global average annual GDP growth rate in decimal (0.02 is 2%)
 %
 % Parameters below very unlikely to change, see input parameter selections
 % crate the entity for the rectangular are, but store the values only for
@@ -193,7 +199,6 @@ for i=1:2
         if ~isempty(which('climada_create_GDP_entity')) % check for module to be present
             GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
             full_img_filename=[GDP_entity_data_folder filesep fN fE];
-            full_img_filename
         end
     end
     [fP,fN,fE]=fileparts(full_img_filename);
@@ -298,7 +303,7 @@ if isempty(img_filename) % local GUI
                 end % admin1_i
                 
                 [liststr,sort_index] = sort(admin1_name_list);
-
+                
                 % show list dialog to select admin1 (now easy as names shown on plot)
                 [selection,ok] = listdlg('PromptString','Select admin1:',...
                     'ListString',liststr,'SelectionMode','single');
@@ -306,7 +311,7 @@ if isempty(img_filename) % local GUI
                 pause(0.1)
                 if ~isempty(selection)
                     admin1_name = admin1_name_list{sort_index(selection)};
-                    selection_admin1_shape_i=admin1_shape_i(sort_index(selection));                    
+                    selection_admin1_shape_i=admin1_shape_i(sort_index(selection));
                 else
                     return
                 end % ~isempty(selection)
@@ -369,11 +374,7 @@ if isempty(img_filename)
     % hence will use the full img
     if ~isempty(full_img_filename_mat)
         % there is a previously saved .mat version of the full image
-        load(full_img_filename_mat) % loads img
-        
-        xx=360*(1:size(img,2))/size(img,2)+(-180); % -180..180
-        yy=(max_North-min_South)*(1:size(img,1))/size(img,1)+min_South;
-        
+        load(full_img_filename_mat) % loads img        
     elseif ~isempty(full_img_filename)
         % there is a full image
         fprintf('reading full global high-res image, takes ~20 sec (%s)\n',full_img_filename);
@@ -392,15 +393,15 @@ if isempty(img_filename)
     end
     
     % img holds the full global image, crop to what we need (for speedup)
-    fprintf('cropping lon=%i..%i, lat=%i..%i\n',bbox(1),bbox(3),bbox(2),bbox(4));
-
+    fprintf('cropping lon=%i..%i, lat=%i..%i --> ',bbox(1),bbox(3),bbox(2),bbox(4));
+    
     pos_x=find(xx>=bbox(1) & xx<=bbox(3));
     pos_y=find(yy>=bbox(2) & yy<=bbox(4));
     
-    fprintf('cropping x=%i..%i, y=%i..%i\n',min(pos_x),max(pos_x),min(pos_y),max(pos_y));
+    fprintf('x=%i..%i, y=%i..%i\n',min(pos_x),max(pos_x),min(pos_y),max(pos_y));
     
     % crop to the area we need
-    img=img(pos_y,pos_x); 
+    img=img(pos_y,pos_x);
     xx=xx(pos_x);
     yy=yy(pos_y);
     
@@ -472,7 +473,7 @@ end
 
 [X,Y]=meshgrid(xx,yy); % construct regular grid
 
-% patch zeros
+% convert to daouble (from uint8)
 VALUES=double(img);
 
 % figure which admin0 (country) shapes we need
@@ -526,66 +527,124 @@ if check_plot
     end % check_plot>1
 end % check_plot
 
-% read the empty entity
-if exist(entity_file,'file')
-    entity=climada_entity_read(entity_file,'SKIP');
-    entity=rmfield(entity,'assets');
-    entity.assets.comment=sprintf('generated by %s at %s',mfilename,datestr(now));
-    entity.assets.filename=img_filename;
-    entity.assets.Longitude=X(:)';
-    entity.assets.Latitude=Y(:)';
-    VALUES_1D=VALUES(:); % one dimension
-    if restrict_Values_to_coutry % reduce to assets within the country or admin1
-        entity.assets.Value=entity.assets.Longitude*0; % init
-        if isempty(selection_admin0_shape_i) % find center country
-            
-            % find center of centroids
-            center_lon=mean(entity.assets.Longitude);
-            center_lat=mean(entity.assets.Latitude);
-            
-            % find the country in the shape file
-            admin0_shape_i=0;
-            for shape_i=1:length(admin0_shapes)
-                admin_hit=inpolygon(center_lon,center_lat,...
-                    admin0_shapes(shape_i).X,admin0_shapes(shape_i).Y);
-                if sum(admin_hit)>0,admin0_shape_i=shape_i;end
-            end % shape_i
-            selection_admin0_shape_i=admin0_shape_i(1);
-            
-        end
-        if isempty(selection_admin1_shape_i)
-            fprintf('restricting %i assets to country %s (can take some time) ...\n',length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).ADMIN);
-            admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
-                admin0_shapes(selection_admin0_shape_i).X,admin0_shapes(selection_admin0_shape_i).Y);
+if isempty(which('climada_create_GDP_entity'))
+    fprintf('WARNING: install climada module GDP_entity first, see https://github.com/davidnbresch/climada_module_GDP_entity\n');
+    fprintf('code continues, but does not return a full enity, just entity.assets\n');
+else
+    if exist(entity_file,'file')
+        entity=climada_entity_read(entity_file,'SKIP'); % read the empty entity
+        entity=rmfield(entity,'assets');
+    else
+        fprintf('WARNING: base entity %s not found, entity just entity.assets\n',entity_file);
+    end
+    
+end
+
+entity.assets.comment=sprintf('generated by %s at %s',mfilename,datestr(now));
+entity.assets.filename=img_filename;
+if ~isempty(selection_admin1_shape_i),
+    entity.assets.ADM0_A3=admin0_shapes(selection_admin0_shape_i).ADM0_A3;end
+entity.assets.Longitude=X(:)';
+entity.assets.Latitude=Y(:)';
+VALUES_1D=VALUES(:); % one dimension
+if restrict_Values_to_coutry % reduce to assets within the country or admin1
+    entity.assets.Value=entity.assets.Longitude*0; % init
+    if isempty(selection_admin0_shape_i) % find center country
+        
+        % find center of centroids
+        center_lon=mean(entity.assets.Longitude);
+        center_lat=mean(entity.assets.Latitude);
+        
+        % find the country in the shape file
+        admin0_shape_i=0;
+        for shape_i=1:length(admin0_shapes)
+            admin_hit=inpolygon(center_lon,center_lat,...
+                admin0_shapes(shape_i).X,admin0_shapes(shape_i).Y);
+            if sum(admin_hit)>0,admin0_shape_i=shape_i;end
+        end % shape_i
+        selection_admin0_shape_i=admin0_shape_i(1);
+        
+    end
+    if isempty(selection_admin1_shape_i)
+        fprintf('restricting %i assets to country %s (can take some time) ...\n',length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).ADMIN);
+        admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
+            admin0_shapes(selection_admin0_shape_i).X,admin0_shapes(selection_admin0_shape_i).Y);
+    else
+        fprintf('restricting %i assets to admin1 %s (can take some time) ...\n',length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name);
+        admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
+            admin1_shapes(selection_admin1_shape_i).X,admin1_shapes(selection_admin1_shape_i).Y);
+    end
+    if sum(admin_hit)>0
+        entity.assets.Value(admin_hit)=VALUES_1D(admin_hit)';
+    end
+else
+    entity.assets.Value=VALUES_1D';
+end % restrict_Values_to_coutry
+entity.assets.Deductible=entity.assets.Value*0;
+entity.assets.Cover=entity.assets.Value;
+entity.assets.DamageFunID=entity.assets.Value*0+1;
+entity.assets.reference_year=climada_global.present_reference_year;
+if sum(scale_Value)>0
+    entity.assets.Value = scale_Value(1) + scale_Value(2)*entity.assets.Value + scale_Value(3)*entity.assets.Value.^2;
+    entity.assets.comment=sprintf('%s: y = %2.2f + %2.2f*x^1 + %2.2f*x^2',mfilename,scale_Value(1:3));
+    if length(scale_Value)==4
+        entity.assets.Value = entity.assets.Value/sum(entity.assets.Value)*scale_Value(4); % normalize, multiply
+        entity.assets.comment=[entity.assets.comment sprintf(', normalized, then *%2.2f',scale_Value(4))];
+    end
+end
+
+if select_admin0
+    
+    % find GDP data
+    [fP,fN] = fileparts(GDP_data_file);
+    GDP_save_file=[fP filesep fN '.mat'];
+    
+    % two options, GDP from GDP_entity or from the GDP file in country_risk
+    if strfind(GDP_data_file,'GDP_entity') % the file in module GDP_entity
+        if climada_check_matfile(GDP_save_file)
+            load(GDP_save_file) % loads GDP_data
         else
-            fprintf('restricting %i assets to admin1 %s (can take some time) ...\n',length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name);
-            admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
-                admin1_shapes(selection_admin1_shape_i).X,admin1_shapes(selection_admin1_shape_i).Y);
+            GDP=climada_GDP_read(GDP_data_file,1,1,1);
         end
-        if sum(admin_hit)>0
-            entity.assets.Value(admin_hit)=VALUES_1D(admin_hit)';
+        admin0_pos=strmatch(admin0_name,GDP.country_names); % locate admin0 GDP
+        % one issue is that not all country names in GDP database and
+        % shapes match.
+        if ~isempty(admin0_pos)
+            GDP_value=GDP.value(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.year(end)));
+        else
+            GDP_value=1; % norm
         end
     else
-        entity.assets.Value=VALUES_1D';
-    end % restrict_Values_to_coutry
-    entity.assets.Deductible=entity.assets.Value*0;
-    entity.assets.Cover=entity.assets.Value;
-    entity.assets.DamageFunID=entity.assets.Value*0+1;
-    entity.assets.reference_year=climada_global.present_reference_year;
-    if sum(scale_Value)>0
-        entity.assets.Value = scale_Value(1) + scale_Value(2)*entity.assets.Value + scale_Value(3)*entity.assets.Value.^2;
-        entity.assets.comment=sprintf('%s: y = %2.2f + %2.2f*x^1 + %2.2f*x^2',mfilename,scale_Value(1:3));
-        if length(scale_Value)==4
-            entity.assets.Value = entity.assets.Value/sum(entity.assets.Value)*scale_Value(4); % normalize, multiply
-            entity.assets.comment=[entity.assets.comment sprintf(', normalized, then *%2.2f',scale_Value(4))];
+        if climada_check_matfile(GDP_save_file)
+            load(GDP_save_file) % loads GDP_data
+        else
+            GDP=climada_xlsread('no',GDP_data_file,'Data CLEAN',1);
+            save(GDP_save_file,'GDP');
         end
+        %admin0_pos=strmatch(admin0_name,GDP.Country_Name); % locate admin0 GDP
+        admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.Country_Code); % safer
+        % since we use the 3-digit country code, it always matches
+        if ~isempty(admin0_pos)
+            GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.Year(admin0_pos)));
+        else
+            GDP_value=1; % norm
+        end
+    end % GDP_entity
+    
+    entity.assets.GDP=GDP_value; % does not hurt to store it
+    if GDP_value>1 && restrict_Values_to_coutry % valid GDP and only one country
+        entity.assets.Value=entity.assets.Value/sum(entity.assets.Value)*GDP_value*6; % *6: GDP->TIV
+    elseif GDP_value==1
+        fprintf('WARNING: no valid GDP found\n');
+    elseif ~restrict_Values_to_coutry
+        fprintf('GDP not applied, since assets not restricted to country\n');
     end
-    fprintf('saving entity as %s\n',entity_save_file);
-    save(entity_save_file,'entity');
-    fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');
-else
-    fprintf('base entity %s not found, entity creation skipped\n',entity_file);
-end
+    
+end % select_admin0
+
+fprintf('saving entity as %s\n',entity_save_file);
+save(entity_save_file,'entity');
+fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');
 
 return % climada_high_res_entity
 
