@@ -1,4 +1,4 @@
-function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_recalc,check_plots)
+function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_recalc,check_plots,admin1_save_entity)
 % climada country admin1 risk calc
 % NAME:
 %   country_admin1_risk_calc
@@ -14,7 +14,7 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %   ONLY makes sense if country_risk_calc has been run for the respective
 %   country (we keep it like this, as automatic mode might trigger lots of
 %   un-wanted calculations). If not, the code terminates with the
-%   respective messages (no entty found, no hazard set(s) found...)
+%   respective messages (no entity found, no hazard set(s) found...)
 %   But one can run country_admin1_risk_calc for more than one
 %   country (see country_name), if the respective countries have been run
 %   as country_risk_calc.
@@ -45,6 +45,8 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 %       If country_name is set to 'ALL', be careful to set check_plots=1
+%   admin1_save_entity: =1 to save all the admin1 entities as single entity
+%       files, =0 to omit this (default)
 % OUTPUTS:
 %   country_risk(1): a structure with some risk information
 %       see country_risk_report to create a readable report to stdout
@@ -62,6 +64,7 @@ if ~exist('country_name','var'), country_name = '';end
 if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
+if ~exist('admin1_save_entity' ,'var'), admin1_save_entity  = 0;end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
@@ -223,6 +226,12 @@ if n_admin1>0
                         shapes(shape_i).BoundingBox(3)-dbb shapes(shape_i).BoundingBox(4)+dbb])
                     set(gcf,'Color',[1 1 1]);
                     hold off
+                end
+                
+                if admin1_save_entity
+                    admin1_entity_filename=[entity_filename '_' strrep(shapes(shape_i).name,' ','')];
+                    fprintf('saving %s\n',admin1_entity_filename);
+                    save(admin1_entity_filename,'entity');
                 end
                 
                 damagefunctions=entity.damagefunctions; % store
