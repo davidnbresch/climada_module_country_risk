@@ -18,8 +18,10 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %
 %   If the high-resolution night light image is stored locally (about 700MB
 %   as tiff, after first call about 24MB as .mat), the code works from
-%   there. See http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3
-%   to obtain the file http://ngdc.noaa.gov/eog/data/web_data/v4composites/F182012.v4.tar
+%   there. 
+%   See http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3
+%   to obtain the file 
+%   http://ngdc.noaa.gov/eog/data/web_data/v4composites/F182012.v4.tar
 %   and unzip the file F182012.v4c_web.stable_lights.avg_vis.tif in there
 %   to the /data folder of country_risk module. As the .tif is so much
 %   larger, the climada module country_risk comes with the .mat file, but
@@ -40,7 +42,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %
 %   See also climada_create_GDP_entity
 % CALLING SEQUENCE:
-%   entity=climada_high_res_entity(img_filename,check_plot,selections,admin0_name,admin1_name)
+%   entity=climada_high_res_entityadmin0_name,admin1_name,selections,check_plot,scale_Value,img_filename)
 % EXAMPLE:
 %   entity=climada_high_res_entity('Italy','',2); % good for test, as shape of Italy is well-known
 %   entity=climada_high_res_entity('United States of America','Florida',2,2);
