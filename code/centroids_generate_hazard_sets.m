@@ -33,9 +33,12 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   centroids_generate_hazard_sets; % interactive, prompt for centroids
 % INPUTS:
 %   centroids: a centroid structure, see e.g. climada_centroids_load
-%       > prompted for if empty (using climada_centroids_load, i.e.
-%       centroids need to exist als .mat file already - otherwise run e.g.
-%       climada_centroids_read first)
+%       or an entity (in which case it takes the entity.assets.Latitude and
+%       entity.assets.Longitude)
+%       > prompted for if empty (centroids need to exist als .mat file
+%       already - otherwise run e.g. climada_centroids_read first). 
+%       In case you select an entity, it takes entity.assets.Latitude and
+%       entity.assets.Longitude.   
 % OPTIONAL INPUT PARAMETERS:
 %   probabilistic: if =1, generate probabilistic hazard event sets,
 %       =0 generate 'historic' hazard event sets (default)
@@ -57,6 +60,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20141025, moved out of country_risk_calc
 % David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 % David N. Bresch, david.bresch@gmail.com, 20141029, WSEU added
+% David N. Bresch, david.bresch@gmail.com, 20141208, possibility to pass entity as centroids
 %-
 
 centroids_hazard_info = []; % init output
@@ -65,10 +69,10 @@ global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
-if ~exist('centroids','var'), centroids = '';end
+if ~exist('centroids','var'),     centroids = '';   end
 if ~exist('probabilistic','var'), probabilistic = 0;end
-if ~exist('force_recalc','var'), force_recalc = 0;end
-if ~exist('check_plots' ,'var'), check_plots  = 0;end
+if ~exist('force_recalc','var'),  force_recalc = 0; end
+if ~exist('check_plots' ,'var'),  check_plots  = 0; end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
@@ -109,27 +113,43 @@ if ~exist([local_data_dir filesep 'hazards'],'dir'),mkdir(local_data_dir,'hazard
 % prompt for centroids if not given
 
 if isempty(centroids) % local GUI
-    centroids=climada_centroids_load;
-    if isempty(centroids),return;end
+    centroids_file=[climada_global.data_dir filesep 'system' filesep '*.mat'];
+    [filename, pathname] = uigetfile(centroids_file, 'Select centroids (or an entity):');
+    if isequal(filename,0) || isequal(pathname,0)
+        return; % cancel
+    else
+        centroids_file=fullfile(pathname,filename);
+    end
+    load(centroids_file); % loads either centroids or entity
+    if exist('entity','var'),centroids=entity;end % centroids_file contains an entity, see below
+    if isempty(centroids),return;end % neither centroids nor entity loaded
+end
+
+if isfield(centroids,'assets') % centroids contains in fact an entity
+    entity=centroids; centroids=[]; % silly switch, but fastest
+    centroids.Latitude =entity.assets.Latitude;
+    centroids.Longitude=entity.assets.Longitude;
+    if isfield(entity.assets,'country_name'),centroids.country_name{1}=entity.assets.country_name;end
+    if isfield(entity.assets,'admin0_name'),centroids.admin0_name{1}=entity.assets.admin0_name;end
+    if isfield(entity.assets,'admin1_name'),centroids.admin1_name{1}=entity.assets.admin1_name;end
+    clear entity
 end
 
 if isfield(centroids,'country_name') % usually the case
     country_name_char=char(centroids.country_name{1});
+elseif isfield(centroids,'admin0_name') % another name for the field
+    country_name_char=char(centroids.admin0_name{1});
 else
     country_name_char='centroids'; % just to keep going
+end
+if isfield(centroids,'admin1_name') % append, if it exists
+    country_name_char=[country_name_char char(centroids.admin1{1})];
 end
 country_name_char=strrep(strrep(country_name_char,' ',''),' ',''); % remove inner blanks
 country_name_char=strrep(country_name_char,'(','');
 country_name_char=strrep(country_name_char,')','');
 country_name_char=strrep(country_name_char,'-','');
 country_name_char=strrep(country_name_char,'_','');
-
-centroids_hazard_info.res.country_name = country_name_char;
-
-% define easy to read filenames
-centroids_file     = [local_data_dir filesep 'system'   filesep country_name_char '_centroids.mat'];
-entity_file        = [local_data_dir filesep 'entities' filesep country_name_char '_entity.mat'];
-entity_future_file = [local_data_dir filesep 'entities' filesep country_name_char '_entity_future.mat'];
 
 % 1) figure which hazards affect the country
 % ==========================================

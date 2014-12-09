@@ -126,11 +126,13 @@ valid_countries      = borders.name(valid_countries_indx);
 if isempty(country_name) % prompt for country or region
     country_name = climada_ask_country_name('multiple');
     if isempty(country_name),return,end % Cancel selected
-end
-
-if strcmp(country_name,'ALL')
+elseif strcmp(country_name,'ALL')
     % compile list of all countries, then call recursively below
     country_name = sort(valid_countries); % alphabetical
+else
+    % validate country name
+    country_name=climada_check_country_name(country_name);
+    if isempty(country_name),return;end
 end
 
 if ~iscell(country_name),country_name = {country_name};end % check that country_name is a cell
@@ -153,8 +155,8 @@ end
 % country_risk.name=country_name;
 % return
 
+[country_name,country_ISO3]=climada_check_country_name(char(country_name));
 country_name_char = char(country_name); % as to create filenames etc., needs to be char
-country_risk.res.country_name = country_name_char;
 
 % define easy to read filenames
 centroids_file     = [country_data_dir filesep 'system'   filesep country_name_char '_centroids.mat'];
@@ -198,6 +200,9 @@ end
 fprintf('--> calling centroids_generate_hazard_sets...\n');
 country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots);
 fprintf('<-- back from calling centroids_generate_hazard_sets\n');
+
+country_risk.res.country_name = country_name_char;
+country_risk.res.country_ISO3 = country_ISO3;
 
 % 4) risk calculation
 % ===================

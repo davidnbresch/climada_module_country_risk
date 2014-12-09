@@ -139,8 +139,10 @@ if length(country_name)>1 % more than one country, process recursively
     return
 end
 
-country_name_char         = char(country_name); % as to create filenames etc., needs to be char
+[country_name,country_ISO3]=climada_check_country_name(char(country_name));
+country_name_char = char(country_name); % as to create filenames etc., needs to be char
 country_risk.res.country_name = country_name_char;
+country_risk.res.country_ISO3 = country_ISO3;
 
 % define easy to read filenames
 centroids_file     = [country_data_dir filesep 'system'   filesep country_name_char '_centroids.mat'];
@@ -197,6 +199,9 @@ if n_admin1>0
         shape_i=admin1_pos(admin1_i);
         
         fprintf(' %s (%i of %i): ',shapes(shape_i).name,admin1_i,n_admin1);
+        
+        admin1_name=shapes(shape_i).name;
+        admin1_code=shapes(shape_i).adm1_code;
         
         % reduce entity to admin1
         entity_filename=[country_data_dir filesep 'entities' filesep country_name_char '_entity.mat'];
@@ -297,6 +302,10 @@ if n_admin1>0
                             country_risk.res.hazard(next_EDS).EDS=climada_EDS_calc(entity,hazard);
                             country_risk.res.hazard(next_EDS).EDS.annotation_name=...
                                 [shapes(shape_i).admin ' ' shapes(shape_i).name ' ' hazard_short_name];
+                            
+                            country_risk.res.hazard(next_EDS).admin1_name = admin1_name;
+                            country_risk.res.hazard(next_EDS).admin1_code = admin1_code;
+
                             ED=country_risk.res.hazard(next_EDS).EDS.ED;
                             fprintf('ED %1.0f (%1.1f%%o)\n',ED,ED/sum(entity.assets.Value)*1000);
                             next_EDS=next_EDS+1; % point to next free EDS

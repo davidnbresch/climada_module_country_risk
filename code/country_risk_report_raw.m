@@ -1,16 +1,17 @@
-function country_risk_report(country_risk,print_unsorted,plot_DFC)
+function country_risk_report_raw(country_risk,print_unsorted,plot_DFC)
 % climada
 % NAME:
-%   country_risk_report
+%   country_risk_report_raw
 % PURPOSE:
-%   produce a report based on the results from
+%   produce a quick&dirty report based on the results from
 %   country_risk=country_risk_calc
 %
-%   previous call: country_risk_calc
+%   previous call: country_risk_calc and country_admin1_risk_calc
+%   see also: country_risk_report
 % CALLING SEQUENCE:
-%   country_risk_report(country_risk,print_unsorted,plot_DFC)
+%   country_risk_report_raw(country_risk,print_unsorted,plot_DFC)
 % EXAMPLE:
-%   country_risk_report(country_risk_calc('Barbados')); % all in one
+%   country_risk_report_raw(country_risk_calc('Barbados')); % all in one
 %
 %   country_risk0=country_risk_calc('Switzerland'); % country, admin0 level
 %   country_risk1=country_admin1_risk_calc('Switzerland'); % admin1 level
@@ -18,15 +19,16 @@ function country_risk_report(country_risk,print_unsorted,plot_DFC)
 % INPUTS:
 %   country_risk: a structure with the results from country_risk_calc
 % OPTIONAL INPUT PARAMETERS:
-%   print_unsorted: if =1, show the results in the order they have been
-%       calculated, if =0, show by descending losses (default)
+%   print_unsorted: =1, show the results in the order they have been calculated
+%       =0, show by descending damages (default)
 %   plot_DFC: if =1, plot damage frequency curves (DFC) of all EDSs (!) in
 %       country_risk, =0 not (default)
 %       if =2, plot logarithmic scale both axes
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141024, initial
-% David N. Bresch, david.bresch@gmail.com, 20141025, cleanup
+% David N. Bresch, david.bresch@gmail.com, 20141025, cleanup of country_risk_report
+% David N. Bresch, david.bresch@gmail.com, 20141209, renamed to country_risk_report_raw
 %-
 
 %global climada_global
