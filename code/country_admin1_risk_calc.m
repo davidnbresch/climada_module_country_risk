@@ -37,13 +37,14 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %       > prompted for via dropdown list if empty (allows for single or
 %       multiple country selection)
 % OPTIONAL INPUT PARAMETERS:
-%   probabilistic: Just to keep the same parameters as in country_risk_calc. 
+%   probabilistic: Just to keep the same parameters as in country_risk_calc.
 %       Has no effect, since hazard event sets are generated in
-%       country_risk_calc, not in country_admin1_risk_calc 
+%       country_risk_calc, not in country_admin1_risk_calc
 %   force_recalc: Just to keep the same parameters as in country_risk_calc.
 %       Has no effect.
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
+%       If =100, plot only, skip calculations
 %       If country_name is set to 'ALL', be careful to set check_plots=1
 %   admin1_save_entity: =1 to save all the admin1 entities as single entity
 %       files, =0 to omit this (default)
@@ -145,9 +146,8 @@ country_risk.res.country_name = country_name_char;
 country_risk.res.country_ISO3 = country_ISO3;
 
 % define easy to read filenames
-centroids_file     = [country_data_dir filesep 'system'   filesep country_name_char '_centroids.mat'];
 entity_file        = [country_data_dir filesep 'entities' filesep country_name_char '_entity.mat'];
-entity_future_file = [country_data_dir filesep 'entities' filesep country_name_char '_entity_future.mat'];
+%entity_future_file = [country_data_dir filesep 'entities' filesep country_name_char '_entity_future.mat'];
 
 if ~exist(entity_file,'file')
     fprintf('please run country_risk_calc(''%s'') first, skipped\n',country_name_char);
@@ -193,7 +193,7 @@ if n_admin1>0
     
     % figure the existing hazard set files
     hazard_files=dir([country_data_dir filesep 'hazards' filesep country_name_char '*.mat']);
-
+    
     
     for admin1_i=1:n_admin1 % loop over all admin1
         shape_i=admin1_pos(admin1_i);
@@ -219,7 +219,7 @@ if n_admin1>0
                 
                 Value_checksum=Value_checksum+sum(entity.assets.Value);
                 
-                if admin1_check_subplots
+                if admin1_check_subplots>0
                     subplot(N_n_plots,n_N_plots,admin1_i);
                     climada_plot_world_borders,hold on;
                     climada_plot_entity_assets(entity,[],shapes(shape_i).name);
@@ -239,85 +239,93 @@ if n_admin1>0
                     save(admin1_entity_filename,'entity');
                 end
                 
-                damagefunctions=entity.damagefunctions; % store
-                
-                for hazard_i=1:length(hazard_files)
+                if admin1_check_subplots==100
                     
-                    % run the EDS calculation
-                    hazard_set_file=[country_data_dir filesep 'hazards' filesep hazard_files(hazard_i).name];
-                    hazard_short_name=strrep(strrep(hazard_files(hazard_i).name,'.mat',''),[country_name_char '_'],'');
-                    fprintf('  %s: ',hazard_short_name);
-                    if exist(hazard_set_file,'file')
-                        load(hazard_set_file); % load hazard set
+                    fprintf('calculations skipped (plotting only)\n');
+                    
+                else
+                    
+                    damagefunctions=entity.damagefunctions; % store
+                    
+                    for hazard_i=1:length(hazard_files)
                         
-                        % Note that one would need to re-encode assets to each hazard,
-                        % unless one knows that all hazard event sets are valid on the
-                        % exact same centroids (the first n elements in the hazard
-                        % are matching the n locations of the assets, while the n+1:end
-                        % elements in hazard are the ones for the buffer around the
-                        % country. The call to centroids_generate_hazard_sets ensures that,
-                        % and hence the following code bit is usually not necessary:
-                        if force_re_encoding
-                            fprintf('re-encoding... \n');
-                            assets = climada_assets_encode(entity.assets,hazard);
-                            entity=rmfield(entity,'assets');
-                            entity.assets=assets; % assign re-encoded assets
-                        end
-                        
-                        if ~isempty(hazard)
+                        % run the EDS calculation
+                        hazard_set_file=[country_data_dir filesep 'hazards' filesep hazard_files(hazard_i).name];
+                        hazard_short_name=strrep(strrep(hazard_files(hazard_i).name,'.mat',''),[country_name_char '_'],'');
+                        fprintf('  %s: ',hazard_short_name);
+                        if exist(hazard_set_file,'file')
+                            load(hazard_set_file); % load hazard set
                             
-                            entity.damagefunctions=damagefunctions; % reset
-
-                            % find the damagefunctions for the peril under consideration
-                            if isfield(entity.damagefunctions,'peril_ID') % refine for peril
-                                if sum(strcmp(entity.damagefunctions.peril_ID,hazard.peril_ID(1:2)))>0
-                                    % peril_ID found, reasonable damage calculation
-                                else
-                                    
-                                    % find the TC damagefunction (to start from)
-                                    asset_damfun_pos = find(entity.damagefunctions.DamageFunID == entity.assets.DamageFunID(1)); % keep it simple (1)
-                                    asset_damfun_pos = asset_damfun_pos(strcmp(entity.damagefunctions.peril_ID(asset_damfun_pos),'TC')); % use TC
-                                    
-                                    entity.damagefunctions.DamageFunID=entity.damagefunctions.DamageFunID(asset_damfun_pos);
-                                    entity.damagefunctions.Intensity=entity.damagefunctions.Intensity(asset_damfun_pos);
-                                    entity.damagefunctions.MDD=entity.damagefunctions.MDD(asset_damfun_pos);
-                                    entity.damagefunctions.PAA=entity.damagefunctions.PAA(asset_damfun_pos);
-                                    entity.damagefunctions.MDR=entity.damagefunctions.MDR(asset_damfun_pos);
-                                    
-                                    entity.damagefunctions=rmfield(entity.damagefunctions,'peril_ID'); % get rid of the peril_ID
-                                    
-                                    % DUMMY DAMAGE FUNCTIONS FOR TESTS
-                                    % just match max scale of hazard.intensity to max
-                                    % damagefunction.intensity
-                                    max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
-                                    max_hazard_intensity=full(max(max(hazard.intensity)));
-                                    damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
-                                    
-                                    entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
-                                    fprintf('(dummy damage) ');
-                                    
-                                end
-                            end % isfield 'peril_ID'
+                            % Note that one would need to re-encode assets to each hazard,
+                            % unless one knows that all hazard event sets are valid on the
+                            % exact same centroids (the first n elements in the hazard
+                            % are matching the n locations of the assets, while the n+1:end
+                            % elements in hazard are the ones for the buffer around the
+                            % country. The call to centroids_generate_hazard_sets ensures that,
+                            % and hence the following code bit is usually not necessary:
+                            if force_re_encoding
+                                fprintf('re-encoding... \n');
+                                assets = climada_assets_encode(entity.assets,hazard);
+                                entity=rmfield(entity,'assets');
+                                entity.assets=assets; % assign re-encoded assets
+                            end
                             
-                            country_risk.res.hazard(next_EDS).EDS=climada_EDS_calc(entity,hazard);
-                            country_risk.res.hazard(next_EDS).EDS.annotation_name=...
-                                [shapes(shape_i).admin ' ' shapes(shape_i).name ' ' hazard_short_name];
-                            
-                            country_risk.res.hazard(next_EDS).admin1_name = admin1_name;
-                            country_risk.res.hazard(next_EDS).admin1_code = admin1_code;
-
-                            ED=country_risk.res.hazard(next_EDS).EDS.ED;
-                            fprintf('ED %1.0f (%1.1f%%o)\n',ED,ED/sum(entity.assets.Value)*1000);
-                            next_EDS=next_EDS+1; % point to next free EDS
+                            if ~isempty(hazard)
+                                
+                                entity.damagefunctions=damagefunctions; % reset
+                                
+                                % find the damagefunctions for the peril under consideration
+                                if isfield(entity.damagefunctions,'peril_ID') % refine for peril
+                                    if sum(strcmp(entity.damagefunctions.peril_ID,hazard.peril_ID(1:2)))>0
+                                        % peril_ID found, reasonable damage calculation
+                                    else
+                                        
+                                        % find the TC damagefunction (to start from)
+                                        asset_damfun_pos = find(entity.damagefunctions.DamageFunID == entity.assets.DamageFunID(1)); % keep it simple (1)
+                                        asset_damfun_pos = asset_damfun_pos(strcmp(entity.damagefunctions.peril_ID(asset_damfun_pos),'TC')); % use TC
+                                        
+                                        entity.damagefunctions.DamageFunID=entity.damagefunctions.DamageFunID(asset_damfun_pos);
+                                        entity.damagefunctions.Intensity=entity.damagefunctions.Intensity(asset_damfun_pos);
+                                        entity.damagefunctions.MDD=entity.damagefunctions.MDD(asset_damfun_pos);
+                                        entity.damagefunctions.PAA=entity.damagefunctions.PAA(asset_damfun_pos);
+                                        entity.damagefunctions.MDR=entity.damagefunctions.MDR(asset_damfun_pos);
+                                        
+                                        entity.damagefunctions=rmfield(entity.damagefunctions,'peril_ID'); % get rid of the peril_ID
+                                        
+                                        % DUMMY DAMAGE FUNCTIONS FOR TESTS
+                                        % just match max scale of hazard.intensity to max
+                                        % damagefunction.intensity
+                                        max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
+                                        max_hazard_intensity=full(max(max(hazard.intensity)));
+                                        damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
+                                        
+                                        entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
+                                        fprintf('(dummy damage) ');
+                                        
+                                    end
+                                end % isfield 'peril_ID'
+                                
+                                country_risk.res.hazard(next_EDS).EDS=climada_EDS_calc(entity,hazard);
+                                country_risk.res.hazard(next_EDS).EDS.annotation_name=...
+                                    [shapes(shape_i).admin ' ' shapes(shape_i).name ' ' hazard_short_name];
+                                
+                                country_risk.res.hazard(next_EDS).admin1_name = admin1_name;
+                                country_risk.res.hazard(next_EDS).admin1_code = admin1_code;
+                                
+                                ED=country_risk.res.hazard(next_EDS).EDS.ED;
+                                fprintf('ED %1.0f (%1.1f%%o)\n',ED,ED/sum(entity.assets.Value)*1000);
+                                next_EDS=next_EDS+1; % point to next free EDS
+                                
+                            else
+                                fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
+                            end
                             
                         else
-                            fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
+                            fprintf('hazard not found, skipped\n');
                         end
-                        
-                    else
-                        fprintf('hazard not found, skipped\n');
-                    end
-                end % hazard_i
+                    end % hazard_i
+                    
+                end % admin1_check_subplots=100
                 
             else
                 fprintf(' no centroids within, skipped\n');
@@ -328,7 +336,7 @@ if n_admin1>0
         end % exist(entity_filename)
         
     end % admin1_i
-        
+    
     fprintf('%s, sum of admin1 values: %1.0f (%1.0f%% of country value), country value %1.0f\n',...
         country_name_char,Value_checksum,Value_checksum/sum(entity_assets_Value)*100,sum(entity_assets_Value));
 else

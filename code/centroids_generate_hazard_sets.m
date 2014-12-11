@@ -343,7 +343,7 @@ for hazard_i=1:hazard_count
                 
                 if exist('climada_tc_track_wind_decay_calculate','file')
                     % wind speed decay at track nodes after landfall
-                    [~,p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,1);
+                    [~,p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,check_plots);
                 else
                     fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
                 end
@@ -352,7 +352,7 @@ for hazard_i=1:hazard_count
                 
                 if exist('climada_tc_track_wind_decay_calculate','file')
                     % add the inland decay correction to all probabilistic nodes
-                    tc_track   = climada_tc_track_wind_decay(tc_track, p_rel,1);
+                    tc_track   = climada_tc_track_wind_decay(tc_track, p_rel,check_plots);
                 end
                 
                 if check_plots
