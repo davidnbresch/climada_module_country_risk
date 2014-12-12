@@ -1,5 +1,7 @@
 function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_recalc,check_plots,admin1_save_entity)
 % climada country admin1 risk calc
+% MODULE:
+%   country_risk
 % NAME:
 %   country_admin1_risk_calc
 % PURPOSE:
@@ -19,7 +21,8 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %   country (see country_name), if the respective countries have been run
 %   as country_risk_calc.
 %
-%   NOTE: Before using this code, make yourself familiar with country_risk_calc
+%   NOTE: Before using this code, make yourself familiar with 
+%   country_risk_calc
 %
 %   next step: country_risk_report (same format as country_risk_calc)
 % CALLING SEQUENCE:
@@ -53,6 +56,7 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %       see country_risk_report to create a readable report to stdout
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141126, initial
+% David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
 %-
 
 country_risk = []; % init output (call it still country_risk, for easy use in country_risk_report

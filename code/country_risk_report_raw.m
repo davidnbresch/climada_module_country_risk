@@ -1,5 +1,7 @@
 function country_risk_report_raw(country_risk,print_unsorted,plot_DFC)
 % climada
+% MODULE:
+%   country_risk
 % NAME:
 %   country_risk_report_raw
 % PURPOSE:

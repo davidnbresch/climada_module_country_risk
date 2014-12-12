@@ -1,5 +1,7 @@
 function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
 % climada
+% MODULE:
+%   country_risk
 % NAME:
 %   country_risk_calc
 % PURPOSE:
@@ -25,6 +27,10 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 % CALLING SEQUENCE:
 %   country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
 % EXAMPLE:
+%   country_risk0=country_risk_calc('CHE',0,-10); % 10x10km resolution for 
+%       % Switzerland, using climada_nightlight_entity, not GDP_entity
+%   country_risk0=country_risk_calc('CHE',0,-1); % 1x1km resolution for 
+%       % Switzerland, using climada_nightlight_entity, not GDP_entity
 %   country_risk=country_risk_calc; % interactive, select country from dropdown
 %   country_risk=country_risk_calc('ALL',0,0,0) % whole world, no figures
 % INPUTS:
@@ -43,6 +49,14 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 %       check.
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
+%       =-1: (re)calculate, use climada_nightlight_entity with high
+%       resolution (1x1km)
+%       =-10: (re)calculate, use climada_nightlight_entity with moderate
+%       resolution (10x10km), similar to calling GDP entity, but does not
+%       require the GDP_entity module.
+%       Since the code uses any existing entity, the resolution only
+%       matters on the first call, that's why we can use force_recalc to
+%       direct resolution.
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 %       If country_name is set to 'ALL', be careful to set check_plots=1
@@ -158,16 +172,46 @@ entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '
 % =====================
 
 if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
-    % invoke the GDP_entity moduke to generate centroids and entity    
-    country_name_char_tmp=country_name_char;
-    if strcmp(country_name_char,'Vietnam')   , country_name_char_tmp='Viet Nam';end
-    if strcmp(country_name_char,'ElSalvador'), country_name_char_tmp='El Salvador';end
-    [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char_tmp,[],0,1);      
-    save(centroids_file,'centroids');
-    save(entity_file,'entity');
-    entity = entity_future; %replace with entity future
-    save(entity_future_file,'entity');
-    if isempty(centroids), return, end
+    
+    if force_recalc<0
+        % invoke climada_nightlight_entity (no need for module GDP_entity)
+        % force_recalc=-1 intepreted as using high-res, =-10 using low-res
+        % (passed on a positive value)
+        if force_recalc==-1
+            selections= 1; % high res, country
+        elseif force_recalc==-10
+            selections=-1; % mid-res, country
+        else
+            fprintf('option %i not implemented for force_recalc, aborted\n',force_recalc)
+            return
+        end
+        entity=climada_nightlight_entity(country_name_char,'',selections,0,[],'',0); % no save
+        entity.assets.centroid_index=1:length(entity.assets.Longitude); % as we later construct the hazard accordingly
+        if isempty(entity),return,end
+        save(entity_file,'entity');
+
+        % get centroids from entity
+        centroids.Latitude =entity.assets.Latitude;
+        centroids.Longitude=entity.assets.Longitude;
+        centroids.centroid_ID=1:length(centroids.Longitude);
+        if isfield(entity.assets,'country_name'),centroids.country_name{1}=entity.assets.country_name;end
+        if isfield(entity.assets,'admin0_name'),centroids.admin0_name{1}=entity.assets.admin0_name;end
+        if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3{1}=entity.assets.admin0_ISO3;end
+        if isfield(entity.assets,'admin1_name'),centroids.admin1_name{1}=entity.assets.admin1_name;end
+        save(centroids_file,'centroids');
+        force_recalc=1;
+    else
+        % invoke the GDP_entity module to generate centroids and entity
+        country_name_char_tmp=country_name_char;
+        if strcmp(country_name_char,'Vietnam')   , country_name_char_tmp='Viet Nam';end
+        if strcmp(country_name_char,'ElSalvador'), country_name_char_tmp='El Salvador';end
+        [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char_tmp,[],0,1);
+        save(centroids_file,'centroids');
+        save(entity_file,'entity');
+        entity = entity_future; %replace with entity future
+        save(entity_future_file,'entity');
+        if isempty(centroids), return, end
+    end
     
     if check_plots
         % visualize assets on map

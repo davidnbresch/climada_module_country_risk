@@ -1,9 +1,10 @@
-function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename)
+function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename,save_entity)
 % country admin0 admin1 entity high resolution
 % NAME:
-%	climada_high_res_entity
+%	climada_nightlight_entity
 % PURPOSE:
-%   Construct an entity file based on high-res (1km!) night light data.
+%   Construct an entity file based on high-res (1km!) or mif -res (10km)
+%   night light data. 
 %
 %   Reads an image file with nightlight density and matches it to the local
 %   geography.
@@ -45,13 +46,13 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %
 %   See also climada_create_GDP_entity
 % CALLING SEQUENCE:
-%   entity=climada_high_res_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename)
+%   entity=climada_nightlight_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename,save_entity)
 % EXAMPLE:
-%   entity=climada_high_res_entity('Italy','',2); % good for test, as shape of Italy is well-known
-%   entity=climada_high_res_entity('United States of America','Florida',2,2);
-%   entity=climada_high_res_entity('Sswitzerland','',1,0,[0 1 0 -1]); % scale by GDP (the -1)
-%   entity=climada_high_res_entity('CHE','',1); % full country, scale by 6 times GDP as a proxy for insurable values
-%   entity=climada_high_res_entity % all interacrtive
+%   entity=climada_nightlight_entity('Italy','',2); % good for test, as shape of Italy is well-known
+%   entity=climada_nightlight_entity('United States of America','Florida',2,2);
+%   entity=climada_nightlight_entity('Sswitzerland','',1,0,[0 1 0 -1]); % scale by GDP (the -1)
+%   entity=climada_nightlight_entity('CHE','',1); % full country, scale by 6 times GDP as a proxy for insurable values
+%   entity=climada_nightlight_entity % all interacrtive
 %   climada_entity_plot(entity) % to check the content of the final entity
 % INPUTS:
 % OPTIONAL INPUT PARAMETERS:
@@ -72,11 +73,13 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %       NOTE: Still an issue with some characters, i.e. Zrich does not work
 %       if entered as admin1_name, please use the admin1_code, also shown
 %       behind the | in the list dialog, e.g. for Zurich, the call hence is
-%       entity=climada_high_res_entity('CHE','CHE-176'). Note that the
+%       entity=climada_nightlight_entity('CHE','CHE-176'). Note that the
 %       admin1_name is kept as on input, i.e. 'CHE-176' in the example, not
 %       'Zrich'.
 %   selections: =0 (default): select admin0 (country) and constrain the active
 %       centroids (with values>0) to the selected admin1 (state/province)
+%       =10: use 10km instead of 1km night light image
+%       resolution. See also remark about using -(selections) below.
 %       =1: select admin0 (full country), not admin1 (country
 %       state/province). The assets are scaled by country GDP and further
 %       multiplied by 6 (as a proxy to scale up for insurable values). 
@@ -89,6 +92,8 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %       calculation later).
 %       =3: select admin1 and do not constrain the active
 %       centroids (with values>0) to the selected state/province, see 2.
+%       <0: If selections is negative, use mid-resolution nightlights (see
+%       PARAMETER low_img_filename below). Default is high-res (1km).
 %   check_plot: if =1: plot nightlight data with admin0 (countries)
 %       superimposed, if=2 also admin1 (country states/provinces)
 %       =0: no plot (default)
@@ -123,6 +128,7 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 %
 %       ='ASK' prompt for an image file (without first asking for country
 %       where one has to press 'Cancel') to get the to filename prompt
+%   save_entity: whether we save the entity (=1, default) or nor (=0).
 % OUTPUTS:
 %   entity: a full climada entity, see climada_entity_read
 %       and see e.g. climada_entity_plot to check
@@ -136,6 +142,8 @@ function entity=climada_high_res_entity(admin0_name,admin1_name,selections,check
 % David N. Bresch, david.bresch@gmail.com, 20141205, high-res locally stored
 % David N. Bresch, david.bresch@gmail.com, 20141206, GDP scaling added
 % David N. Bresch, david.bresch@gmail.com, 20141209, admin1 name issue resolved
+% David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
+% David N. Bresch, david.bresch@gmail.com, 20141212, renamed to climada_nightlight_entity (formerly climada_high_res_entity)
 %-
 
 entity=[]; % init
@@ -151,19 +159,27 @@ if ~exist('selections','var'),selections=0; end
 if ~exist('admin0_name','var'),admin0_name=''; end
 if ~exist('admin1_name','var'),admin1_name=''; end
 if ~exist('scale_Value','var'),scale_Value=[0 1 0 1e9]; end
+if ~exist('save_entity','var'),save_entity=1; end
 
 % locate the moduel's data
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
-% the file with the full (whole earth) 1km nightlights
+% the file with the full (whole earth) 1x1km nightlights
 % see http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3
 % and the detailed instructions where to obtain in the file
 % F182012.v4c_web.stable_lights.avg_vis.txt in the module's data dir.
 full_img_filename=[module_data_dir filesep 'F182012.v4c_web.stable_lights.avg_vis.tif'];
 min_South=-65; % degree, defined on the webpage above
-max_North=75; % defined on the webpage above
+max_North= 75; % defined on the webpage above
+%
+% low resolution file (approx. 10x10km). Note that this moderate-size
+% (440kB) file is also used in GDP_entity and locally stored there (to
+% avoid cross-dependency between the modules country_risk and GDP_entity).
+low_img_filename=[module_data_dir filesep 'night_light_2010_10km.png'];
+min_South=-65; % degree, defined as for full_img_filename
+max_North= 75; % degree, defined as for full_img_filename
 %
 % admin0 and admin1 shap files (in climada module country_risk):
 admin0_shape_file=climada_global.map_border_file; % as we use the admin0 as in next line as default anyway
@@ -193,6 +209,15 @@ restrict_Values_to_coutry=1; % default=1
 % whether we select admin0 or admin1 (see parameter selections)
 select_admin0=0; % default=0, to select admin1
 
+if selections<0 || selections==10
+    if selections<0,selections=-selections;end % reverse sign
+    if selections<0.2,selections=0;end % to avoid troubles
+    full_img_filename=low_img_filename;
+    fprintf('%s: switched to moderate resolution (10x10km) nightlight image\n',mfilename)
+    moderate_resolution=1;
+else
+    moderate_resolution=0;
+end
 
 % switch the different selections for admin0/1 selection and restriction of values
 if selections==1
@@ -237,7 +262,7 @@ for i=1:2
             break
         end % not full file
     else
-        full_img_filename=''; % no need for riginal, since .mat exists
+        full_img_filename=''; % no need for original, since .mat exists
         full_img_exists=1;
         break
     end
@@ -523,6 +548,11 @@ else % state/province
     entity_save_file=sprintf('%s_%s_%s_%s_%i_%i_%i_%i',admin0_ISO3,admin0_name,...
         admin1_shapes(selection_admin1_shape_i).name,admin1_shapes(selection_admin1_shape_i).adm1_code,bbox);
 end
+if moderate_resolution
+    entity_save_file=[entity_save_file '_10x10'];
+else
+    entity_save_file=[entity_save_file '_01x01'];
+end
 entity_save_file=[climada_global.data_dir filesep 'entities' ...
     filesep strrep(entity_save_file,'.','') '.mat'];
 
@@ -660,10 +690,10 @@ if select_admin0
     % find GDP data
     [fP,fN] = fileparts(GDP_data_file);
     GDP_save_file=[fP filesep fN '.mat'];
-    
+        
     % two options, GDP from GDP_entity or from the GDP file in country_risk
     if strfind(GDP_data_file,'GDP_entity') % the file in module GDP_entity
-        if climada_check_matfile(GDP_save_file)
+        if climada_check_matfile(GDP_data_file)
             load(GDP_save_file) % loads GDP_data
         else
             GDP=climada_GDP_read(GDP_data_file,1,1,1);
@@ -677,13 +707,19 @@ if select_admin0
             GDP_value=1; % norm
         end
     else
-        if climada_check_matfile(GDP_save_file)
+        if climada_check_matfile(GDP_data_file,GDP_save_file)
+            fprintf('GDP data from %s\n',GDP_save_file);
             load(GDP_save_file) % loads GDP_data
         else
+            fprintf('GDP data from %s\n',GDP_data_file);
             GDP=climada_xlsread('no',GDP_data_file,'Data CLEAN',1);
-            save(GDP_save_file,'GDP');
+            if sum(isnan(GDP.ISO3{1}))>0
+                fprintf('WARNING: %s, GDP might not be correctly read from %s\n',mfilename,GDP_data_file);
+                fprintf(' > make sure the Excel''s tab ''Data CLEAN'' does contain values for ISO3, not links\n');
+            else
+                save(GDP_save_file,'GDP'); % only save if it looks correct
+            end
         end
-        %admin0_pos=strmatch(admin0_name,GDP.Country_Name); % locate admin0 GDP
         admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.ISO3); % match via ISO3, safer
         % since we use the 3-digit country code, it always matches
         if ~isempty(admin0_pos)
@@ -710,11 +746,13 @@ end % select_admin0
 entity.assets.Deductible=entity.assets.Value*0;
 entity.assets.Cover=entity.assets.Value;
 
-fprintf('saving entity as %s\n',entity_save_file);
-save(entity_save_file,'entity');
-fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');
+if save_entity
+    fprintf('saving entity as %s\n',entity_save_file);
+    save(entity_save_file,'entity');
+    fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');
+end
 
-return % climada_high_res_entity
+return % climada_nightlight_entity
 
 
 

@@ -1,5 +1,7 @@
 function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots)
 % climada
+% MODULE:
+%   country_risk
 % NAME:
 %   centroids_generate_hazard_sets
 % PURPOSE:
@@ -143,7 +145,7 @@ else
     country_name_char='centroids'; % just to keep going
 end
 if isfield(centroids,'admin1_name') % append, if it exists
-    country_name_char=[country_name_char char(centroids.admin1{1})];
+    country_name_char=[country_name_char char(centroids.admin1_name{1})];
 end
 country_name_char=strrep(strrep(country_name_char,' ',''),' ',''); % remove inner blanks
 country_name_char=strrep(country_name_char,'(','');
@@ -328,7 +330,7 @@ for hazard_i=1:hazard_count
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
-            fprintf('*** hazard generation for TC %s in %s\n',hazard_name,country_name_char);
+            fprintf('*** hazard generation for TC %s in %s (can take some time)\n',hazard_name,country_name_char);
             
             [~,~,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
 
@@ -404,7 +406,7 @@ for hazard_i=1:hazard_count
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
-            fprintf('*** hazard generation for TR %s in %s\n',hazard_name,country_name_char);
+            fprintf('*** hazard generation for TR %s in %s (can take some time, longer than TC)\n',hazard_name,country_name_char);
             
             if exist('climada_tr_hazard_set', 'file') % the function exists
                 
@@ -449,7 +451,7 @@ for hazard_i=1:hazard_count
             if exist(TC_hazard_set_file,'file')
                 load(TC_hazard_set_file);hazard_TC=hazard;hazard=[];
                 
-                fprintf('*** hazard generation for TS %s in %s\n',hazard_name,country_name_char);
+                fprintf('*** hazard generation for TS %s in %s (can take some time, faster than TC)\n',hazard_name,country_name_char);
                 
                 if exist('climada_ts_hazard_set', 'file') % the function exists
                     hazard = climada_ts_hazard_set(hazard_TC,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
@@ -520,7 +522,7 @@ for hazard_i=1:hazard_count
                 
                 if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
                     
-                    fprintf('*** hazard generation for WS in %s\n',country_name_char);
+                    fprintf('*** hazard generation for WS in %s (can take some time)\n',country_name_char);
                     
                     % re-arrange hazard to match centroids and create a hazard
                     % sub-set specific to the country (saves time later in risk
@@ -548,7 +550,9 @@ for hazard_i=1:hazard_count
                     hazard.centroid_ID=1:n_centroids;
                     
                     hazard.filename=centroids_hazard_info.res.hazard(hazard_i).hazard_set_file;
-                    save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard');
+                    save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard','-v7.3');
+                    % Warning: Variable 'hazard' cannot be saved to a MAT-file whose version is older than 7.3.
+                    % To save this variable, use the -v7.3 switch.
                 end
             end
         end
