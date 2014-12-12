@@ -107,22 +107,14 @@ if ~exist([country_data_dir filesep 'system'],'dir'),mkdir(country_data_dir,'sys
 if ~exist([country_data_dir filesep 'entities'],'dir'),mkdir(country_data_dir,'entities');end
 if ~exist([country_data_dir filesep 'hazards'],'dir'),mkdir(country_data_dir,'hazards');end
 
-% prepare country list
-borders = climada_load_world_borders;
-if isempty(borders), fprintf('no map found\n'), return, end
-
-% valid country names
-valid_countries_indx = ~strcmp(borders.ISO3,'-');
-valid_countries      = borders.name(valid_countries_indx);
-
 if isempty(country_name) % prompt for country or region
-    country_name = climada_ask_country_name('multiple');
+    country_name = climada_country_name('MULTIPLE');
     if isempty(country_name),return,end % Cancel selected
 end
 
 if strcmp(country_name,'ALL')
     % compile list of all countries, then call recursively below
-    country_name = sort(valid_countries); % alphabetical
+    country_name = climada_country_name('all');
 end
 
 if ~iscell(country_name),country_name = {country_name};end % check that country_name is a cell
@@ -140,13 +132,13 @@ if length(country_name)>1 % more than one country, process recursively
     return
 end
 
-[country_name,country_ISO3]=climada_check_country_name(char(country_name));
+[country_name,country_ISO3]=climada_country_name(country_name);
 country_name_char = char(country_name); % as to create filenames etc., needs to be char
 country_risk.res.country_name = country_name_char;
 country_risk.res.country_ISO3 = country_ISO3;
 
 % define easy to read filenames
-entity_file        = [country_data_dir filesep 'entities' filesep country_name_char '_entity.mat'];
+entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' country_name_char '_entity.mat'];
 %entity_future_file = [country_data_dir filesep 'entities' filesep country_name_char '_entity_future.mat'];
 
 if ~exist(entity_file,'file')
@@ -160,7 +152,7 @@ end
 
 % get the admin1 boundaries
 if exist(admin1_shape_file,'file')
-    shapes=shaperead(admin1_shape_file); % read the admin1 shapes
+    shapes=climada_shaperead(admin1_shape_file); % read the admin1 shapes
     n_shapes=length(shapes);
 else
     fprintf('ERROR: admin1 shape file %s not found, aborted\n',admin1_shape_file);
@@ -180,7 +172,7 @@ end % shape_i
 next_EDS=1;
 Value_checksum=0;
 n_admin1=length(admin1_pos);
-fprintf('%s: %i admin1\n',shapes(admin1_pos(1)).admin,n_admin1);
+fprintf('%s (%s): %i admin1\n',shapes(admin1_pos(1)).admin,country_ISO3,n_admin1);
 
 if n_admin1>0
     
@@ -192,7 +184,7 @@ if n_admin1>0
     end
     
     % figure the existing hazard set files
-    hazard_files=dir([country_data_dir filesep 'hazards' filesep country_name_char '*.mat']);
+    hazard_files=dir([country_data_dir filesep 'hazards' filesep country_ISO3 '_' country_name_char '*.mat']);
     
     
     for admin1_i=1:n_admin1 % loop over all admin1
@@ -204,7 +196,7 @@ if n_admin1>0
         admin1_code=shapes(shape_i).adm1_code;
         
         % reduce entity to admin1
-        entity_filename=[country_data_dir filesep 'entities' filesep country_name_char '_entity.mat'];
+        entity_filename=[country_data_dir filesep 'entities' filesep country_ISO3 '_' country_name_char '_entity.mat'];
         
         if exist(entity_filename,'file')
             load(entity_filename)% load entity

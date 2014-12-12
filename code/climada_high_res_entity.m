@@ -166,7 +166,8 @@ min_South=-65; % degree, defined on the webpage above
 max_North=75; % defined on the webpage above
 %
 % admin0 and admin1 shap files (in climada module country_risk):
-admin0_shape_file=[module_data_dir filesep 'ne_10m_admin_0_countries' filesep 'ne_10m_admin_0_countries.shp'];
+admin0_shape_file=climada_global.map_border_file; % as we use the admin0 as in next line as default anyway
+%admin0_shape_file=[module_data_dir filesep 'ne_10m_admin_0_countries' filesep 'ne_10m_admin_0_countries.shp'];
 admin1_shape_file=[module_data_dir filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.shp'];
 %
 % base entity file, borrowed from climada module GDP_entity:
@@ -210,7 +211,7 @@ end
 
 
 % read admin0 (country) shape file (we need this in any case)
-admin0_shapes=shaperead(admin0_shape_file);
+admin0_shapes=climada_shaperead(admin0_shape_file);
 admin1_shapes=[]; % init
 
 selection_admin0_shape_i=[]; % init
@@ -251,9 +252,10 @@ if isempty(img_filename) % local GUI
     if isempty(admin0_name)
         
         % generate the list of countries
-        admin0_name_list={};
+        admin0_name_list={};admin0_code_list={};
         for shape_i=1:length(admin0_shapes)
-            admin0_name_list{shape_i}=admin0_shapes(shape_i).ADMIN;
+            admin0_name_list{shape_i}=admin0_shapes(shape_i).NAME;
+            admin0_code_list{shape_i}=admin0_shapes(shape_i).ADM0_A3;
         end % shape_i
         
         [liststr,sort_index] = sort(admin0_name_list);
@@ -264,6 +266,7 @@ if isempty(img_filename) % local GUI
         pause(0.1)
         if ~isempty(selection)
             admin0_name = admin0_name_list{sort_index(selection)};
+            admin0_code = admin0_code_list{sort_index(selection)};
         else
             img_filename='ASK'; % Cancel pressed, later prompt for filename
         end
@@ -272,12 +275,13 @@ if isempty(img_filename) % local GUI
     
     if ~strcmp(img_filename,'ASK')
         
+        [admin0_name,admin0_code]=climada_country_name(admin0_name);
         % find the country in the shape file
         admin0_shape_i=0;
         for shape_i=1:length(admin0_shapes)
             if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
                 admin0_shape_i=shape_i;
-            elseif strcmp(admin0_shapes(shape_i).SOV_A3,admin0_name) % country code
+            elseif strcmp(admin0_shapes(shape_i).ADM0_A3,admin0_code) % country code (2nd, since safer)
                 admin0_shape_i=shape_i;
             end
         end % shape_i
@@ -296,12 +300,13 @@ if isempty(img_filename) % local GUI
             
             % add (country states/provinces)
             fprintf('processing admin1 shapes ...\n'); % prompt, since takes a bit of time...
-            if isempty(admin1_shapes),admin1_shapes=shaperead(admin1_shape_file);end % read admin1 shape file
+            if isempty(admin1_shapes),admin1_shapes=climada_shaperead(admin1_shape_file);end % read admin1 shape file
             % figure which shapes within the country we need
             admin1_shape_i=0;next_admin1=1; % init
             for shape_i=1:length(admin1_shapes)
                 for country_i=1:length(admin0_shape_i)
-                    if strcmp(admin0_shapes(admin0_shape_i(country_i)).ADMIN,admin1_shapes(shape_i).admin)
+                    %if strcmp(admin0_shapes(admin0_shape_i(country_i)).ADMIN,admin1_shapes(shape_i).admin)
+                    if strcmp(admin0_shapes(admin0_shape_i(country_i)).ADM0_A3,admin1_shapes(shape_i).adm0_a3) % safer
                         admin1_shape_i(next_admin1)=shape_i;
                         next_admin1=next_admin1+1;
                     end
@@ -485,9 +490,8 @@ if isempty(xx) && isempty(yy)
     end
 end % isempty(xx) && isempty(yy)
 
-if length(admin0_name)==3 % check for admin0_name being an ISO3
-    admin0_name = climada_check_country_name(admin0_name); % get full name
-end
+% consistency check, returns both, interprets both name and ISO3
+[admin0_name,admin0_ISO3] = climada_country_name(admin0_name); % get full name
 
 % some double-checks (for the special case where an img_filename and
 % admin0_name and admin1_name are passed)
@@ -496,13 +500,13 @@ if isempty(selection_admin0_shape_i) && ~isempty(admin0_name)
         %fprintf('|%s|%s|\n',admin0_shapes(shape_i).ADMIN,admin0_name)
         if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
             selection_admin0_shape_i=shape_i;
-        elseif strcmp(admin0_shapes(shape_i).SOV_A3,admin0_name) % ISO3 country code
+        elseif strcmp(admin0_shapes(shape_i).ADM0_A3,admin0_ISO3) % ISO3 country code
             selection_admin0_shape_i=shape_i;
         end
     end % shape_i
 end
 if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
-    if isempty(admin1_shapes),admin1_shapes=shaperead(admin1_shape_file);end % read admin1 shape file
+    if isempty(admin1_shapes),admin1_shapes=climada_shaperead(admin1_shape_file);end % read admin1 shape file
     for shape_i=1:length(admin1_shapes)
         %fprintf('|%s|%s|\n',admin1_shapes(shape_i).name,admin1_name)
         if strcmp(admin1_shapes(shape_i).name,admin1_name)
@@ -514,9 +518,9 @@ if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
 end
 
 if isempty(admin1_name) % country
-    entity_save_file=sprintf('%s_%i_%i_%i_%i',admin0_name,bbox);
+    entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',admin0_ISO3,admin0_name,bbox);
 else % state/province
-    entity_save_file=sprintf('%s_%s_%s_%i_%i_%i_%i',admin0_name,...
+    entity_save_file=sprintf('%s_%s_%s_%s_%i_%i_%i_%i',admin0_ISO3,admin0_name,...
         admin1_shapes(selection_admin1_shape_i).name,admin1_shapes(selection_admin1_shape_i).adm1_code,bbox);
 end
 entity_save_file=[climada_global.data_dir filesep 'entities' ...
@@ -559,7 +563,7 @@ if check_plot
     if check_plot>1
         fprintf('adding admin1 shapes to plot ...\n');
         % figure which admin1 (country states/provinces) shapes we need
-        if isempty(admin1_shapes),admin1_shapes=shaperead(admin1_shape_file);end % read admin1 shape file
+        if isempty(admin1_shapes),admin1_shapes=climada_shaperead(admin1_shape_file);end % read admin1 shape file
         admin1_shape_i=0;next_admin1=1; % init
         for shape_i=1:length(admin1_shapes)
             for country_i=1:length(admin0_shape_i)
@@ -633,8 +637,6 @@ if restrict_Values_to_coutry % reduce to assets within the country or admin1
 else
     entity.assets.Value=VALUES_1D';
 end % restrict_Values_to_coutry
-entity.assets.Deductible=entity.assets.Value*0;
-entity.assets.Cover=entity.assets.Value;
 entity.assets.DamageFunID=entity.assets.Value*0+1;
 entity.assets.reference_year=climada_global.present_reference_year;
 if sum(scale_Value)>0
@@ -647,7 +649,7 @@ if sum(scale_Value)>0
 end
 
 entity.assets.admin0_name=admin0_name;
-entity.assets.admin0_ISO3=admin0_shapes(selection_admin0_shape_i).SOV_A3;
+entity.assets.admin0_ISO3=admin0_shapes(selection_admin0_shape_i).ADM0_A3;
 entity.assets.admin1_name=admin1_name;
 if ~isempty(selection_admin1_shape_i)
     entity.assets.admin0_code=admin1_shapes(selection_admin1_shape_i).adm1_code;
@@ -682,7 +684,7 @@ if select_admin0
             save(GDP_save_file,'GDP');
         end
         %admin0_pos=strmatch(admin0_name,GDP.Country_Name); % locate admin0 GDP
-        admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.Country_Code); % safer
+        admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.ISO3); % match via ISO3, safer
         % since we use the 3-digit country code, it always matches
         if ~isempty(admin0_pos)
             GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.Year(admin0_pos)));
@@ -703,6 +705,10 @@ if select_admin0
     end
     
 end % select_admin0
+
+% for consistency, update Deductible and Cover
+entity.assets.Deductible=entity.assets.Value*0;
+entity.assets.Cover=entity.assets.Value;
 
 fprintf('saving entity as %s\n',entity_save_file);
 save(entity_save_file,'entity');

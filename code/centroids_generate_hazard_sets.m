@@ -150,6 +150,10 @@ country_name_char=strrep(country_name_char,'(','');
 country_name_char=strrep(country_name_char,')','');
 country_name_char=strrep(country_name_char,'-','');
 country_name_char=strrep(country_name_char,'_','');
+[~,country_ISO3]=climada_country_name(country_name_char);
+if ~isempty(country_ISO3) %we have a valid ISO3 country code
+    country_name_char=[country_ISO3 '_' country_name_char];
+end
 
 % 1) figure which hazards affect the country
 % ==========================================
