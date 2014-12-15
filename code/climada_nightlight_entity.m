@@ -144,6 +144,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 % David N. Bresch, david.bresch@gmail.com, 20141209, admin1 name issue resolved
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
 % David N. Bresch, david.bresch@gmail.com, 20141212, renamed to climada_nightlight_entity (formerly climada_high_res_entity)
+% David N. Bresch, david.bresch@gmail.com, 20141215, switch to entity_template.xls
 %-
 
 entity=[]; % init
@@ -188,7 +189,7 @@ admin1_shape_file=[module_data_dir filesep 'ne_10m_admin_1_states_provinces' fil
 %
 % base entity file, borrowed from climada module GDP_entity:
 GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
-entity_file=[GDP_entity_data_folder filesep 'entity_global_without_assets.xls'];
+entity_file=[climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
 %
 % the Excel file with latest GDP for admin0 (country)
 %GDP_data_file=[GDP_entity_data_folder filesep 'World_GDP_current_1960_2010.xls']; % GDP_entity
