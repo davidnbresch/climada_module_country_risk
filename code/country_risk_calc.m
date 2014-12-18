@@ -95,10 +95,12 @@ if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
 
 % check for module GDP_entity, as it otherwise fails anyway
-if length(which('climada_create_GDP_entity'))<2
-    fprintf('ERROR: GDP_entity module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_GDP_entity\n');
+if length(which('climada_create_GDP_entity'))<2 && force_recalc>0
+    fprintf('ERROR: GDP_entity module not found. Pleaseforce_recalc download from github and install. \nhttps://github.com/davidnbresch/climada_module_GDP_entity\n');
+    fprintf('> consider option force_recalc<0, e.g. country_risk0=country_risk_calc('''',0,-10)\n');
     return
 end
+
 
 % PARAMETERS
 %
@@ -133,6 +135,8 @@ if isempty(country_name) % prompt for country (one or many) as list dialog
 elseif strcmp(country_name,'ALL')
     [country_name,country_ISO3,shape_index] = climada_country_name('all');
 end
+
+if isempty(country_name), return; end % Cancel pressed
 
 if ~iscell(country_name),country_name={country_name};end % check that country_name is a cell
 
