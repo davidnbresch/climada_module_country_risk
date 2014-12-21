@@ -687,6 +687,11 @@ if ~isempty(selection_admin1_shape_i)
 end
 
 if select_admin0
+
+    entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
+    entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
+    
+    fprintf('Note: GDP %g, Poupulation %i (from shapefile)\n',entity.assets.GDP_EST,entity.assets.population_EST)
     
     % find GDP data
     [fP,fN] = fileparts(GDP_data_file);
