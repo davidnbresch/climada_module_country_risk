@@ -84,8 +84,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       =1: select admin0 (full country), not admin1 (country
 %       state/province). The assets are scaled by country GDP and further
 %       multiplied by 6 (as a proxy to scale up for insurable values).
-%       Note that select_admin0=1 might lead to memory issues for large(r)
-%       countries, see option =2, too. This usage gets close to
+%       Note that selections=1 might lead to memory issues for large(r)
+%       countries, see option =2 or =10, too. This usage gets close to
 %       climada_create_GDP_entity.
 %       =2: select admin0 (like =1) and do not constrain the active
 %       centroids (with values>0) to the selected country (good for initial

@@ -1,4 +1,4 @@
-function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
+function country_risk=country_risk_calc(country_name,method,force_recalc,check_plots)
 % climada
 % MODULE:
 %   country_risk
@@ -25,14 +25,16 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 %
 %   next step: country_risk_report, see also country_admin1_risk_calc
 % CALLING SEQUENCE:
-%   country_risk=country_risk_calc(country_name,probabilistic,force_recalc,check_plots)
+%   country_risk=country_risk_calc(country_name,method,force_recalc,check_plots)
 % EXAMPLE:
-%   country_risk0=country_risk_calc('CHE',0,-10); % 10x10km resolution for 
-%       % Switzerland, using climada_nightlight_entity, not GDP_entity
-%   country_risk0=country_risk_calc('CHE',0,-1); % 1x1km resolution for 
-%       % Switzerland, using climada_nightlight_entity, not GDP_entity
+%   country_risk0=country_risk_calc('CHE',1,0); % 10x10km resolution for 
+%       % Switzerland, using climada_nightlight_entity (not GDP_entity)
+%   country_risk0=country_risk_calc('CHE',2,0); % 1x1km resolution for 
+%       % Switzerland, using climada_nightlight_entity
+%   country_risk0=country_risk_calc('CHE',3,0); % 10x10km resolution for 
+%       % Switzerland, using GDP_entity
 %   country_risk=country_risk_calc; % interactive, select country from dropdown
-%   country_risk=country_risk_calc('ALL',0,0,0) % whole world, no figures
+%   country_risk=country_risk_calc('ALL',1,0,0) % whole world, no figures
 % INPUTS:
 %   country_name: name of the country, like 'Switzerland', or a list of
 %       countries, like {'Switzerland','Germany','France'}. See
@@ -42,21 +44,20 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 %       > prompted for via dropdown list if empty (allows for single or
 %       multiple country selection)
 % OPTIONAL INPUT PARAMETERS:
-%   probabilistic: if =1, generate probabilistic hazard event sets,
-%       =0 generate 'historic' hazard event sets (default)
-%       While one need fully probabilistic sets for really meaningful
-%       results, the default is 'historic' as this is the first thing to
-%       check.
+%   method: =1: use 10km nightlight (climada_nightlight_entity, default)
+%       =2: use 1km nightlight (climada_nightlight_entity)
+%       =3: use 10km nightlight (GDP_entity)
+%       Since the code uses the entity (III_Name, with III Iso3 code and
+%       Name the country name) if it exists already, the resolution only
+%       matters on the first call, that's why we can use force_recalc to
+%       direct resolution. For another entity resolution, delete or rename
+%       the entity.
+%       <0: all above options *(-1) trigger the generation of the full
+%       probabilistic hazard sets (adding extension _p to the hazard
+%       event sets)
+%       internally: if method<0, probabilistic=1, =0 else (default)
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
-%       =-1: (re)calculate, use climada_nightlight_entity with high
-%       resolution (1x1km)
-%       =-10: (re)calculate, use climada_nightlight_entity with moderate
-%       resolution (10x10km), similar to calling GDP entity, but does not
-%       require the GDP_entity module.
-%       Since the code uses any existing entity, the resolution only
-%       matters on the first call, that's why we can use force_recalc to
-%       direct resolution.
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 %       If country_name is set to 'ALL', be careful to set check_plots=1
@@ -75,12 +76,13 @@ function country_risk=country_risk_calc(country_name,probabilistic,force_recalc,
 % David N. Bresch, david.bresch@gmail.com, 20140831, initial
 % David N. Bresch, david.bresch@gmail.com, 20140922, three hazards: TC,TS,TR
 % David N. Bresch, david.bresch@gmail.com, 20141020, ready for checkin
-% David N. Bresch, david.bresch@gmail.com, 20141025, major cleanup and EQ added
+% David N. Bresch, david.bresch@gmail.com, 20141025, major cleanup, WS and EQ added
 % David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 % David N. Bresch, david.bresch@gmail.com, 20141029, force_re_encoding
 % David N. Bresch, david.bresch@gmail.com, 20141103, matching peril_ID for damagefunction added
 % David N. Bresch, david.bresch@gmail.com, 20141107, add ncetCFD tc_track file treatment (NCAR) (on flight to Dubai)
 % David N. Bresch, david.bresch@gmail.com, 20141126, country list enabled and multiple selection added
+% David N. Bresch, david.bresch@gmail.com, 20141222, method parameter simplified (replaces and includes probabilistic)
 %-
 
 country_risk = []; % init output
@@ -90,17 +92,16 @@ if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
 if ~exist('country_name','var'), country_name = '';end
-if ~exist('probabilistic','var'), probabilistic = 0;end
-if ~exist('force_recalc','var'), force_recalc = 0;end
-if ~exist('check_plots' ,'var'), check_plots  = 0;end
+if ~exist('method','var'),       method       =  1;end % default=1
+if ~exist('force_recalc','var'), force_recalc =  0;end
+if ~exist('check_plots' ,'var'), check_plots  =  0;end
 
 % check for module GDP_entity, as it otherwise fails anyway
-if length(which('climada_create_GDP_entity'))<2 && force_recalc>0
+if length(which('climada_create_GDP_entity'))<2 && method==3
     fprintf('ERROR: GDP_entity module not found. Pleaseforce_recalc download from github and install. \nhttps://github.com/davidnbresch/climada_module_GDP_entity\n');
-    fprintf('> consider option force_recalc<0, e.g. country_risk0=country_risk_calc('''',0,-10)\n');
+    fprintf('> consider option force_recalc<0, e.g. country_risk=country_risk_calc(...,1,...)\n');
     return
 end
-
 
 % PARAMETERS
 %
@@ -122,6 +123,9 @@ country_data_dir = climada_global.data_dir; % default
 % force_re_encoding=1 and check whether you get the same results (if yes,
 % very likely no need for force_re_encoding=1, otherwise keep =1).
 force_re_encoding=0; % default=0
+%
+probabilistic=0; % default
+if method<0,probabilistic=1;end
 
 
 % some folder checks (to be on the safe side)
@@ -131,9 +135,9 @@ if ~exist([country_data_dir filesep 'entities'],'dir'),mkdir(country_data_dir,'e
 if ~exist([country_data_dir filesep 'hazards'],'dir'),mkdir(country_data_dir,'hazards');end
 
 if isempty(country_name) % prompt for country (one or many) as list dialog
-    [country_name,country_ISO3,shape_index] = climada_country_name('MULTIPLE');
+    country_name = climada_country_name('MULTIPLE');
 elseif strcmp(country_name,'ALL')
-    [country_name,country_ISO3,shape_index] = climada_country_name('all');
+    country_name = climada_country_name('all');
 end
 
 if isempty(country_name), return; end % Cancel pressed
@@ -146,7 +150,7 @@ if length(country_name)>1 % more than one country, process recursively
         single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(single_country_name),country_i,n_countries);
-        country_risk_out(country_i)=country_risk_calc(single_country_name,probabilistic,force_recalc,check_plots);
+        country_risk_out(country_i)=country_risk_calc(single_country_name,method,force_recalc,check_plots);
     end % country_i
     close all
     country_risk=country_risk_out;
@@ -177,25 +181,30 @@ entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '
 
 if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
     
-    if force_recalc<0
-        % invoke climada_nightlight_entity (no need for module GDP_entity)
-        % force_recalc=-1 intepreted as using high-res, =-10 using low-res
-        % (passed on a positive value)
-        if force_recalc==-1
-            force_recalc=0;
-            selections= 1; % high res, country
-        elseif force_recalc==-10
-            force_recalc=0;
-            selections=-1; % mid-res, country
-        else
-            fprintf('option %i not implemented for force_recalc, aborted\n',force_recalc)
-            return
-        end
-        entity=climada_nightlight_entity(country_name_char,'',selections,0,[],'',0); % no save
-        entity.assets.centroid_index=1:length(entity.assets.Longitude); % as we later construct the hazard accordingly
-        if isempty(entity),return,end
+    if method==1
+        entity=climada_nightlight_entity(country_name_char,'',-1,0,[],'',0); % no save
+    elseif method==2
+        entity=climada_nightlight_entity(country_name_char,'', 1,0,[],'',0); % no save
+    elseif method==3
+        % invoke the GDP_entity module to generate centroids and entity
+        [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
+        if isempty(centroids), return, end
+        save(centroids_file,'centroids');
         save(entity_file,'entity');
-
+        entity = entity_future; %replace with entity future
+        save(entity_future_file,'entity');
+    else
+        fprintf('%s: method=%i not implemented, aborted\n',mfilename,method);
+        return
+    end % method
+    
+    if ~exist('centroids','var')
+        if isempty(entity),return,end
+        % since climada_nightlight_entity only created the entity,
+        % create centroids, too
+        entity.assets.centroid_index=1:length(entity.assets.Longitude); % as we later construct the hazard accordingly
+        save(entity_file,'entity');
+        
         % get centroids from entity
         centroids.Latitude =entity.assets.Latitude;
         centroids.Longitude=entity.assets.Longitude;
@@ -205,35 +214,23 @@ if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
         if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3{1}=entity.assets.admin0_ISO3;end
         if isfield(entity.assets,'admin1_name'),centroids.admin1_name{1}=entity.assets.admin1_name;end
         save(centroids_file,'centroids');
-        force_recalc=1;
-    else
-        % invoke the GDP_entity module to generate centroids and entity
-        country_name_char_tmp=country_name_char;
-        if strcmp(country_name_char,'Vietnam')   , country_name_char_tmp='Viet Nam';end
-        if strcmp(country_name_char,'ElSalvador'), country_name_char_tmp='El Salvador';end
-        [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char_tmp,[],0,1);
-        save(centroids_file,'centroids');
-        save(entity_file,'entity');
-        entity = entity_future; %replace with entity future
-        save(entity_future_file,'entity');
-        if isempty(centroids), return, end
-    end
-    
-    if check_plots
-        % visualize assets on map
-        climada_plot_entity_assets(entity,centroids,country_name_char);
     end
 else
-    load(centroids_file) % load centroids
-end
+    load(centroids_file)
+end % entity or centroids not exist
 
 if isempty(centroids)
     fprintf('ERROR: %s no centroids\n',country_name_char);
     return
 end
 
+if check_plots
+    % visualize assets on map
+    climada_plot_entity_assets(entity,centroids,country_name_char);
+end % check_plots
+
 % 2) figure which hazards affect the country
-% 3) Generate the hazard event sets
+% 3) and generate the hazard event sets
 % =================================
 % centroids are the ones for the country, not visible in code sinde loaded
 % above with load(centroids_file)
