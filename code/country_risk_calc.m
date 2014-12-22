@@ -182,8 +182,10 @@ if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
         % force_recalc=-1 intepreted as using high-res, =-10 using low-res
         % (passed on a positive value)
         if force_recalc==-1
+            force_recalc=0;
             selections= 1; % high res, country
         elseif force_recalc==-10
+            force_recalc=0;
             selections=-1; % mid-res, country
         else
             fprintf('option %i not implemented for force_recalc, aborted\n',force_recalc)

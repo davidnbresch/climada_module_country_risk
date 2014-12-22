@@ -4,7 +4,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %	climada_nightlight_entity
 % PURPOSE:
 %   Construct an entity file based on high-res (1km!) or mif -res (10km)
-%   night light data. 
+%   night light data.
 %
 %   Reads an image file with nightlight density and matches it to the local
 %   geography.
@@ -22,9 +22,9 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %
 %   If the high-resolution night light image is stored locally (about 700MB
 %   as tiff, after first call about 24MB as .mat), the code works from
-%   there. 
+%   there.
 %   See http://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html#AVSLCFC3
-%   to obtain the file 
+%   to obtain the file
 %   http://ngdc.noaa.gov/eog/data/web_data/v4composites/F182012.v4.tar
 %   and unzip the file F182012.v4c_web.stable_lights.avg_vis.tif in there
 %   to the /data folder of country_risk module. As the .tif is so much
@@ -49,6 +49,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %   entity=climada_nightlight_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename,save_entity)
 % EXAMPLE:
 %   entity=climada_nightlight_entity('Italy','',2); % good for test, as shape of Italy is well-known
+%   entity=climada_nightlight_entity('France','',-1); % France, scaled by GDP, 10km resolution
 %   entity=climada_nightlight_entity('United States of America','Florida',2,2);
 %   entity=climada_nightlight_entity('Sswitzerland','',1,0,[0 1 0 -1]); % scale by GDP (the -1)
 %   entity=climada_nightlight_entity('CHE','',1); % full country, scale by 6 times GDP as a proxy for insurable values
@@ -82,7 +83,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       resolution. See also remark about using -(selections) below.
 %       =1: select admin0 (full country), not admin1 (country
 %       state/province). The assets are scaled by country GDP and further
-%       multiplied by 6 (as a proxy to scale up for insurable values). 
+%       multiplied by 6 (as a proxy to scale up for insurable values).
 %       Note that select_admin0=1 might lead to memory issues for large(r)
 %       countries, see option =2, too. This usage gets close to
 %       climada_create_GDP_entity.
@@ -305,7 +306,7 @@ if isempty(img_filename) % local GUI
         % find the country in the shape file
         admin0_shape_i=0;
         for shape_i=1:length(admin0_shapes)
-            if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
+            if strcmp(admin0_shapes(shape_i).NAME,admin0_name)
                 admin0_shape_i=shape_i;
             elseif strcmp(admin0_shapes(shape_i).ADM0_A3,admin0_code) % country code (2nd, since safer)
                 admin0_shape_i=shape_i;
@@ -316,10 +317,10 @@ if isempty(img_filename) % local GUI
         if select_admin0
             
             % prepare parameters for www call to fetch the tile of the global map
-            bbox(1)=floor(admin0_shapes(selection_admin0_shape_i).BoundingBox(1));
-            bbox(3)=ceil(admin0_shapes(selection_admin0_shape_i).BoundingBox(2));
-            bbox(2)=floor(admin0_shapes(selection_admin0_shape_i).BoundingBox(3));
-            bbox(4)=ceil(admin0_shapes(selection_admin0_shape_i).BoundingBox(4));
+            bbox(1)=floor(min(admin0_shapes(selection_admin0_shape_i).X));
+            bbox(3)=ceil( max(admin0_shapes(selection_admin0_shape_i).X));
+            bbox(2)=floor(min(admin0_shapes(selection_admin0_shape_i).Y));
+            bbox(4)=ceil( max(admin0_shapes(selection_admin0_shape_i).Y));
             admin1_name='';
             
         else
@@ -382,7 +383,7 @@ if isempty(img_filename) % local GUI
                         selection_admin1_shape_i=shape_i;
                     elseif strcmp(admin1_shapes(shape_i).adm1_code,admin1_name) % also allow for code
                         selection_admin1_shape_i=shape_i;
-                     end
+                    end
                 end % shape_i
                 
             end % isempty(admin1_name)
@@ -440,13 +441,13 @@ if isempty(img_filename)
     % hence will use the full img
     if ~isempty(full_img_filename_mat)
         % there is a previously saved .mat version of the full image
-        load(full_img_filename_mat) % loads img        
+        load(full_img_filename_mat) % loads img
     elseif ~isempty(full_img_filename)
         % there is a full image
         fprintf('reading full global high-res image, takes ~20 sec (%s)\n',full_img_filename);
         if exist(full_img_filename,'file')
-        img=imread(full_img_filename);
-        img=img(end:-1:1,:); % switch for correct order in lattude (images are saved 'upside down')
+            img=imread(full_img_filename);
+            img=img(end:-1:1,:); % switch for correct order in lattude (images are saved 'upside down')
         else
             fprintf('full-resolution global night light density image not found, aborted\n')
             fprintf('> Please follow instructions in:\n\t%s\n',...
@@ -687,7 +688,7 @@ if ~isempty(selection_admin1_shape_i)
 end
 
 if select_admin0
-
+    
     entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
     entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
     
@@ -696,7 +697,7 @@ if select_admin0
     % find GDP data
     [fP,fN] = fileparts(GDP_data_file);
     GDP_save_file=[fP filesep fN '.mat'];
-        
+    
     % two options, GDP from GDP_entity or from the GDP file in country_risk
     if strfind(GDP_data_file,'GDP_entity') % the file in module GDP_entity
         if climada_check_matfile(GDP_data_file)
@@ -768,7 +769,6 @@ function ok=fetch_mapserver_ngdc_noaa_gov_gcv4(bbox,img_filename)
 
 http_str='http://mapserver.ngdc.noaa.gov/cgi-bin/public/gcv4/F182010.v4c.avg_lights_x_pct.lzw.tif?request=GetCoverage&service=WCS&version=1.0.0&COVERAGE=F182010.v4c.avg_lights_x_pct.lzw.tif&crs=EPSG:4326&format=geotiff&resx=0.0083333333&resy=0.0083333333';
 bbox_str=sprintf('&bbox=%i,%i,%i,%i',bbox);
-bbox_file_pref=sprintf('%i_%i_%i_%i_',bbox);
 www_filename=[http_str bbox_str];
 
 fprintf('please enter the following URL in a browser:\n\n');
