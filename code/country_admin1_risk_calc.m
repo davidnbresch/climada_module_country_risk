@@ -284,7 +284,6 @@ if n_admin1>0
                                         entity.damagefunctions.Intensity=entity.damagefunctions.Intensity(asset_damfun_pos);
                                         entity.damagefunctions.MDD=entity.damagefunctions.MDD(asset_damfun_pos);
                                         entity.damagefunctions.PAA=entity.damagefunctions.PAA(asset_damfun_pos);
-                                        entity.damagefunctions.MDR=entity.damagefunctions.MDR(asset_damfun_pos);
                                         
                                         entity.damagefunctions=rmfield(entity.damagefunctions,'peril_ID'); % get rid of the peril_ID
                                         
