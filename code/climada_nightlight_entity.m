@@ -146,6 +146,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
 % David N. Bresch, david.bresch@gmail.com, 20141212, renamed to climada_nightlight_entity (formerly climada_high_res_entity)
 % David N. Bresch, david.bresch@gmail.com, 20141215, switch to entity_template.xls
+% David N. Bresch, david.bresch@gmail.com, 20141215, SPECIAL for Alaska in plot (avoid dateline)
 %-
 
 entity=[]; % init
@@ -332,7 +333,7 @@ if isempty(img_filename) % local GUI
             admin1_shape_i=0;next_admin1=1; % init
             for shape_i=1:length(admin1_shapes)
                 for country_i=1:length(admin0_shape_i)
-                    %if strcmp(admin0_shapes(admin0_shape_i(country_i)).ADMIN,admin1_shapes(shape_i).admin)
+                    %if strcmp(admin0_shapes(admin0_shape_i(country_i)).NAME,admin1_shapes(shape_i).admin)
                     if strcmp(admin0_shapes(admin0_shape_i(country_i)).ADM0_A3,admin1_shapes(shape_i).adm0_a3) % safer
                         admin1_shape_i(next_admin1)=shape_i;
                         next_admin1=next_admin1+1;
@@ -349,19 +350,26 @@ if isempty(img_filename) % local GUI
                     hold on; axis equal
                 end % country_i
                 set(gcf,'Color',[1 1 1]) % whithe figure background
-                
+                                
                 % plot admin1 (country states/provinces) shapes
                 admin1_name_list={};
                 admin1_name_code_list={};
                 for admin1_i=1:length(admin1_shape_i)
                     shape_i=admin1_shape_i(admin1_i);
-                    plot(admin1_shapes(shape_i).X,admin1_shapes(shape_i).Y,'-r','LineWidth',1);
+                    plot_X=admin1_shapes(shape_i).X;
+                    plot_Y=admin1_shapes(shape_i).Y;
+                    if strcmp(admin1_shapes(shape_i).name,'Alaska')
+                        % SPECIAL case for Alaska (to avoid badly shaped map)
+                        pos=find(plot_X>100);
+                        plot_X(pos)=plot_X(pos)-360;
+                    end
+                    plot(plot_X,plot_Y,'-r','LineWidth',1);
                     text(admin1_shapes(shape_i).longitude,admin1_shapes(shape_i).latitude,admin1_shapes(shape_i).name);
                     admin1_name_list{admin1_i}=admin1_shapes(shape_i).name; % compile list of admin1 names
                     admin1_name_code_list{admin1_i}=[admin1_shapes(shape_i).name ...
                         ' | ' admin1_shapes(shape_i).adm1_code]; % with code
                 end % admin1_i
-                
+
                 [liststr,sort_index] = sort(admin1_name_code_list);
                 
                 % show list dialog to select admin1 (now easy as names shown on plot)
@@ -524,8 +532,8 @@ end % isempty(xx) && isempty(yy)
 % admin0_name and admin1_name are passed)
 if isempty(selection_admin0_shape_i) && ~isempty(admin0_name)
     for shape_i=1:length(admin0_shapes)
-        %fprintf('|%s|%s|\n',admin0_shapes(shape_i).ADMIN,admin0_name)
-        if strcmp(admin0_shapes(shape_i).ADMIN,admin0_name)
+        %fprintf('|%s|%s|\n',admin0_shapes(shape_i).NAME,admin0_name)
+        if strcmp(admin0_shapes(shape_i).NAME,admin0_name)
             selection_admin0_shape_i=shape_i;
         elseif strcmp(admin0_shapes(shape_i).ADM0_A3,admin0_ISO3) % ISO3 country code
             selection_admin0_shape_i=shape_i;
@@ -599,7 +607,7 @@ if check_plot
         admin1_shape_i=0;next_admin1=1; % init
         for shape_i=1:length(admin1_shapes)
             for country_i=1:length(admin0_shape_i)
-                if strcmp(admin0_shapes(admin0_shape_i(country_i)).ADMIN,admin1_shapes(shape_i).admin)
+                if strcmp(admin0_shapes(admin0_shape_i(country_i)).NAME,admin1_shapes(shape_i).admin)
                     admin1_shape_i(next_admin1)=shape_i;
                     next_admin1=next_admin1+1;
                 end
@@ -653,16 +661,18 @@ if restrict_Values_to_coutry % reduce to assets within the country or admin1
         
     end
     if isempty(selection_admin1_shape_i)
-        fprintf('restricting %i assets to country %s (can take some time) ...\n',length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).ADMIN);
+        fprintf('restricting %i assets to country %s (can take some time) ... ',...
+            length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).NAME);
         admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
             admin0_shapes(selection_admin0_shape_i).X,admin0_shapes(selection_admin0_shape_i).Y);
     else
-        fprintf('restricting %i assets to admin1 %s (%s) (can take some time) ...\n',...
+        fprintf('restricting %i assets to admin1 %s (%s) (can take some time) ... ',...
             length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name,...
             admin1_shapes(selection_admin1_shape_i).adm1_code);
         admin_hit=inpolygon(entity.assets.Longitude,entity.assets.Latitude,...
             admin1_shapes(selection_admin1_shape_i).X,admin1_shapes(selection_admin1_shape_i).Y);
     end
+    fprintf('%i centroids within\n',sum(admin_hit))
     if sum(admin_hit)>0
         entity.assets.Value(admin_hit)=VALUES_1D(admin_hit)';
     end
