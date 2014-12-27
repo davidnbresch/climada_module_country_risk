@@ -12,7 +12,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %   Prompts for country (admin0) and state/province (admin1), obtains the
 %   high-resolution night lights for this area and constrains the active
 %   centroids (with values>0) to the selected country or admin1 (see input
-%   parameter selections) and saves the entity.
+%   parameter selections) and saves the entity, adding distance to coast
+%   (im km) and elevation (in m) for each centroid, too.
 %
 %   Since we're dealing with admin1, no automatic scaling or allocation of
 %   GDP to centroids is performed (for this, see
@@ -131,10 +132,19 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       where one has to press 'Cancel') to get the to filename prompt
 %   save_entity: whether we save the entity (=1, default) or nor (=0).
 % OUTPUTS:
-%   entity: a full climada entity, see climada_entity_read
-%       and see e.g. climada_entity_plot to check
-%       entity does contain entity.assets.admin0_name and
-%       entity.assets.admin0_ISO3, also for admin1 if restricted to.
+%   entity: a full climada entity, see climada_entity_read, plus the fields
+%       entity.assets.distance2coast_km(i): distance to coast in km (both on-
+%           and offshore) for each centroid
+%       entity.assets.elevation_m(i): elevation in m for each centroid,
+%           negatove for ocean depth (needs climada module etopo, just skips
+%           this if module not installed) 
+%       entity.assets.admin0_name: country name
+%       entity.assets.admin0_ISO3: country ISO3 code
+%       entity.assets.admin1_name: state/province name (if restricted to
+%           admin1)
+%       entity.assets.admin1_code: state/province code (if restricted to
+%           admin1)
+%       see e.g. climada_entity_plot to check
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141202
@@ -146,7 +156,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
 % David N. Bresch, david.bresch@gmail.com, 20141212, renamed to climada_nightlight_entity (formerly climada_high_res_entity)
 % David N. Bresch, david.bresch@gmail.com, 20141215, switch to entity_template.xls
-% David N. Bresch, david.bresch@gmail.com, 20141215, SPECIAL for Alaska in plot (avoid dateline)
+% David N. Bresch, david.bresch@gmail.com, 20141225, SPECIAL for Alaska in plot (avoid dateline)
+% David N. Bresch, david.bresch@gmail.com, 20141226, distance2coast_km and elevation_m added
 %-
 
 entity=[]; % init
@@ -318,6 +329,7 @@ if isempty(img_filename) % local GUI
         if select_admin0
             
             % prepare parameters for www call to fetch the tile of the global map
+            % bbox=[minlon minlat maxlon maxlat]
             bbox(1)=floor(min(admin0_shapes(selection_admin0_shape_i).X));
             bbox(3)=ceil( max(admin0_shapes(selection_admin0_shape_i).X));
             bbox(2)=floor(min(admin0_shapes(selection_admin0_shape_i).Y));
@@ -350,7 +362,7 @@ if isempty(img_filename) % local GUI
                     hold on; axis equal
                 end % country_i
                 set(gcf,'Color',[1 1 1]) % whithe figure background
-                                
+                
                 % plot admin1 (country states/provinces) shapes
                 admin1_name_list={};
                 admin1_name_code_list={};
@@ -369,7 +381,7 @@ if isempty(img_filename) % local GUI
                     admin1_name_code_list{admin1_i}=[admin1_shapes(shape_i).name ...
                         ' | ' admin1_shapes(shape_i).adm1_code]; % with code
                 end % admin1_i
-
+                
                 [liststr,sort_index] = sort(admin1_name_code_list);
                 
                 % show list dialog to select admin1 (now easy as names shown on plot)
@@ -692,9 +704,9 @@ end
 
 entity.assets.admin0_name=admin0_name;
 entity.assets.admin0_ISO3=admin0_shapes(selection_admin0_shape_i).ADM0_A3;
-entity.assets.admin1_name=admin1_name;
 if ~isempty(selection_admin1_shape_i)
-    entity.assets.admin0_code=admin1_shapes(selection_admin1_shape_i).adm1_code;
+    entity.assets.admin1_name=admin1_shapes(selection_admin1_shape_i).adm1_name;
+    entity.assets.admin1_code=admin1_shapes(selection_admin1_shape_i).adm1_code;
 end
 
 if select_admin0
@@ -762,6 +774,17 @@ end % select_admin0
 % for consistency, update Deductible and Cover
 entity.assets.Deductible=entity.assets.Value*0;
 entity.assets.Cover=entity.assets.Value;
+
+% add distance to coast
+entity.assets.distance2coast_km=climada_distance2coast_km(entity.assets.Longitude,entity.assets.Latitude,check_plot);
+
+% add elevation
+if ~exist('etopo_get','file')
+    % safety to inform the user in case he misses the ETOPO module
+    fprintf('Note: no elevation added (no etopo_get function found)\n Please download from github and install the climada etopo module\n https://github.com/davidnbresch/climada_module_etopo\n');
+else
+    entity.assets.elevation_m=etopo_elevation_m(entity.assets.Longitude,entity.assets.Latitude,check_plot);
+end % add elevation
 
 if save_entity
     fprintf('saving entity as %s\n',entity_save_file);

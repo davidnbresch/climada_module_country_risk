@@ -131,31 +131,33 @@ if isfield(centroids,'assets') % centroids contains in fact an entity
     entity=centroids; centroids=[]; % silly switch, but fastest
     centroids.Latitude =entity.assets.Latitude;
     centroids.Longitude=entity.assets.Longitude;
-    if isfield(entity.assets,'country_name'),centroids.country_name{1}=entity.assets.country_name;end
-    if isfield(entity.assets,'admin0_name'),centroids.admin0_name{1}=entity.assets.admin0_name;end
-    if isfield(entity.assets,'admin1_name'),centroids.admin1_name{1}=entity.assets.admin1_name;end
+    if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
+    if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
+    if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
+    if isfield(entity.assets,'admin1_name'),centroids.admin1_name=entity.assets.admin1_name;end
+    if isfield(entity.assets,'admin1_code'),centroids.admin1_code=entity.assets.admin1_code;end
     clear entity
 end
 
-if isfield(centroids,'country_name') % usually the case
-    country_name_char=char(centroids.country_name{1});
-elseif isfield(centroids,'admin0_name') % another name for the field
-    country_name_char=char(centroids.admin0_name{1});
-else
-    country_name_char='centroids'; % just to keep going
-end
-if isfield(centroids,'admin1_name') % append, if it exists
-    country_name_char=[country_name_char char(centroids.admin1_name{1})];
-end
+country_name_char=''; % init, start appending:
+
+if isfield(centroids,'country_name'),[~,country_ISO3]=climada_country_name(centroids.country_name);end
+% first ISO3 code
+if isfield(centroids,'admin0_ISO3'),country_name_char=char(centroids.admin0_ISO3);
+elseif ~isempty(country_ISO3),country_name_char=country_ISO3;end
+% second country name
+if isfield(centroids,'country_name'),country_name_char=[country_name_char '_' char(centroids.country_name)];
+elseif isfield(centroids,'admin0_name')country_name_char=[country_name_char '_' char(centroids.admin0_name)];end % another name for the field
+% third admin1 name
+if isfield(centroids,'admin1_name'),country_name_char=[country_name_char '_' char(centroids.admin1_name)];end % append, if it exists
+% fourth admin1 code
+if isfield(centroids,'admin1_code'),country_name_char=[country_name_char '_' char(centroids.admin1_code)];end % append, if it exists
+if isempty(country_name_char),country_name_char='centroids';end % just to keep going
+
 country_name_char=strrep(strrep(country_name_char,' ',''),' ',''); % remove inner blanks
 country_name_char=strrep(country_name_char,'(','');
 country_name_char=strrep(country_name_char,')','');
-country_name_char=strrep(country_name_char,'-','');
-country_name_char=strrep(country_name_char,'_','');
-[~,country_ISO3]=climada_country_name(country_name_char);
-if ~isempty(country_ISO3) %we have a valid ISO3 country code
-    country_name_char=[country_ISO3 '_' country_name_char];
-end
+%country_name_char=strrep(country_name_char,'-','');
 
 % 1) figure which hazards affect the country
 % ==========================================
@@ -315,6 +317,8 @@ if hazard_count < 1
     return
 end
 
+probabilistic_str='';if probabilistic,probabilistic_str='_p';end
+
 % 2) Generate the hazard event sets
 % =================================
 
@@ -326,7 +330,7 @@ for hazard_i=1:hazard_count
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_TC_' deblank(hazard_name) '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_TC_' deblank(hazard_name) probabilistic_str '.mat'];
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
@@ -402,7 +406,7 @@ for hazard_i=1:hazard_count
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_TR_' deblank(hazard_name) '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_TR_' deblank(hazard_name) probabilistic_str '.mat'];
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
@@ -442,7 +446,7 @@ for hazard_i=1:hazard_count
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_TS_' deblank(hazard_name) '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_TS_' deblank(hazard_name) probabilistic_str '.mat'];
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
@@ -477,7 +481,7 @@ for hazard_i=1:hazard_count
         hazard_name='global'; % once could in theory run more than one 'region', as we do with TC
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_EQ_' deblank(hazard_name) '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_EQ_' deblank(hazard_name) probabilistic_str '.mat'];
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             

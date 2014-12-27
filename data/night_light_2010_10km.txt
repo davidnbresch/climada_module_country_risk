@@ -1,0 +1,5 @@
+The mid-resolution (10km) night light data, see code climada_high_res_entity
+
+Obtained via a generalizing effort of the original 1km (!) nightlight dataset, see F182012.v4c_web.stable_lights.avg_vis.txt and the description of the generalization in climada module GDP_entity (climada_module_GDP_entity.pdf in the module’s docs folder)
+
+2014, David N. Bresch, david.bresch@gmail.com

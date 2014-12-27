@@ -125,7 +125,7 @@ country_data_dir = climada_global.data_dir; % default
 force_re_encoding=0; % default=0
 %
 probabilistic=0; % default
-if method<0,probabilistic=1;end
+if method<0,probabilistic=1;method=abs(method);end
 
 
 % some folder checks (to be on the safe side)
@@ -172,14 +172,14 @@ country_risk.res.country_ISO3 = country_ISO3;
 if isempty(country_name_char),return;end % invalid country name
 
 % define easy to read filenames
-centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' country_name_char '_centroids.mat'];
-entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' country_name_char '_entity.mat'];
-entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' country_name_char '_entity_future.mat'];
+centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
+entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
 
 % 1) read the centroids
 % =====================
 
-if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
+if ( ~exist(centroids_file,'file') || ~exist(entity_file,'file') ) || force_recalc
     
     if method==1
         entity=climada_nightlight_entity(country_name_char,'',-1,0,[],'',0); % no save
@@ -209,10 +209,13 @@ if (~exist(centroids_file,'file') || ~exist(entity_file,'file')) || force_recalc
         centroids.Latitude =entity.assets.Latitude;
         centroids.Longitude=entity.assets.Longitude;
         centroids.centroid_ID=1:length(centroids.Longitude);
-        if isfield(entity.assets,'country_name'),centroids.country_name{1}=entity.assets.country_name;end
-        if isfield(entity.assets,'admin0_name'),centroids.admin0_name{1}=entity.assets.admin0_name;end
-        if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3{1}=entity.assets.admin0_ISO3;end
-        if isfield(entity.assets,'admin1_name'),centroids.admin1_name{1}=entity.assets.admin1_name;end
+        if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
+        if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
+        if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
+        if isfield(entity.assets,'admin1_name'),centroids.admin1_name=entity.assets.admin1_name;end
+        if isfield(entity.assets,'admin1_code'),centroids.admin1_code=entity.assets.admin1_code;end
+        if isfield(entity.assets,'distance2coast_km'),centroids.distance2coast_km=entity.assets.distance2coast_km;end
+        if isfield(entity.assets,'elevation_m'),centroids.elevation_m=entity.assets.elevation_m;end
         save(centroids_file,'centroids');
     end
 else

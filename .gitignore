@@ -14,3 +14,5 @@ data/admin0_compare.xls
 data/night_light_2010_10km.mat
 
 data/ne_10m_coastline/ne_10m_coastline.mat
+
+code/centroids_generate_hazard_sets.m~
