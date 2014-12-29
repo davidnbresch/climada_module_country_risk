@@ -146,8 +146,10 @@ if isfield(centroids,'country_name'),[~,country_ISO3]=climada_country_name(centr
 if isfield(centroids,'admin0_ISO3'),country_name_char=char(centroids.admin0_ISO3);
 elseif ~isempty(country_ISO3),country_name_char=country_ISO3;end
 % second country name
-if isfield(centroids,'country_name'),country_name_char=[country_name_char '_' char(centroids.country_name)];
-elseif isfield(centroids,'admin0_name')country_name_char=[country_name_char '_' char(centroids.admin0_name)];end % another name for the field
+if isfield(centroids,'admin0_name')country_name_char=[country_name_char '_' char(centroids.admin0_name)];
+elseif isfield(centroids,'country_name')
+    if iscell(centroids.country_name),country_name_char=[country_name_char '_' centroids.country_name{1}];end
+end % another name for the field
 % third admin1 name
 if isfield(centroids,'admin1_name'),country_name_char=[country_name_char '_' char(centroids.admin1_name)];end % append, if it exists
 % fourth admin1 code

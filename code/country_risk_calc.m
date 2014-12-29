@@ -159,8 +159,13 @@ end
 
 % from here on, only one country
 country_name_char = char(country_name); % as to create filenames etc., needs to be char
-[country_name_char,country_ISO3] = climada_country_name(country_name_char); % check name and ISO3
-
+[country_name_char_chk,country_ISO3] = climada_country_name(country_name_char); % check name and ISO3
+if isempty(country_name_char_chk)
+    country_ISO3='XXX';
+    fprintf('Warning: Unorthodox country name, check results\n');
+else
+    country_name_char=country_name_char_chk;
+end
 country_risk.res.country_name = country_name_char;
 country_risk.res.country_ISO3 = country_ISO3;
 

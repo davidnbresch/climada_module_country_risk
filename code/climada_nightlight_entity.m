@@ -752,7 +752,12 @@ if select_admin0
         admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.ISO3); % match via ISO3, safer
         % since we use the 3-digit country code, it always matches
         if ~isempty(admin0_pos)
-            GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.Year(admin0_pos)));
+            if iscell(GDP.Year(admin0_pos))
+                GDP_Year=str2double(GDP.Year{admin0_pos}); % on some (Windows) machines, Excel column gets read as cell
+            else
+                GDP_Year=GDP.Year(admin0_pos);
+            end
+            GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP_Year));
         else
             GDP_value=1; % norm
         end
