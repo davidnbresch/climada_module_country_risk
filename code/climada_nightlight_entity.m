@@ -742,7 +742,7 @@ if select_admin0
         else
             fprintf('GDP data from %s\n',GDP_data_file);
             GDP=climada_xlsread('no',GDP_data_file,'Data CLEAN',1);
-            if sum(isnan(GDP.ISO3{1}))>0
+            if sum(isnan(GDP.ISO3{1}))>0 || sum(isnan(GDP.Year))>0
                 fprintf('WARNING: %s, GDP might not be correctly read from %s\n',mfilename,GDP_data_file);
                 fprintf(' > make sure the Excel''s tab ''Data CLEAN'' does contain values for ISO3, not links\n');
             else
@@ -752,12 +752,7 @@ if select_admin0
         admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.ISO3); % match via ISO3, safer
         % since we use the 3-digit country code, it always matches
         if ~isempty(admin0_pos)
-            if iscell(GDP.Year(admin0_pos))
-                GDP_Year=str2double(GDP.Year{admin0_pos}); % on some (Windows) machines, Excel column gets read as cell
-            else
-                GDP_Year=GDP.Year(admin0_pos);
-            end
-            GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP_Year));
+            GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.Year(admin0_pos)));
         else
             GDP_value=1; % norm
         end
