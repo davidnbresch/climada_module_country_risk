@@ -194,9 +194,15 @@ end % ED_i
 if ~isempty(report_filename)
     
     % try writing Excel file
-    [STATUS,MESSAGE]=xlswrite(report_filename,...
-        {'admin0(country)','ISO3','admin1(state/province)','admin1_code','peril','return_period','damage','damage/value'}); 
-        
+    if climada_global.octave_mode
+        STATUS=xlswrite(report_filename,...
+            {'admin0(country)','ISO3','admin1(state/province)','admin1_code','peril','return_period','damage','damage/value'});
+        MESSAGE='Octave';
+    else
+        [STATUS,MESSAGE]=xlswrite(report_filename,...
+            {'admin0(country)','ISO3','admin1(state/province)','admin1_code','peril','return_period','damage','damage/value'});
+    end
+    
     if ~STATUS || strcmp(MESSAGE.identifier,'MATLAB:xlswrite:NoCOMServer') % xlswrite failed, write .csv instead
         %MESSAGE.message % for debugging
         %MESSAGE.identifier % for debugging

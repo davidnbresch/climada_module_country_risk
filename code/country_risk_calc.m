@@ -312,7 +312,6 @@ if isfield(country_risk.res,'hazard')
                     max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
                     max_hazard_intensity=full(max(max(hazard.intensity)));
                     damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
-                    
                     entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
                     fprintf(' (dummy damage)\n');
                     
