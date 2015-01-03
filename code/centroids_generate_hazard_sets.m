@@ -38,9 +38,9 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %       or an entity (in which case it takes the entity.assets.Latitude and
 %       entity.assets.Longitude)
 %       > prompted for if empty (centroids need to exist als .mat file
-%       already - otherwise run e.g. climada_centroids_read first). 
+%       already - otherwise run e.g. climada_centroids_read first).
 %       In case you select an entity, it takes entity.assets.Latitude and
-%       entity.assets.Longitude.   
+%       entity.assets.Longitude.
 % OPTIONAL INPUT PARAMETERS:
 %   probabilistic: if =1, generate probabilistic hazard event sets,
 %       =0 generate 'historic' hazard event sets (default)
@@ -191,14 +191,14 @@ for file_i=1:length(D)
         if (strcmp(fE,'.txt') || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
             
             tc_track_nodes_file=strrep([tc_tracks_folder filesep raw_data_file_temp],fE,'_nodes.mat');
-                        
+            
             if ~climada_check_matfile([tc_tracks_folder filesep raw_data_file_temp],tc_track_nodes_file)
                 if  (strcmp(fE,'.txt'))
                     % read tracks from unisys database file
                     tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep raw_data_file_temp]);
                 elseif  (strcmp(fE,'.nc'))
                     % read tracks from (NCAR) netCDF file
-                    tc_track=climada_tc_read_cam_ibtrac_v02([tc_tracks_folder filesep raw_data_file_temp]);                
+                    tc_track=climada_tc_read_cam_ibtrac_v02([tc_tracks_folder filesep raw_data_file_temp]);
                 else
                     fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
                 end
@@ -339,7 +339,7 @@ for hazard_i=1:hazard_count
             fprintf('*** hazard generation for TC %s in %s (can take some time)\n',hazard_name,country_name_char);
             
             [~,~,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-
+            
             % read tracks from database file (.txt or .nc)
             if (strcmp(fE,'.txt'))
                 % read tracks from unisys database file (txt)
@@ -350,7 +350,7 @@ for hazard_i=1:hazard_count
             else
                 fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
             end
-                        
+            
             if probabilistic
                 
                 if exist('climada_tc_track_wind_decay_calculate','file')
@@ -492,7 +492,7 @@ for hazard_i=1:hazard_count
             if exist('eq_global_hazard_set','file') % the function exists
                 %eq_data=eq_centennial_read; % to be on the safe side, until 20141203
                 eq_data=eq_isc_gem_read; % to be on the safe side
-    
+                
                 if probabilistic,eq_data=eq_global_probabilistic(eq_data,9);end
                 hazard=eq_global_hazard_set(eq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 if ~isempty(hazard)
@@ -523,8 +523,8 @@ for hazard_i=1:hazard_count
                 % since centroids ordered the exact same way as hazard
                 % intensities)
                 
-                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-                        [local_data_dir filesep 'hazards' filesep country_name_char '_WS_' deblank(hazard_name) '.mat'];
+                centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+                    [local_data_dir filesep 'hazards' filesep country_name_char '_WS_' deblank(hazard_name) '.mat'];
                 
                 if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
                     
@@ -556,9 +556,12 @@ for hazard_i=1:hazard_count
                     hazard.centroid_ID=1:n_centroids;
                     
                     hazard.filename=centroids_hazard_info.res.hazard(hazard_i).hazard_set_file;
-                    save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard','-v7.3');
-                    % Warning: Variable 'hazard' cannot be saved to a MAT-file whose version is older than 7.3.
-                    % To save this variable, use the -v7.3 switch.
+                    save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard','-v7');
+                    % Warning: Variable 'hazard' cannot be saved to a MAT-file whose version is
+                    % older than 7.3. To save this variable, use the -v7.3 switch. to avoid
+                    % this warning, the switch is used. david's comment: only shows for large
+                    % hazard sets, seems to be due to huge size of hazard. Since Octave does
+                    % not like -v7.3, we use -v7
                 end
             end
         end
