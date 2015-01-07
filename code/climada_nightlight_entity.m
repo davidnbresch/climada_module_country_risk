@@ -96,6 +96,10 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       centroids (with values>0) to the selected state/province, see 2.
 %       <0: If selections is negative, use mid-resolution nightlights (see
 %       PARAMETER low_img_filename below). Default is high-res (1km).
+%
+%       In case selection is a vector:
+%       selections(2)=1 -> add distance2coast_km (takes time)
+%       selections(3)=1 -> add elevation_m (takes time)
 %   check_plot: if =1: plot nightlight data with admin0 (countries)
 %       superimposed, if=2 also admin1 (country states/provinces)
 %       =0: no plot (default)
@@ -233,6 +237,11 @@ else
     moderate_resolution=0;
 end
 
+add_distance2coast_km=0;add_elevation_m=0;
+if length(selections)==2,add_distance2coast_km=selections(2);end
+if length(selections)==3,add_elevation_m=selections(3);end
+selections=selections(1);
+
 % switch the different selections for admin0/1 selection and restriction of values
 if selections==1
     % admin0
@@ -301,7 +310,7 @@ if isempty(img_filename) % local GUI
         
         % prompt for a country name
         [selection,ok] = listdlg('PromptString','Select one country (Cncl -> img):',...
-            'ListString',liststr,'SelectionMode','single');
+            'ListString',liststr,'SelectionMode','Single');
         pause(0.1)
         if ~isempty(selection)
             admin0_name = admin0_name_list{sort_index(selection)};
@@ -386,7 +395,7 @@ if isempty(img_filename) % local GUI
                 
                 % show list dialog to select admin1 (now easy as names shown on plot)
                 [selection,ok] = listdlg('PromptString','Select admin1:',...
-                    'ListString',liststr,'SelectionMode','single');
+                    'ListString',liststr,'SelectionMode','Single');
                 if ~ok,return;end
                 pause(0.1)
                 if ~isempty(selection)
@@ -705,7 +714,7 @@ end
 entity.assets.admin0_name=admin0_name;
 entity.assets.admin0_ISO3=admin0_shapes(selection_admin0_shape_i).ADM0_A3;
 if ~isempty(selection_admin1_shape_i)
-    entity.assets.admin1_name=admin1_shapes(selection_admin1_shape_i).adm1_name;
+    entity.assets.admin1_name=admin1_shapes(selection_admin1_shape_i).name;
     entity.assets.admin1_code=admin1_shapes(selection_admin1_shape_i).adm1_code;
 end
 
@@ -775,16 +784,22 @@ end % select_admin0
 entity.assets.Deductible=entity.assets.Value*0;
 entity.assets.Cover=entity.assets.Value;
 
-% add distance to coast
-entity.assets.distance2coast_km=climada_distance2coast_km(entity.assets.Longitude,entity.assets.Latitude,check_plot);
+if add_distance2coast_km
+    % add distance to coast
+    fprintf('adding distance to coast [km] (might take some time) ...\n');
+    entity.assets.distance2coast_km=climada_distance2coast_km(entity.assets.Longitude,entity.assets.Latitude,check_plot);
+end
 
-% add elevation
-if ~exist('etopo_get','file')
-    % safety to inform the user in case he misses the ETOPO module
-    fprintf('Note: no elevation added (no etopo_get function found)\n Please download from github and install the climada etopo module\n https://github.com/davidnbresch/climada_module_etopo\n');
-else
-    entity.assets.elevation_m=etopo_elevation_m(entity.assets.Longitude,entity.assets.Latitude,check_plot);
-end % add elevation
+if add_elevation_m
+    % add elevation
+    if ~exist('etopo_get','file')
+        % safety to inform the user in case he misses the ETOPO module
+        fprintf('Note: no elevation added (no etopo_get function found)\n Please download from github and install the climada etopo module\n https://github.com/davidnbresch/climada_module_etopo\n');
+    else
+        fprintf('adding elevation [m] (might take some time) ...\n');
+        entity.assets.elevation_m=etopo_elevation_m(entity.assets.Longitude,entity.assets.Latitude,check_plot);
+    end % add elevation
+end
 
 if save_entity
     fprintf('saving entity as %s\n',entity_save_file);

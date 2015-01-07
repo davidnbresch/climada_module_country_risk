@@ -112,7 +112,7 @@ if ~exist([country_data_dir filesep 'entities'],'dir'),mkdir(country_data_dir,'e
 if ~exist([country_data_dir filesep 'hazards'],'dir'),mkdir(country_data_dir,'hazards');end
 
 if isempty(country_name) % prompt for country or region
-    country_name = climada_country_name('MULTIPLE');
+    country_name = climada_country_name('Multiple');
     if isempty(country_name),return,end % Cancel selected
 end
 

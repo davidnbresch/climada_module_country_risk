@@ -125,6 +125,7 @@ country_data_dir = climada_global.data_dir; % default
 force_re_encoding=0; % default=0
 %
 probabilistic=0; % default
+orig_method=method;
 if method<0,probabilistic=1;method=abs(method);end
 
 
@@ -135,7 +136,7 @@ if ~exist([country_data_dir filesep 'entities'],'dir'),mkdir(country_data_dir,'e
 if ~exist([country_data_dir filesep 'hazards'],'dir'),mkdir(country_data_dir,'hazards');end
 
 if isempty(country_name) % prompt for country (one or many) as list dialog
-    country_name = climada_country_name('MULTIPLE');
+    country_name = climada_country_name('Multiple');
 elseif strcmp(country_name,'ALL')
     country_name = climada_country_name('all');
 end
@@ -150,7 +151,7 @@ if length(country_name)>1 % more than one country, process recursively
         single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(single_country_name),country_i,n_countries);
-        country_risk_out(country_i)=country_risk_calc(single_country_name,method,force_recalc,check_plots);
+        country_risk_out(country_i)=country_risk_calc(single_country_name,orig_method,force_recalc,check_plots);
     end % country_i
     close all
     country_risk=country_risk_out;

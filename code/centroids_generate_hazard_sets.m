@@ -336,7 +336,7 @@ for hazard_i=1:hazard_count
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
-            fprintf('*** hazard generation for TC %s in %s (can take some time)\n',hazard_name,country_name_char);
+            fprintf('*** hazard generation for TC %s%s in %s (can take some time)\n',hazard_name,probabilistic_str,country_name_char);
             
             [~,~,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
             
@@ -412,7 +412,7 @@ for hazard_i=1:hazard_count
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
-            fprintf('*** hazard generation for TR %s in %s (can take some time, longer than TC)\n',hazard_name,country_name_char);
+            fprintf('*** hazard generation for TR %s%s in %s (can take some time, longer than TC)\n',hazard_name,probabilistic_str,country_name_char);
             
             if exist('climada_tr_hazard_set', 'file') % the function exists
                 
@@ -457,7 +457,7 @@ for hazard_i=1:hazard_count
             if exist(TC_hazard_set_file,'file')
                 load(TC_hazard_set_file);hazard_TC=hazard;hazard=[];
                 
-                fprintf('*** hazard generation for TS %s in %s (can take some time, faster than TC)\n',hazard_name,country_name_char);
+                fprintf('*** hazard generation for TS %s%s in %s (can take some time, faster than TC)\n',hazard_name,probabilistic_str,country_name_char);
                 
                 if exist('climada_ts_hazard_set', 'file') % the function exists
                     hazard = climada_ts_hazard_set(hazard_TC,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
@@ -487,7 +487,7 @@ for hazard_i=1:hazard_count
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
-            fprintf('*** hazard generation for EQ in %s\n',country_name_char);
+            fprintf('*** hazard generation for EQ%s in %s\n',probabilistic_str,country_name_char);
             
             if exist('eq_global_hazard_set','file') % the function exists
                 %eq_data=eq_centennial_read; % to be on the safe side, until 20141203
