@@ -188,7 +188,9 @@ if n_admin1>0
     end
     
     % figure the existing hazard set files
-    hazard_files=dir([country_data_dir filesep 'hazards' filesep country_ISO3 '_' country_name_char '*.mat']);
+    probabilistic_str='';if probabilistic,probabilistic_str='_p';end
+    hazard_files=dir([country_data_dir filesep 'hazards' filesep ...
+        country_ISO3 '_' country_name_char '*' probabilistic_str '.mat']);
     
     
     for admin1_i=1:n_admin1 % loop over all admin1

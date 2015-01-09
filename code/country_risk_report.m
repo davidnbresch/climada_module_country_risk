@@ -77,8 +77,8 @@ n_entities=length(country_risk);
 next_res=1;
 
 % prepare header and print format
-header_str='admin0(country);ISO3;admin1(state/province);admin1_code;peril;return_period;damage;damage/value\n';
-format_str='%s;%s;%s;%s;%s;%i;%g;%f\n';
+header_str='admin0(country);ISO3;admin1(state/province);admin1_code;value;peril;return_period;damage;damage/value\n';
+format_str='%s;%s;%s;%s;%g;%s;%i;%g;%f\n';
 header_str=strrep(header_str,';',climada_global.csv_delimiter);
 format_str=strrep(format_str,';',climada_global.csv_delimiter);
 
@@ -92,25 +92,28 @@ for entity_i=1:n_entities
         
         n_hazards=length(country_risk(entity_i).res.hazard);
         for hazard_i=1:n_hazards
+            
+            res(next_res).country_name=country_risk(entity_i).res.country_name;
+            res(next_res).country_ISO3=country_risk(entity_i).res.country_ISO3;
+            
+            if isfield(country_risk(entity_i).res.hazard(hazard_i),'admin1_name')
+                res(next_res).admin1_name=country_risk(entity_i).res.hazard(hazard_i).admin1_name;
+                res(next_res).admin1_code=country_risk(entity_i).res.hazard(hazard_i).admin1_code; % does also exist
+            else
+                res(next_res).admin1_name='';
+                res(next_res).admin1_code='';
+            end
+            
             if ~isempty(country_risk(entity_i).res.hazard(hazard_i).EDS)
                 
-                res(next_res).country_name=country_risk(entity_i).res.country_name;
-                res(next_res).country_ISO3=country_risk(entity_i).res.country_ISO3;
-                
-                if isfield(country_risk(entity_i).res.hazard(hazard_i),'admin1_name')
-                    res(next_res).admin1_name=country_risk(entity_i).res.hazard(hazard_i).admin1_name;
-                    res(next_res).admin1_code=country_risk(entity_i).res.hazard(hazard_i).admin1_code; % does also exist
-                else
-                    res(next_res).admin1_name='';
-                    res(next_res).admin1_code='';
-                end
-                
+                res(next_res).Value   =country_risk(entity_i).res.hazard(hazard_i).EDS.Value;
+                res(next_res).peril_ID=country_risk(entity_i).res.hazard(hazard_i).EDS.hazard.peril_ID;
+
                 ED(next_res)=country_risk(entity_i).res.hazard(hazard_i).EDS.ED; % we need for sort later
                 res(next_res).return_period=0;
                 res(next_res).damage=ED(next_res);
                 res(next_res).damage_oL=country_risk(entity_i).res.hazard(hazard_i).EDS.ED/...
                     country_risk(entity_i).res.hazard(hazard_i).EDS.Value;
-                res(next_res).peril_ID=country_risk(entity_i).res.hazard(hazard_i).EDS.hazard.peril_ID;
                 res(next_res).annotation_name=country_risk(entity_i).res.hazard(hazard_i).EDS.annotation_name;
                 
                 if ~isempty(DFC_return_periods)
@@ -137,9 +140,10 @@ for entity_i=1:n_entities
                 end % ~isempty(DFC_return_periods)
                 
             else
-                ED(next_res)=0;
-                res(next_res).ED=0;
-                res(next_res).EDoL=0;
+                ED(next_res)          =0;
+                res(next_res).ED      =0;
+                res(next_res).EDoL    =0;
+                res(next_res).Value   =0; % possible to improve
                 res(next_res).peril_ID=country_risk(entity_i).res.hazard(hazard_i).peril_ID;
                 res(next_res).annotation_name='EMPTY';
                 res(next_res).admin1_name='';
@@ -172,6 +176,7 @@ for ED_i=length(ED_index):-1:1 % to sort descending
             res(ED_index(ED_i)).country_ISO3,...
             res(ED_index(ED_i)).admin1_name,...
             res(ED_index(ED_i)).admin1_code,...
+            res(ED_index(ED_i)).Value,...
             res(ED_index(ED_i)).peril_ID,...
             res(ED_index(ED_i)).return_period,...
             res(ED_index(ED_i)).damage,...
@@ -184,10 +189,11 @@ for ED_i=length(ED_index):-1:1 % to sort descending
     excel_data{length(ED_index)-ED_i+1,2}=res(ED_index(ED_i)).country_ISO3;
     excel_data{length(ED_index)-ED_i+1,3}=res(ED_index(ED_i)).admin1_name;
     excel_data{length(ED_index)-ED_i+1,4}=res(ED_index(ED_i)).admin1_code;
-    excel_data{length(ED_index)-ED_i+1,5}=res(ED_index(ED_i)).peril_ID;
-    excel_data{length(ED_index)-ED_i+1,6}=res(ED_index(ED_i)).return_period;
-    excel_data{length(ED_index)-ED_i+1,7}=res(ED_index(ED_i)).damage;
-    excel_data{length(ED_index)-ED_i+1,8}=res(ED_index(ED_i)).damage_oL;
+    excel_data{length(ED_index)-ED_i+1,5}=res(ED_index(ED_i)).Value;
+    excel_data{length(ED_index)-ED_i+1,6}=res(ED_index(ED_i)).peril_ID;
+    excel_data{length(ED_index)-ED_i+1,7}=res(ED_index(ED_i)).return_period;
+    excel_data{length(ED_index)-ED_i+1,8}=res(ED_index(ED_i)).damage;
+    excel_data{length(ED_index)-ED_i+1,9}=res(ED_index(ED_i)).damage_oL;
     
 end % ED_i
 
@@ -196,11 +202,11 @@ if ~isempty(report_filename)
     % try writing Excel file
     if climada_global.octave_mode
         STATUS=xlswrite(report_filename,...
-            {'admin0(country)','ISO3','admin1(state/province)','admin1_code','peril','return_period','damage','damage/value'});
+            {'admin0(country)','ISO3','admin1(state/province)','admin1_code','value','peril','return_period','damage','damage/value'});
         MESSAGE='Octave';
     else
         [STATUS,MESSAGE]=xlswrite(report_filename,...
-            {'admin0(country)','ISO3','admin1(state/province)','admin1_code','peril','return_period','damage','damage/value'});
+            {'admin0(country)','ISO3','admin1(state/province)','admin1_code','value','peril','return_period','damage','damage/value'});
     end
     
     if ~STATUS || strcmp(MESSAGE.identifier,'MATLAB:xlswrite:NoCOMServer') % xlswrite failed, write .csv instead
@@ -216,6 +222,7 @@ if ~isempty(report_filename)
                 res(ED_index(ED_i)).country_ISO3,...
                 res(ED_index(ED_i)).admin1_name,...
                 res(ED_index(ED_i)).admin1_code,...
+                res(ED_index(ED_i)).Value,...
                 res(ED_index(ED_i)).peril_ID,...
                 res(ED_index(ED_i)).return_period,...
                 res(ED_index(ED_i)).damage,...
