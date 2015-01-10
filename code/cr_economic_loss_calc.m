@@ -123,11 +123,13 @@ insurance_penetration_factor(3) = 1;    % insurance penetration >10%
 insurance_penetration_factor(4) = 0;    % default value for NaN entries
 %
 misdat_value = -999; %indicates missing data 
-
-
-%% set default value for economic_data_file if not given
+%
+% set default value for economic_data_file if not given
 economic_data_file_default=[country_risk_data_dir filesep 'economic_indicators_mastertable.xls'];
 if isempty(economic_data_file),economic_data_file=economic_data_file_default;end
+%
+
+
 
 if ~exist(economic_data_file,'file')
     [filename, pathname] = uigetfile(economic_data_file_default,...
@@ -198,9 +200,9 @@ end
 country_name_char = char(country_risk.res.country_name);
 [country_name_char_checked,country_ISO3] = climada_country_name(country_name_char); % check name and ISO3
 if isempty(country_name_char_checked)
-    fprintf('Warning: Unorthodox country name, check results\n');
+    fprintf('Warning: Unorthodox country name, check results. ');
 else
-    fprintf('\nCountry name check successful.\n\tCountry: %s\n\tISO3 Code: %s\n', ...
+    fprintf('Country name check successful: %s, ISO3 Code: %s. ', ...
             country_name_char_checked, country_ISO3);
 end
 if nnz(strcmp(master_data.Country,country_name_char)) ==0
@@ -218,7 +220,7 @@ end
 %% calculate financial_strength, BI_and_supply_chain_risk, 
 % natural_hazard_economic_exposure, and disaster_resilience based on the 
 % data in master_data
-fprintf('\nCalculating economic loss for %s...\n',country_name_char);
+fprintf('Calculating economic loss ...\n');
 financial_strength = ...
     min(master_data.total_reserves(country_index)/master_data.GDP_2013(country_index),1) ...% setting an upper bound of 1 
     + master_data.insurance_penetration(country_index) ...

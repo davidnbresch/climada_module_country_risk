@@ -41,6 +41,8 @@ report_filename=[climada_global.data_dir filesep 'results' filesep 'selected_cou
 % to check for climada-conformity of country names
 check_country_names=0; % default=0
 %
+generate_property_damage_report=0; % default=0, we need the economic loss report
+%
 % parameters for country_risk_calc
 country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
@@ -136,5 +138,10 @@ country_risk=country_risk_calc(country_list,country_risk_calc_method,country_ris
 probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
 country_risk1=country_admin1_risk_calc(country_list,probabilistic,0);
 
-% generate report
-country_risk_report([country_risk country_risk1],1,report_filename);
+if generate_property_damage_report
+    % generate report
+    country_risk_report([country_risk country_risk1],1,report_filename);
+end
+
+% calculate economic loss (first on country basis)
+country_risk_economic_loss=cr_economic_loss_calc(country_risk);
