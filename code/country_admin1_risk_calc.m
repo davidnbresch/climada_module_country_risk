@@ -1,4 +1,4 @@
-function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_recalc,check_plots,admin1_save_entity)
+function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_plots,admin1_save_entity)
 % climada country admin1 risk calc
 % MODULE:
 %   country_risk
@@ -26,7 +26,7 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %
 %   next step: country_risk_report (same format as country_risk_calc)
 % CALLING SEQUENCE:
-%   country_risk=country_admin1_risk_calc(country_name,probabilistic,force_recalc,check_plots)
+%   country_risk=country_admin1_risk_calc(country_name,probabilistic,check_plots)
 % EXAMPLE:
 %   country_risk=country_admin1_risk_calc; % interactive, select country from dropdown
 %   country_risk=country_admin1_risk_calc('ALL',0,0,0) % whole world, no figures
@@ -43,8 +43,6 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 %   probabilistic: Just to keep the same parameters as in country_risk_calc.
 %       Has no effect, since hazard event sets are generated in
 %       country_risk_calc, not in country_admin1_risk_calc
-%   force_recalc: Just to keep the same parameters as in country_risk_calc.
-%       Has no effect.
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 %       If =100, plot only, skip calculations
@@ -57,6 +55,7 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,force_
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141126, initial
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
+% David N. Bresch, david.bresch@gmail.com, 20150110, country naming as in country_risk_calc
 %-
 
 country_risk = []; % init output (call it still country_risk, for easy use in country_risk_report
@@ -67,7 +66,6 @@ if ~climada_init_vars,return;end % init/import global variables
 % poor man's version to check arguments
 if ~exist('country_name','var'), country_name = '';end
 if ~exist('probabilistic','var'), probabilistic = 0;end
-if ~exist('force_recalc','var'), force_recalc = 0;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
 if ~exist('admin1_save_entity' ,'var'), admin1_save_entity  = 0;end
 
@@ -129,21 +127,28 @@ if length(country_name)>1 % more than one country, process recursively
         single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(single_country_name),country_i,n_countries);
-        country_risk_out(country_i)=country_admin1_risk_calc(single_country_name,probabilistic,force_recalc,check_plots);
+        country_risk_out(country_i)=country_admin1_risk_calc(single_country_name,probabilistic,check_plots);
     end % country_i
     close all
     country_risk=country_risk_out;
     return
 end
 
-[country_name,country_ISO3]=climada_country_name(country_name);
+% from here on, only one country
 country_name_char = char(country_name); % as to create filenames etc., needs to be char
+[country_name_char_chk,country_ISO3] = climada_country_name(country_name_char); % check name and ISO3
+if isempty(country_name_char_chk)
+    country_ISO3='XXX';
+    fprintf('Warning: Unorthodox country name, check results\n');
+else
+    country_name_char=country_name_char_chk;
+end
 country_risk.res.country_name = country_name_char;
 country_risk.res.country_ISO3 = country_ISO3;
 
 % define easy to read filenames
-entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' country_name_char '_entity.mat'];
-%entity_future_file = [country_data_dir filesep 'entities' filesep country_name_char '_entity_future.mat'];
+entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
+%entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
 
 if ~exist(entity_file,'file')
     fprintf('please run country_risk_calc(''%s'') first, skipped\n',country_name_char);
@@ -151,7 +156,7 @@ if ~exist(entity_file,'file')
     % one could run it all fully automatic, but the risk is too high that
     % this is not intended (e.g. somebody unadvertently calling...)
     % run the country calculation first to make sure all files exist
-    %country_risk_calc(country_name_char,probabilistic,force_recalc,check_plots);
+    %country_risk_calc(country_name_char,method,force_recalc,check_plots);
 end
 
 % get the admin1 boundaries
@@ -190,7 +195,7 @@ if n_admin1>0
     % figure the existing hazard set files
     probabilistic_str='';if probabilistic,probabilistic_str='_p';end
     hazard_files=dir([country_data_dir filesep 'hazards' filesep ...
-        country_ISO3 '_' country_name_char '*' probabilistic_str '.mat']);
+        country_ISO3 '_' strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
     
     
     for admin1_i=1:n_admin1 % loop over all admin1
@@ -202,8 +207,8 @@ if n_admin1>0
         admin1_code=shapes(shape_i).adm1_code;
         
         % reduce entity to admin1
-        entity_filename=[country_data_dir filesep 'entities' filesep country_ISO3 '_' country_name_char '_entity.mat'];
-        
+        entity_filename=[country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
+
         if exist(entity_filename,'file')
             load(entity_filename)% load entity
             entity_assets_Value=entity.assets.Value;

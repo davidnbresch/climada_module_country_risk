@@ -30,6 +30,7 @@ if ~exist('param1','var'),param1=[];end
 % 'parallel' to the code folder, i.e. in the same level as code folder)
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
+
 % PARAMETERS
 %
 report_filename=[climada_global.data_dir filesep 'results' filesep 'selected_countries_all_in_one_report.xls'];
