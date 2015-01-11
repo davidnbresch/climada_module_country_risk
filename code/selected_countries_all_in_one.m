@@ -33,15 +33,17 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
-report_filename=[climada_global.data_dir filesep 'results' filesep 'selected_countries_all_in_one_report.xls'];
+property_damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'property_damage_report.xls'];
+economic_loss_report_filename  =[climada_global.data_dir filesep 'results' filesep 'economic_loss_report.xls'];
 %
 % swithes to run only parts of the code:
 % --------------------------------------
 %
 % to check for climada-conformity of country names
-check_country_names=0; % default=0
+check_country_names=0; % default=0, if=1, stops after check
 %
-generate_property_damage_report=0; % default=0, we need the economic loss report
+generate_property_damage_report=1; % default=0, we need the economic loss report
+generate_economic_loss_report=1; % default=1, the final economic loss report
 %
 % parameters for country_risk_calc
 country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
@@ -140,8 +142,13 @@ country_risk1=country_admin1_risk_calc(country_list,probabilistic,0);
 
 if generate_property_damage_report
     % generate report
-    country_risk_report([country_risk country_risk1],1,report_filename);
+    country_risk_report([country_risk country_risk1],1,property_damage_report_filename);
 end
 
 % calculate economic loss (first on country basis)
 country_risk_economic_loss=cr_economic_loss_calc(country_risk);
+
+if generate_economic_loss_report
+    % generate report
+    country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
+end
