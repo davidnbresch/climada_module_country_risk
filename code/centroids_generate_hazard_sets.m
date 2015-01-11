@@ -556,7 +556,7 @@ for hazard_i=1:hazard_count
                     hazard.centroid_ID=1:n_centroids;
                     
                     hazard.filename=centroids_hazard_info.res.hazard(hazard_i).hazard_set_file;
-                    save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard','-v7');
+                    save(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'hazard','-v7.3');
                     % Warning: Variable 'hazard' cannot be saved to a MAT-file whose version is
                     % older than 7.3. To save this variable, use the -v7.3 switch. to avoid
                     % this warning, the switch is used. david's comment: only shows for large
