@@ -56,7 +56,8 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 % David N. Bresch, david.bresch@gmail.com, 20141126, initial
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
 % David N. Bresch, david.bresch@gmail.com, 20150110, country naming as in country_risk_calc
-% David N. Bresch, david.bresch@gmail.com, 20150112, hazard extensnio '_hist' for historic, '' for probabilistic
+% David N. Bresch, david.bresch@gmail.com, 20150112, hazard extension '_hist' for historic, '' for probabilistic
+% David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
 %-
 
 country_risk = []; % init output (call it still country_risk, for easy use in country_risk_report
@@ -308,7 +309,10 @@ if n_admin1>0
                                         % just match max scale of hazard.intensity to max
                                         % damagefunction.intensity
                                         max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
+                                        
+                                        if isfield(hazard.intensity,'data'),hazard=climada_hazard2octave(hazard);end
                                         max_hazard_intensity=full(max(max(hazard.intensity)));
+                                        
                                         damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
                                         
                                         entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;

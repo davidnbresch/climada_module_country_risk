@@ -27,11 +27,11 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % CALLING SEQUENCE:
 %   country_risk=country_risk_calc(country_name,method,force_recalc,check_plots)
 % EXAMPLE:
-%   country_risk0=country_risk_calc('CHE',1,0); % 10x10km resolution for 
+%   country_risk0=country_risk_calc('CHE',1,0); % 10x10km resolution for
 %       % Switzerland, using climada_nightlight_entity (not GDP_entity)
-%   country_risk0=country_risk_calc('CHE',2,0); % 1x1km resolution for 
+%   country_risk0=country_risk_calc('CHE',2,0); % 1x1km resolution for
 %       % Switzerland, using climada_nightlight_entity
-%   country_risk0=country_risk_calc('CHE',3,0); % 10x10km resolution for 
+%   country_risk0=country_risk_calc('CHE',3,0); % 10x10km resolution for
 %       % Switzerland, using GDP_entity
 %   country_risk=country_risk_calc; % interactive, select country from dropdown
 %   country_risk=country_risk_calc('ALL',1,0,0) % whole world, no figures
@@ -83,6 +83,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20141107, add ncetCFD tc_track file treatment (NCAR) (on flight to Dubai)
 % David N. Bresch, david.bresch@gmail.com, 20141126, country list enabled and multiple selection added
 % David N. Bresch, david.bresch@gmail.com, 20141222, method parameter simplified (replaces and includes probabilistic)
+% David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
 %-
 
 country_risk = []; % init output
@@ -311,7 +312,10 @@ if isfield(country_risk.res,'hazard')
                     % just match max scale of hazard.intensity to max
                     % damagefunction.intensity
                     max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
+                    
+                    if isfield(hazard.intensity,'data'),hazard=climada_hazard2octave(hazard);end
                     max_hazard_intensity=full(max(max(hazard.intensity)));
+                    
                     damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;
                     entity.damagefunctions.Intensity = entity.damagefunctions.Intensity * damagefunction_scale;
                     fprintf(' (dummy damage)\n');
