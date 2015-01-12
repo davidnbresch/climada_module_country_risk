@@ -56,6 +56,7 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 % David N. Bresch, david.bresch@gmail.com, 20141126, initial
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
 % David N. Bresch, david.bresch@gmail.com, 20150110, country naming as in country_risk_calc
+% David N. Bresch, david.bresch@gmail.com, 20150112, hazard extensnio '_hist' for historic, '' for probabilistic
 %-
 
 country_risk = []; % init output (call it still country_risk, for easy use in country_risk_report
@@ -193,11 +194,20 @@ if n_admin1>0
     end
     
     % figure the existing hazard set files
-    probabilistic_str='';if probabilistic,probabilistic_str='_p';end
+    probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
     hazard_files=dir([country_data_dir filesep 'hazards' filesep ...
         country_ISO3 '_' strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
     
-    
+    % filter, depending on probabilistic
+    valid_hazard=1:length(hazard_files);
+    for hazard_i=1:length(hazard_files)
+        if probabilistic && ~isempty(strfind(hazard_files(hazard_i).name,'_hist.mat'))
+            valid_hazard(hazard_i)=0;
+        end
+    end % hazard_i
+    valid_hazard=valid_hazard(valid_hazard>0);
+    hazard_files=hazard_files(valid_hazard);
+                        
     for admin1_i=1:n_admin1 % loop over all admin1
         shape_i=admin1_pos(admin1_i);
         
@@ -315,11 +325,11 @@ if n_admin1>0
                                 country_risk.res.hazard(next_EDS).admin1_code = admin1_code;
                                 
                                 ED=country_risk.res.hazard(next_EDS).EDS.ED;
-                                fprintf('ED %1.0f (%1.1f%%o)\n',ED,ED/sum(entity.assets.Value)*1000);
+                                fprintf('   ED %1.0f (%1.1f%%o)\n',ED,ED/sum(entity.assets.Value)*1000);
                                 next_EDS=next_EDS+1; % point to next free EDS
                                 
                             else
-                                fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
+                                fprintf('   WARNING: %s hazard is empty, skipped\n',hazard_name)
                             end
                             
                         else

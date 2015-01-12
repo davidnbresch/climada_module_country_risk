@@ -133,15 +133,14 @@ if check_country_names
     return
 end
 
-% all on admin0 (country) level
+% calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
 
-% all on admin1 (state/province) level
+% calculate damage on admin1 (state/province) level
 probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
 country_risk1=country_admin1_risk_calc(country_list,probabilistic,0);
 
 if generate_property_damage_report
-    % generate report
     country_risk_report([country_risk country_risk1],1,property_damage_report_filename);
 end
 
@@ -149,6 +148,5 @@ end
 country_risk_economic_loss=cr_economic_loss_calc(country_risk);
 
 if generate_economic_loss_report
-    % generate report
     country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
 end

@@ -63,6 +63,8 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20141026, probabilistic as input
 % David N. Bresch, david.bresch@gmail.com, 20141029, WSEU added
 % David N. Bresch, david.bresch@gmail.com, 20141208, possibility to pass entity as centroids
+% David N. Bresch, david.bresch@gmail.com, 20150110, save with -v7.3 (needed for large hazard sets)
+% David N. Bresch, david.bresch@gmail.com, 20150112, hazard extensnio '_hist' for historic, '' for probabilistic
 %-
 
 centroids_hazard_info = []; % init output
@@ -319,7 +321,7 @@ if hazard_count < 1
     return
 end
 
-probabilistic_str='';if probabilistic,probabilistic_str='_p';end
+probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
 
 % 2) Generate the hazard event sets
 % =================================
@@ -560,8 +562,8 @@ for hazard_i=1:hazard_count
                     % Warning: Variable 'hazard' cannot be saved to a MAT-file whose version is
                     % older than 7.3. To save this variable, use the -v7.3 switch. to avoid
                     % this warning, the switch is used. david's comment: only shows for large
-                    % hazard sets, seems to be due to huge size of hazard. Since Octave does
-                    % not like -v7.3, we use -v7
+                    % hazard sets, seems to be due to huge size of hazard. 
+                    % Octave does not like -v7.3, but solved in climada_EDS_calc, see there
                 end
             end
         end
