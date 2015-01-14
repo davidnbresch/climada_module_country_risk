@@ -52,7 +52,10 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 % OUTPUTS:
-%   writes hazard event set files
+%   writes hazard event set files: III_name_rrr_PP{|_hist}.mat with III
+%       ISO2 country (admin0) code, country name, rrr peril region and PP
+%       peril_ID. Appends _hist if non-probabilistic. Note that for admin1
+%       hazard event sets, name does alos contain the admin1 name.
 %   centroids_hazard_info(centroids_i): a structure with hazard information for
 %       each set of centroids. See centroids_hazard_info.res.hazard with
 %       peril_ID: 'TC' or ...
@@ -64,7 +67,8 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20141029, WSEU added
 % David N. Bresch, david.bresch@gmail.com, 20141208, possibility to pass entity as centroids
 % David N. Bresch, david.bresch@gmail.com, 20150110, save with -v7.3 (needed for large hazard sets)
-% David N. Bresch, david.bresch@gmail.com, 20150112, hazard extensnio '_hist' for historic, '' for probabilistic
+% David N. Bresch, david.bresch@gmail.com, 20150112, hazard extension '_hist' for historic, '' for probabilistic
+% David N. Bresch, david.bresch@gmail.com, 20150112, III_name_rrr_PP{|_hist}.mat
 %-
 
 centroids_hazard_info = []; % init output
@@ -81,6 +85,9 @@ if ~exist('check_plots' ,'var'),  check_plots  = 0; end
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
+% whether we calculate torrential rain (TR)
+% since not really calibrated a (sub) peril yet
+calculate_TR=0; % to skip TR calculations
 %
 % TEST_location to mark and lable one spot
 %TEST_location.name      = '  San Salvador'; % first two spaces for nicer labeling
@@ -237,9 +244,11 @@ for file_i=1:length(D)
                 hazard_count = hazard_count+1;
                 centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TS';
                 centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
-                hazard_count = hazard_count+1;
-                centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
-                centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                if calculate_TR
+                    hazard_count = hazard_count+1;
+                    centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
+                    centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                end
                 fprintf('* hazard TC %s detected\n',strrep(raw_data_file_temp,'.txt',''));
             end
             
@@ -334,7 +343,10 @@ for hazard_i=1:hazard_count
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_TC_' deblank(hazard_name) probabilistic_str '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_TC' probabilistic_str '.mat'];
+        
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
@@ -402,6 +414,47 @@ for hazard_i=1:hazard_count
     end % peril_ID,'TC'
     
     
+    if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'TS')
+        
+        % NOTE: TC has to have run before (usually the case)
+        
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
+        hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
+        
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_TS' probabilistic_str '.mat'];
+        
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
+        
+        if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
+            
+            % we need the TC hazard set to start with
+            TC_hazard_set_file=strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'TS','TC');
+            if exist(TC_hazard_set_file,'file')
+                load(TC_hazard_set_file);hazard_TC=hazard;hazard=[];
+                
+                fprintf('*** hazard generation for TS %s%s in %s (can take some time, faster than TC)\n',hazard_name,probabilistic_str,country_name_char);
+                
+                if exist('climada_ts_hazard_set', 'file') % the function exists
+                    hazard = climada_ts_hazard_set(hazard_TC,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
+                    if ~isempty(hazard)
+                        fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+                    end
+                else
+                    cprintf([1,0.5,0],'Coastal surge module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_tc_surge\n\n');
+                    centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
+                end
+                
+            else
+                fprintf('*** ERROR generating TS: TC hazard set not found: %s\n',TC_hazard_set_file);
+            end
+        else
+            load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
+        end
+    end % peril_ID,'TS'
+    
+    
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'TR')
         
         % NOTE: TC has to have run before (usually the case)
@@ -410,8 +463,11 @@ for hazard_i=1:hazard_count
         hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_TR_' deblank(hazard_name) probabilistic_str '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_TR'  probabilistic_str '.mat'];
         
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
+
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
             fprintf('*** hazard generation for TR %s%s in %s (can take some time, longer than TC)\n',hazard_name,probabilistic_str,country_name_char);
@@ -442,50 +498,15 @@ for hazard_i=1:hazard_count
     end % peril_ID,'TR'
     
     
-    if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'TS')
-        
-        % NOTE: TC has to have run before (usually the case)
-        
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-        hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
-        
-        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_TS_' deblank(hazard_name) probabilistic_str '.mat'];
-        
-        if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
-            
-            % we need the TC hazard set to start with
-            TC_hazard_set_file=strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'TS','TC');
-            if exist(TC_hazard_set_file,'file')
-                load(TC_hazard_set_file);hazard_TC=hazard;hazard=[];
-                
-                fprintf('*** hazard generation for TS %s%s in %s (can take some time, faster than TC)\n',hazard_name,probabilistic_str,country_name_char);
-                
-                if exist('climada_ts_hazard_set', 'file') % the function exists
-                    hazard = climada_ts_hazard_set(hazard_TC,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
-                    if ~isempty(hazard)
-                        fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
-                    end
-                else
-                    cprintf([1,0.5,0],'Coastal surge module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_tc_surge\n\n');
-                    centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
-                end
-                
-            else
-                fprintf('*** ERROR generating TS: TC hazard set not found: %s\n',TC_hazard_set_file);
-            end
-        else
-            load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
-        end
-    end % peril_ID,'TS'
-    
-    
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'EQ')
         
-        hazard_name='global'; % once could in theory run more than one 'region', as we do with TC
+        hazard_name='glb'; % once could in theory run more than one 'region', as we do with TC
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [local_data_dir filesep 'hazards' filesep country_name_char '_EQ_' deblank(hazard_name) probabilistic_str '.mat'];
+            [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_EQ' probabilistic_str '.mat'];
+        
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
@@ -511,7 +532,7 @@ for hazard_i=1:hazard_count
     
     
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'WS')
-        hazard_name='Europe'; % once could in theory run more than one 'region', as we do with TC
+        hazard_name='eur'; % once could in theory run more than one 'region', as we do with TC
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             [WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file')
@@ -526,7 +547,10 @@ for hazard_i=1:hazard_count
                 % intensities)
                 
                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-                    [local_data_dir filesep 'hazards' filesep country_name_char '_WS_' deblank(hazard_name) '.mat'];
+                    [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_WS.mat'];
+                
+                centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+                    strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
                 
                 if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
                     

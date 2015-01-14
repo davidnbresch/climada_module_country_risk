@@ -310,7 +310,7 @@ if n_admin1>0
                                         % damagefunction.intensity
                                         max_damagefunction_intensity=max(entity.damagefunctions.Intensity);
                                         
-                                        if isfield(hazard.intensity,'data'),hazard=climada_hazard2octave(hazard);end
+                                        hazard=climada_hazard2octave(hazard); % Octave compatibility for -v7.3 mat-files
                                         max_hazard_intensity=full(max(max(hazard.intensity)));
                                         
                                         damagefunction_scale=max_hazard_intensity/max_damagefunction_intensity;

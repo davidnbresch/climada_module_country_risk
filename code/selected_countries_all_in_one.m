@@ -42,6 +42,9 @@ economic_loss_report_filename  =[climada_global.data_dir filesep 'results' files
 % to check for climada-conformity of country names
 check_country_names=0; % default=0, if=1, stops after check
 %
+% whether we calculate admin1 level
+calculate_admin1=0; % default=1, but set to =0 for TEST
+%
 generate_property_damage_report=1; % default=0, we need the economic loss report
 generate_economic_loss_report=1; % default=1, the final economic loss report
 %
@@ -114,14 +117,13 @@ country_list={
 % TEST list (only a few)
 % ----
 country_list={
-    'Dominican Republic'
-    'Singapore'
-    'Taiwan'
+    'Philippines'
+    'Mexico'
+    'Italy'
     };
 %
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off
-
 
 
 % check names
@@ -135,13 +137,27 @@ end
 
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
+country_risk=country_risk_EDS_combine(country_risk); % combine TC and TS
 
-% calculate damage on admin1 (state/province) level
-probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
-country_risk1=country_admin1_risk_calc(country_list,probabilistic,0);
+if calculate_admin1
+    % calculate damage on admin1 (state/province) level
+    probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
+    country_risk1=country_admin1_risk_calc(country_list,probabilistic,0);
+    country_risk1=country_risk_EDS_combine(country_risk1); % combine TC and TS
+end
+
+% annual aggregate where appropriate - NOT IMPLEMENTED YET
+% see climada_EDS2YDS (and call it for country_risk structure)
+
+% calibrate property damage - NOT IMPLEMENTED YET
+% see climada_DFC_compare (and call it for country_risk structure)
 
 if generate_property_damage_report
-    country_risk_report([country_risk country_risk1],1,property_damage_report_filename);
+    if calculate_admin1
+        country_risk_report([country_risk country_risk1],1,property_damage_report_filename);
+    else
+        country_risk_report(country_risk,1,property_damage_report_filename);
+    end
 end
 
 % calculate economic loss (first on country basis)

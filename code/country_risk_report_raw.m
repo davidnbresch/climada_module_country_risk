@@ -74,7 +74,7 @@ for entity_i=1:n_entities
                 ED(hazard_i)=0;
                 res(hazard_i).ED=0;
                 res(hazard_i).EDoL=0;
-                res(hazard_i).peril_ID=country_risk(entity_i).res.hazard(hazard_i).peril_ID;
+                res(hazard_i).peril_ID='';
                 res(hazard_i).annotation_name='EMPTY';
             end % ~isempty(EDS)
         end % hazard_i
@@ -83,9 +83,11 @@ for entity_i=1:n_entities
             [~,ED_index] = sort(ED); % sort EDs descendingly
             
             for ED_i=n_hazards:-1:1
-                fprintf('  %s ED=%f (%2.2f%%o)   %s\n',...
-                    res(ED_index(ED_i)).peril_ID,res(ED_index(ED_i)).ED,res(ED_index(ED_i)).EDoL*1000,...
-                    res(ED_index(ED_i)).annotation_name);
+                if ~strcmpi(res(ED_index(ED_i)).annotation_name,'EMPTY')
+                    fprintf('  %s ED=%f (%2.2f%%o)   %s\n',...
+                        res(ED_index(ED_i)).peril_ID,res(ED_index(ED_i)).ED,res(ED_index(ED_i)).EDoL*1000,...
+                        res(ED_index(ED_i)).annotation_name);
+                end
             end % ED_i
         end % ~print_unsorted
         
