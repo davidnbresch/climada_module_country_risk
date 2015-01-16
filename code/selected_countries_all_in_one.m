@@ -15,6 +15,7 @@
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150105
+% David N. Bresch, david.bresch@gmail.com, 20150116, almost complete
 %-
 
 global climada_global
@@ -147,7 +148,7 @@ if calculate_admin1
 end
 
 % annual aggregate where appropriate - NOT IMPLEMENTED YET
-% see climada_EDS2YDS (and call it for country_risk structure)
+country_risk=country_risk_EDS2YDS(country_risk);
 
 % calibrate property damage - NOT IMPLEMENTED YET
 % see climada_DFC_compare (and call it for country_risk structure)

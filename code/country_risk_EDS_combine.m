@@ -30,7 +30,7 @@ function country_risk=country_risk_EDS_combine(country_risk)
 % David N. Bresch, david.bresch@gmail.com, 20150114, initial (only TC and TS)
 %-
 
-global climada_global
+%global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
