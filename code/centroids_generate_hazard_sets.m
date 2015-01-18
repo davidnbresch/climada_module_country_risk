@@ -69,6 +69,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150110, save with -v7.3 (needed for large hazard sets)
 % David N. Bresch, david.bresch@gmail.com, 20150112, hazard extension '_hist' for historic, '' for probabilistic
 % David N. Bresch, david.bresch@gmail.com, 20150112, III_name_rrr_PP{|_hist}.mat
+% David N. Bresch, david.bresch@gmail.com, 20150118, tc_track nodes file with track number
 %-
 
 centroids_hazard_info = []; % init output
@@ -213,12 +214,13 @@ for file_i=1:length(D)
                 end
                 tc_track_nodes.lon=[];
                 tc_track_nodes.lat=[];
+                tc_track_nodes.track_no=[]; % store also track number
                 fprintf('collecting all nodes for %i TC tracks\n',length(tc_track));
                 for track_i=1:length(tc_track)
                     tc_track_nodes.lon=[tc_track_nodes.lon tc_track(track_i).lon];
                     tc_track_nodes.lat=[tc_track_nodes.lat tc_track(track_i).lat];
+                    tc_track_nodes.track_no=[tc_track_nodes.track_no (tc_track(track_i).lat)*0+track_i];
                 end % track_i
-                
                 fprintf('saving TC track nodes as %s\n',tc_track_nodes_file);
                 save(tc_track_nodes_file,'tc_track_nodes');
             else
