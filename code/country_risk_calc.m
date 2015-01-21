@@ -55,6 +55,10 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       <0: all above options *(-1) trigger the generation of the full
 %       probabilistic hazard sets (adding extension _p to the hazard
 %       event sets)
+%       =7 (for historic, or -7 to use probabilistic sets): skip entity and
+%       hazard set generation, straight to damage calculations (this allows
+%       to avoid any re-generation of - missing - hazard event sets, the
+%       code just takes what's there)
 %       internally: if method<0, probabilistic=1, =0 else (default)
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
@@ -84,6 +88,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20141126, country list enabled and multiple selection added
 % David N. Bresch, david.bresch@gmail.com, 20141222, method parameter simplified (replaces and includes probabilistic)
 % David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
+% David N. Bresch, david.bresch@gmail.com, 20150121, method=7 added
 %-
 
 country_risk = []; % init output
@@ -183,70 +188,97 @@ centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '
 entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
 entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
 
-% 1) read the centroids
-% =====================
-
-if ( ~exist(centroids_file,'file') || ~exist(entity_file,'file') ) || force_recalc
+if method<7 % if method>=6, skip entity and hazard generation alltogether
     
-    if method==1
-        entity=climada_nightlight_entity(country_name_char,'',-1,0,[],'',0); % no save
-    elseif method==2
-        entity=climada_nightlight_entity(country_name_char,'', 1,0,[],'',0); % no save
-    elseif method==3
-        % invoke the GDP_entity module to generate centroids and entity
-        [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
-        if isempty(centroids), return, end
-        save(centroids_file,'centroids');
-        save(entity_file,'entity');
-        entity = entity_future; %replace with entity future
-        save(entity_future_file,'entity');
-    else
-        fprintf('%s: method=%i not implemented, aborted\n',mfilename,method);
-        return
-    end % method
+    % 1) read the centroids
+    % =====================
     
-    if ~exist('centroids','var')
-        if isempty(entity),return,end
-        % since climada_nightlight_entity only created the entity,
-        % create centroids, too
-        entity.assets.centroid_index=1:length(entity.assets.Longitude); % as we later construct the hazard accordingly
-        save(entity_file,'entity');
+    if ( ~exist(centroids_file,'file') || ~exist(entity_file,'file') ) || force_recalc
         
-        % get centroids from entity
-        centroids.Latitude =entity.assets.Latitude;
-        centroids.Longitude=entity.assets.Longitude;
-        centroids.centroid_ID=1:length(centroids.Longitude);
-        if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
-        if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
-        if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
-        if isfield(entity.assets,'admin1_name'),centroids.admin1_name=entity.assets.admin1_name;end
-        if isfield(entity.assets,'admin1_code'),centroids.admin1_code=entity.assets.admin1_code;end
-        if isfield(entity.assets,'distance2coast_km'),centroids.distance2coast_km=entity.assets.distance2coast_km;end
-        if isfield(entity.assets,'elevation_m'),centroids.elevation_m=entity.assets.elevation_m;end
-        save(centroids_file,'centroids');
+        if method==1
+            entity=climada_nightlight_entity(country_name_char,'',-1,0,[],'',0); % no save
+        elseif method==2
+            entity=climada_nightlight_entity(country_name_char,'', 1,0,[],'',0); % no save
+        elseif method==3
+            % invoke the GDP_entity module to generate centroids and entity
+            [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
+            if isempty(centroids), return, end
+            save(centroids_file,'centroids');
+            save(entity_file,'entity');
+            entity = entity_future; %replace with entity future
+            save(entity_future_file,'entity');
+        else
+            fprintf('%s: method=%i not implemented, aborted\n',mfilename,method);
+            return
+        end % method
+        
+        if ~exist('centroids','var')
+            if isempty(entity),return,end
+            % since climada_nightlight_entity only created the entity,
+            % create centroids, too
+            entity.assets.centroid_index=1:length(entity.assets.Longitude); % as we later construct the hazard accordingly
+            save(entity_file,'entity');
+            
+            % get centroids from entity
+            centroids.Latitude =entity.assets.Latitude;
+            centroids.Longitude=entity.assets.Longitude;
+            centroids.centroid_ID=1:length(centroids.Longitude);
+            if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
+            if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
+            if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
+            if isfield(entity.assets,'admin1_name'),centroids.admin1_name=entity.assets.admin1_name;end
+            if isfield(entity.assets,'admin1_code'),centroids.admin1_code=entity.assets.admin1_code;end
+            if isfield(entity.assets,'distance2coast_km'),centroids.distance2coast_km=entity.assets.distance2coast_km;end
+            if isfield(entity.assets,'elevation_m'),centroids.elevation_m=entity.assets.elevation_m;end
+            save(centroids_file,'centroids');
+        end
+    else
+        load(centroids_file)
+    end % entity or centroids not exist
+    
+    if isempty(centroids)
+        fprintf('ERROR: %s no centroids\n',country_name_char);
+        return
     end
+    
+    if check_plots
+        % visualize assets on map
+        climada_plot_entity_assets(entity,centroids,country_name_char);
+    end % check_plots
+    
+    % 2) figure which hazards affect the country
+    % 3) and generate the hazard event sets
+    % =================================
+    % centroids are the ones for the country, not visible in code sinde loaded
+    % above with load(centroids_file)
+    fprintf('--> calling centroids_generate_hazard_sets...\n');
+    country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots);
+    fprintf('<-- back from calling centroids_generate_hazard_sets\n');
+    
 else
-    load(centroids_file)
-end % entity or centroids not exist
-
-if isempty(centroids)
-    fprintf('ERROR: %s no centroids\n',country_name_char);
-    return
-end
-
-if check_plots
-    % visualize assets on map
-    climada_plot_entity_assets(entity,centroids,country_name_char);
-end % check_plots
-
-% 2) figure which hazards affect the country
-% 3) and generate the hazard event sets
-% =================================
-% centroids are the ones for the country, not visible in code sinde loaded
-% above with load(centroids_file)
-fprintf('--> calling centroids_generate_hazard_sets...\n');
-country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots);
-fprintf('<-- back from calling centroids_generate_hazard_sets\n');
+    
+    % figure the existing hazard set files (same procedure as in
+    % country_admin1_risk_calc)
+    probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
+    hazard_dir=[country_data_dir filesep 'hazards'];
+    hazard_files=dir([hazard_dir filesep country_ISO3 '_' ...
+        strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
+    
+    % filter, depending on probabilistic
+    valid_hazard=1:length(hazard_files);
+    for hazard_i=1:length(hazard_files)
+        if probabilistic && ~isempty(strfind(hazard_files(hazard_i).name,'_hist.mat'))
+            valid_hazard(hazard_i)=0;
+        end
+    end % hazard_i
+    valid_hazard=valid_hazard(valid_hazard>0);
+    hazard_files=hazard_files(valid_hazard);
+    
+    for hazard_i=1:length(hazard_files)
+        country_risk.res.hazard(hazard_i).hazard_set_file=[hazard_dir filesep hazard_files(hazard_i).name];
+    end
+    
+end % method<7, if method>=6, skip entity and hazard generation alltogether
 
 country_risk.res.country_name = country_name_char;
 country_risk.res.country_ISO3 = country_ISO3;
@@ -289,6 +321,8 @@ if isfield(country_risk.res,'hazard')
         if ~isempty(hazard)
             
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
+            
+            country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
             
             % find the damagefunctions for the peril under consideration
             if isfield(entity.damagefunctions,'peril_ID') % refine for peril

@@ -222,7 +222,7 @@ end
 % data in master_data
 fprintf('Calculating economic loss ...\n');
 financial_strength = ...
-    min(master_data.total_reserves(country_index)/master_data.GDP_2013(country_index),1) ...% setting an upper bound of 1 
+    min(master_data.total_reserves(country_index)/master_data.GDP_today(country_index),1) ...% setting an upper bound of 1 
     + master_data.insurance_penetration(country_index) ...
     + master_data.income_group(country_index) ...
     - master_data.central_government_debt(country_index);
@@ -302,7 +302,7 @@ fprintf('Country damage factor: %6.3f\n',country_damage_factor);
 for EDS_i = 1:length(country_risk.res.hazard)
     if ~isempty(country_risk.res.hazard(EDS_i).EDS)
         for damage_j = 1:length(country_risk.res.hazard(EDS_i).EDS.damage)
-            damage_per_GDP = country_risk.res.hazard(EDS_i).EDS.damage(damage_j)/master_data.GDP_2013(country_index);
+            damage_per_GDP = country_risk.res.hazard(EDS_i).EDS.damage(damage_j)/master_data.GDP_today(country_index);
             loss_multiplier = 1+cr_get_damage_weight(damage_per_GDP) * country_damage_factor;
             country_risk_economic_loss.res.hazard(EDS_i).EDS.damage(damage_j) = ...
                 country_risk.res.hazard(EDS_i).EDS.damage(damage_j) * loss_multiplier;

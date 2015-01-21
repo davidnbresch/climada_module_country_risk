@@ -16,6 +16,7 @@
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150105
 % David N. Bresch, david.bresch@gmail.com, 20150116, almost complete
+% David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 %-
 
 global climada_global
@@ -50,7 +51,10 @@ generate_property_damage_report=1; % default=0, we need the economic loss report
 generate_economic_loss_report=1; % default=1, the final economic loss report
 %
 % parameters for country_risk_calc
-country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+% method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
+% method=3: using GDP_entity and historic sets, see country_risk_calc
+% method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
+country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 country_list={
@@ -139,6 +143,9 @@ end
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
 country_risk=country_risk_EDS_combine(country_risk); % combine TC and TS
+
+% adjust country Value
+%cr_entity_value_adjust % Melanie's code
 
 if calculate_admin1
     % calculate damage on admin1 (state/province) level
