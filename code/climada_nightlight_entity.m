@@ -83,8 +83,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       =10: use 10km instead of 1km night light image
 %       resolution. See also remark about using -(selections) below.
 %       =1: select admin0 (full country), not admin1 (country
-%       state/province). The assets are scaled by country GDP and further
-%       multiplied by 6 (as a proxy to scale up for insurable values).
+%       state/province). The assets are scaled using cr_entity_value_GDP_adjust
 %       Note that selections=1 might lead to memory issues for large(r)
 %       countries, see option =2 or =10, too. This usage gets close to
 %       climada_create_GDP_entity.
@@ -106,13 +105,12 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %   scale_Value: =[a b c], scale entity.assets.Value to account for high
 %       nightlihgt intensity to represent larger share of values, as
 %       entity.assets.Value =  a + b*entity.assets.Value + c*entity.assets.Value.^2
-%       If = [a b c d], normalize after scaling and multziply by d. If d is
+%       If = [a b c d], normalize after scaling and multiply by d. If d is
 %       negative, scale with country GDP (only makes sense if selections=1
 %       or =2), but works in other cases, too (as the user might find it
 %       useful).
 %       Default= [0 1 0 1e9], except for selections=1, in which case the
-%       assets are scaled by country GDP and further multiplied by 6 (as a
-%       proxy to scale up for insurable values)
+%       assets are scaled using cr_entity_value_GDP_adjust
 %   img_filename: the filename of an image with night light density, as
 %       created using the GUI at http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/
 %       and select Satellite F18, 2010, avg_lights_x_pct, then 'Download
@@ -208,21 +206,10 @@ admin1_shape_file=[module_data_dir filesep 'ne_10m_admin_1_states_provinces' fil
 GDP_entity_data_folder=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
 entity_file=[climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
 %
-% the Excel file with latest GDP for admin0 (country)
-%GDP_data_file=[GDP_entity_data_folder filesep 'World_GDP_current_1960_2010.xls']; % GDP_entity
-GDP_data_file=[module_data_dir filesep 'WorldBank_GDP_admin0.xls'];
-%
-% the annual growht rate we use to correct should latest GDP data in table
-% GDP_data_file not be the same as climada_global.present_reference_year:
-GDP_AGR=0.02; % global average annual GDP growth rate in decimal (0.02 is 2%)
-%
-% multiplier to scale GDP to a proxy of insurable values
-GDP2TIV_multiplier=6; % default =6
-%
 % Parameters below very unlikely to change, see input parameter selections
 % crate the entity for the rectangular are, but store the values only for
 % the (center/selected) country or admin1 (see parameter selections)
-restrict_Values_to_coutry=1; % default=1
+restrict_Values_to_country=1; % default=1
 %
 % whether we select admin0 or admin1 (see parameter selections)
 select_admin0=0; % default=0, to select admin1
@@ -246,15 +233,15 @@ selections=selections(1);
 if selections==1
     % admin0
     select_admin0=1;
-    restrict_Values_to_coutry=1;
+    restrict_Values_to_country=1;
 elseif selections==2
     % admin0, but no restriction of values
     select_admin0=1;
-    restrict_Values_to_coutry=0; % fast
+    restrict_Values_to_country=0; % fast
 elseif selections==3
     % admin1, but no restriction of values
     select_admin0=0;
-    restrict_Values_to_coutry=0; % fast
+    restrict_Values_to_country=0; % fast
 end
 
 
@@ -663,7 +650,7 @@ if ~isempty(selection_admin1_shape_i),
 entity.assets.Longitude=X(:)';
 entity.assets.Latitude=Y(:)';
 VALUES_1D=VALUES(:); % one dimension
-if restrict_Values_to_coutry % reduce to assets within the country or admin1
+if restrict_Values_to_country % reduce to assets within the country or admin1
     entity.assets.Value=entity.assets.Longitude*0; % init
     if isempty(selection_admin0_shape_i) % find center country
         
@@ -699,7 +686,7 @@ if restrict_Values_to_coutry % reduce to assets within the country or admin1
     end
 else
     entity.assets.Value=VALUES_1D';
-end % restrict_Values_to_coutry
+end % restrict_Values_to_country
 entity.assets.DamageFunID=entity.assets.Value*0+1;
 entity.assets.reference_year=climada_global.present_reference_year;
 if sum(scale_Value)>0
@@ -717,72 +704,6 @@ if ~isempty(selection_admin1_shape_i)
     entity.assets.admin1_name=admin1_shapes(selection_admin1_shape_i).name;
     entity.assets.admin1_code=admin1_shapes(selection_admin1_shape_i).adm1_code;
 end
-
-if select_admin0
-    
-    
-    % see cr_entity_value_GDP_adjust
-    % HERE WE ARE
-    
-    entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
-    entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
-    
-    fprintf('Note: GDP %g, Poupulation %i (from shapefile)\n',entity.assets.GDP_EST,entity.assets.population_EST)
-    
-    % find GDP data
-    [fP,fN] = fileparts(GDP_data_file);
-    GDP_save_file=[fP filesep fN '.mat'];
-    
-    % two options, GDP from GDP_entity or from the GDP file in country_risk
-    if strfind(GDP_data_file,'GDP_entity') % the file in module GDP_entity
-        if climada_check_matfile(GDP_data_file)
-            load(GDP_save_file) % loads GDP_data
-        else
-            GDP=climada_GDP_read(GDP_data_file,1,1,1);
-        end
-        admin0_pos=strmatch(admin0_name,GDP.country_names); % locate admin0 GDP
-        % one issue is that not all country names in GDP database and
-        % shapes match.
-        if ~isempty(admin0_pos)
-            GDP_value=GDP.value(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.year(end)));
-        else
-            GDP_value=1; % norm
-        end
-    else
-        if climada_check_matfile(GDP_data_file,GDP_save_file)
-            fprintf('GDP data from %s\n',GDP_save_file);
-            load(GDP_save_file) % loads GDP_data
-        else
-            fprintf('GDP data from %s\n',GDP_data_file);
-            GDP=climada_xlsread('no',GDP_data_file,'Data CLEAN',1);
-            if sum(isnan(GDP.ISO3{1}))>0 || sum(isnan(GDP.Year))>0
-                fprintf('WARNING: %s, GDP might not be correctly read from %s\n',mfilename,GDP_data_file);
-                fprintf(' > make sure the Excel''s tab ''Data CLEAN'' does contain values for ISO3, not links\n');
-            else
-                save(GDP_save_file,'GDP'); % only save if it looks correct
-            end
-        end
-        admin0_pos=strmatch(admin0_shapes(selection_admin0_shape_i).ADM0_A3,GDP.ISO3); % match via ISO3, safer
-        % since we use the 3-digit country code, it always matches
-        if ~isempty(admin0_pos)
-            GDP_value=GDP.GDP(admin0_pos,end)*(1+GDP_AGR)^(max(0,climada_global.present_reference_year-GDP.Year(admin0_pos)));
-        else
-            GDP_value=1; % norm
-        end
-    end % GDP_entity
-    
-    entity.assets.GDP=GDP_value; % does not hurt to store it
-    if GDP_value>1 && restrict_Values_to_coutry % valid GDP and only one country
-        entity.assets.Value=entity.assets.Value/sum(entity.assets.Value)*...
-            GDP_value*GDP2TIV_multiplier; % *6: GDP->TIV
-        fprintf('sum of Values scaled to %g (%1.1f times GDP)\n',sum(entity.assets.Value),GDP2TIV_multiplier);
-    elseif GDP_value==1
-        fprintf('WARNING: no valid GDP found\n');
-    elseif ~restrict_Values_to_coutry
-        fprintf('GDP not applied, since assets not restricted to country\n');
-    end
-    
-end % select_admin0
 
 % for consistency, update Deductible and Cover
 entity.assets.Deductible=entity.assets.Value*0;
@@ -809,6 +730,15 @@ if save_entity
     fprintf('saving entity as %s\n',entity_save_file);
     save(entity_save_file,'entity');
     fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');
+end
+
+if select_admin0 && restrict_Values_to_country % only one country
+    entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
+    entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
+    fprintf('Note: GDP %g, Poupulation %i (from shapefile)\n',entity.assets.GDP_EST,entity.assets.population_EST)
+
+    % Scale up asset values based on a country's estimated total asset value
+    cr_entity_value_GDP_adjust(entity_save_file);
 end
 
 return % climada_nightlight_entity

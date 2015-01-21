@@ -55,14 +55,18 @@ country_risk_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'da
 
 % PARAMETERS
 %
-% the table with global (per country) 
+% the table with global GDP etc info (per country) 
 economic_data_file=[country_risk_data_dir filesep 'economic_indicators_mastertable.xls'];
 %
-% missing data indicator
+% missing data indicator (any missing in Excel has this entry)
 misdat_value=-999;
 %
 % income group depending scale-up factors
+% we take the income group number (1..4) from the
+% economic_indicators_mastertable and use it as index to the
+% income_group_factors:
 income_group_factors = [2 3 4 5];
+
 
 % template to prompt for filename if not given
 if isempty(entity_file_regexp) % local GUI
@@ -171,7 +175,7 @@ for file_i = 1:length(D_entity_mat)
             entity.assets.Value = entity.assets.Value*econ_master_data.GDP_today(country_index);
             
             % multiply with scale-up factor
-            entity.assets.Value = entity.assets.Value*(1+scale_up_factor);
+            entity.assets.Value = entity.assets.Value*scale_up_factor;
             
             % special treatment for future entities
             if isfield(entity.assets,'Value_today'),entity.assets.Value_today=entity.assets.Value;end
@@ -179,6 +183,9 @@ for file_i = 1:length(D_entity_mat)
             % and finally apply future factor (in case it's a _future entity)
             entity.assets.Value = entity.assets.Value*future_factor;
             
+            % for consistency, update Cover
+            entity.assets.Cover=entity.assets.Cover*scale_up_factor*future_factor;
+
             % save entity
             entity_adjusted = entity;
             fprintf('saved %s in %s\n',D_entity_mat(file_i).name,fP)
