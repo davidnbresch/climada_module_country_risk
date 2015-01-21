@@ -55,6 +55,9 @@ country_risk_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'da
 
 % PARAMETERS
 %
+% the table with global (per country) 
+economic_data_file=[country_risk_data_dir filesep 'economic_indicators_mastertable.xls'];
+%
 % missing data indicator
 misdat_value=-999;
 %
@@ -76,7 +79,6 @@ end
 D_entity_mat = dir(entity_file_regexp);
 
 % Check if economic data file is available
-economic_data_file=[country_risk_data_dir filesep 'economic_indicators_mastertable.xls'];
 if ~exist(economic_data_file,'file')
     fprintf('Error: economic_indicators_mastertable.xls is missing.\n')
     fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_country_risk/tree/master/data">Climada country risk repository on Github\n</a>');

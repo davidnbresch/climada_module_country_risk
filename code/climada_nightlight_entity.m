@@ -720,6 +720,10 @@ end
 
 if select_admin0
     
+    
+    % see cr_entity_value_GDP_adjust
+    % HERE WE ARE
+    
     entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
     entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
     

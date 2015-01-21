@@ -6,6 +6,10 @@
 %   selected_countries_all_in_one, run all project countries, all calculations
 % PURPOSE:
 %   Run all climada for project
+%
+%   In order to synchronize all entities with GDP etc, please run
+%   cr_entity_value_GDP_adjust once you have generated all entities
+%
 % CALLING SEQUENCE:
 %   selected_countries_all_in_one
 % EXAMPLE:
@@ -54,7 +58,7 @@ generate_economic_loss_report=1; % default=1, the final economic loss report
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 country_list={
