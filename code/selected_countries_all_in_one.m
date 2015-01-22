@@ -4,6 +4,8 @@
 %   module name
 % NAME:
 %   selected_countries_all_in_one, run all project countries, all calculations
+%
+%   run as a batch code, such that all is available on command line
 % PURPOSE:
 %   Run all climada for project
 %
@@ -39,14 +41,14 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
-property_damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'property_damage_report.xls'];
-economic_loss_report_filename  =[climada_global.data_dir filesep 'results' filesep 'economic_loss_report.xls'];
-%
 % swithes to run only parts of the code:
 % --------------------------------------
 %
 % to check for climada-conformity of country names
 check_country_names=0; % default=0, if=1, stops after check
+%
+% to generate entities
+generate_entities=0; % default=0, if=1, stops after
 %
 % whether we calculate admin1 level
 calculate_admin1=0; % default=1, but set to =0 for TEST
@@ -54,11 +56,16 @@ calculate_admin1=0; % default=1, but set to =0 for TEST
 generate_property_damage_report=1; % default=0, we need the economic loss report
 generate_economic_loss_report=1; % default=1, the final economic loss report
 %
+property_damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'property_damage_report.xls'];
+economic_loss_report_filename  =[climada_global.data_dir filesep 'results' filesep 'economic_loss_report.xls'];
+%
+country_data_dir=climada_global.data_dir;
+%
 % parameters for country_risk_calc
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 country_list={
@@ -131,6 +138,39 @@ country_list={
     'Italy'
     };
 %
+% LOCAL TEST
+country_list={
+    'Aruba'
+    'Australia'
+    'Bangladesh'
+    'Bermuda'
+    'Switzerland'
+    'Chile'
+    'China'
+    'Cuba'
+    'Germany'
+    'Dominican Republic'
+    'Algeria'
+    'Greece'
+    'Indonesia'
+    'India'
+    'Israel'
+    'Italy'
+    'Japan'
+    'Mexico'
+    'Philippines'
+    'Singapore'
+    'El Salvador'
+    'Taiwan'
+    'Vietnam'
+    };
+% LOCAL TEST
+country_list={
+    'Greece'
+    'Taiwan'
+    'Vietnam'
+    };
+%
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off
 
@@ -140,6 +180,32 @@ if check_country_names
     for country_i=1:length(country_list)
         [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
         fprintf('%s: %s %s\n',country_list{country_i},country_name,country_ISO3);
+    end % country_i
+    return
+end
+
+% generate entites only
+if generate_entities
+    for country_i=1:length(country_list)
+        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
+        country_name_char = char(country_name); % as to create filenames etc., needs to be char
+        
+        % define easy to read filenames
+        centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+        entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
+        entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
+        
+        if ~exist(entity_file,'file')
+            % invoke the GDP_entity module to generate centroids and entity
+            [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
+            if isempty(centroids), return, end
+            save(centroids_file,'centroids');
+            save(entity_file,'entity');
+            cr_entity_value_GDP_adjust(entity_file); % assets based on GDP
+            entity = entity_future; %replace with entity future
+            save(entity_future_file,'entity');
+            cr_entity_value_GDP_adjust(entity_future_file); % assets based on GDP
+        end
     end % country_i
     return
 end

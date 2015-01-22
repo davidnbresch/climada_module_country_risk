@@ -299,16 +299,18 @@ fprintf('Country damage factor: %6.3f\n',country_damage_factor);
 % the product of the damage weight (calculated by the function
 % get_damage_weight) and country_damage_factor
 
-for EDS_i = 1:length(country_risk.res.hazard)
-    if ~isempty(country_risk.res.hazard(EDS_i).EDS)
-        for damage_j = 1:length(country_risk.res.hazard(EDS_i).EDS.damage)
-            damage_per_GDP = country_risk.res.hazard(EDS_i).EDS.damage(damage_j)/master_data.GDP_today(country_index);
-            loss_multiplier = 1+cr_get_damage_weight(damage_per_GDP) * country_damage_factor;
-            country_risk_economic_loss.res.hazard(EDS_i).EDS.damage(damage_j) = ...
-                country_risk.res.hazard(EDS_i).EDS.damage(damage_j) * loss_multiplier;
+if isfield(country_risk.res,'hazard')
+    for EDS_i = 1:length(country_risk.res.hazard)
+        if ~isempty(country_risk.res.hazard(EDS_i).EDS)
+            for damage_j = 1:length(country_risk.res.hazard(EDS_i).EDS.damage)
+                damage_per_GDP = country_risk.res.hazard(EDS_i).EDS.damage(damage_j)/master_data.GDP_today(country_index);
+                loss_multiplier = 1+cr_get_damage_weight(damage_per_GDP) * country_damage_factor;
+                country_risk_economic_loss.res.hazard(EDS_i).EDS.damage(damage_j) = ...
+                    country_risk.res.hazard(EDS_i).EDS.damage(damage_j) * loss_multiplier;
+            end
+        else
+            country_risk_economic_loss.res.hazard(EDS_i).EDS = [];
         end
-    else
-        country_risk_economic_loss.res.hazard(EDS_i).EDS = [];
     end
 end
 

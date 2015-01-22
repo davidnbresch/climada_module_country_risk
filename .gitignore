@@ -18,3 +18,7 @@ code/centroids_generate_hazard_sets.m~
 data/WorldBank_GDP_admin0_misdat999.xls
 
 data/economic_indicators_mastertable.mat
+
+code/country_hazard_comparison.m~
+
+code/selected_countries_all_in_one.m~
