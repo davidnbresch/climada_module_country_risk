@@ -292,8 +292,7 @@ if isfield(country_risk.res,'hazard')
     
     hazard_count=length(country_risk.res.hazard);
     
-    %for hazard_i=1:hazard_count
-    for hazard_i=2:hazard_count
+    for hazard_i=1:hazard_count
         
         load(entity_file) % load entity
         

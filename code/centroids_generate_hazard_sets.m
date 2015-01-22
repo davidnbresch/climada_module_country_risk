@@ -337,8 +337,7 @@ probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
 % 2) Generate the hazard event sets
 % =================================
 
-%for hazard_i=1:hazard_count
-for hazard_i=2:hazard_count
+for hazard_i=1:hazard_count
     
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'TC')
         
