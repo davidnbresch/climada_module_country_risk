@@ -205,8 +205,10 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
             if isempty(centroids), return, end
             save(centroids_file,'centroids');
             save(entity_file,'entity');
+            cr_entity_value_GDP_adjust(entity_file); % adjust GDP
             entity = entity_future; %replace with entity future
             save(entity_future_file,'entity');
+            cr_entity_value_GDP_adjust(entity_future_file); % adjust GDP
         else
             fprintf('%s: method=%i not implemented, aborted\n',mfilename,method);
             return

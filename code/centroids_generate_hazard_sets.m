@@ -88,7 +88,11 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % PARAMETERS
 % whether we calculate torrential rain (TR)
 % since not really calibrated a (sub) peril yet
-calculate_TR=0; % to skip TR calculations
+calculate_TC=1; % whether we calculate TC
+calculate_TS=1; % whether we calculate TS (needs TC)
+calculate_TR=0; % whether we calculate TR (needs TC)
+calculate_EQ=1; % whether we calculate EQ
+calculate_WS=0; % whether we calculate WS
 %
 % TEST_location to mark and lable one spot
 %TEST_location.name      = '  San Salvador'; % first two spaces for nicer labeling
@@ -179,158 +183,171 @@ centroids_rect = [min(centroids.Longitude) max(centroids.Longitude) min(centroid
 centroids_edges_x = [centroids_rect(1),centroids_rect(1),centroids_rect(2),centroids_rect(2),centroids_rect(1)];
 centroids_edges_y = [centroids_rect(3),centroids_rect(4),centroids_rect(4),centroids_rect(3),centroids_rect(3)];
 
-% TC, TS, TR: figure which ocean basin(s) to use for the particular country
-% -------------------------------------------------------------------------
-
-tc_tracks_folder=[local_data_dir filesep 'tc_tracks'];
-if ~exist(tc_tracks_folder,'dir'),mkdir(local_data_dir,'tc_tracks');end
-if ~exist([tc_tracks_folder filesep 'tracks.atl.txt'],'file') % check for first
-    % get all TC tracks from www
-    climada_tc_get_unisys_databases(tc_tracks_folder);
-end
-
 hazard_count = 0; % init
 
 fprintf('*** hazard detection (%s)\n',country_name_char);
 
-D = dir(tc_tracks_folder); % get content
-for file_i=1:length(D)
-    if ~D(file_i).isdir
-        raw_data_file_temp=D(file_i).name;
-        [~,~,fE]=fileparts(raw_data_file_temp);
-        if (strcmp(fE,'.txt') || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
-            
-            tc_track_nodes_file=strrep([tc_tracks_folder filesep raw_data_file_temp],fE,'_nodes.mat');
-            
-            if ~climada_check_matfile([tc_tracks_folder filesep raw_data_file_temp],tc_track_nodes_file)
-                if  (strcmp(fE,'.txt'))
-                    % read tracks from unisys database file
-                    tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep raw_data_file_temp]);
-                elseif  (strcmp(fE,'.nc'))
-                    % read tracks from (NCAR) netCDF file
-                    tc_track=climada_tc_read_cam_ibtrac_v02([tc_tracks_folder filesep raw_data_file_temp]);
+if calculate_TC
+    
+    % TC, TS, TR: figure which ocean basin(s) to use for the particular country
+    % -------------------------------------------------------------------------
+    
+    tc_tracks_folder=[local_data_dir filesep 'tc_tracks'];
+    if ~exist(tc_tracks_folder,'dir'),mkdir(local_data_dir,'tc_tracks');end
+    if ~exist([tc_tracks_folder filesep 'tracks.atl.txt'],'file') % check for first
+        % get all TC tracks from www
+        climada_tc_get_unisys_databases(tc_tracks_folder);
+    end
+    
+    D = dir(tc_tracks_folder); % get content
+    for file_i=1:length(D)
+        if ~D(file_i).isdir
+            raw_data_file_temp=D(file_i).name;
+            [~,~,fE]=fileparts(raw_data_file_temp);
+            if (strcmp(fE,'.txt') || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
+                
+                tc_track_nodes_file=strrep([tc_tracks_folder filesep raw_data_file_temp],fE,'_nodes.mat');
+                
+                if ~climada_check_matfile([tc_tracks_folder filesep raw_data_file_temp],tc_track_nodes_file)
+                    if  (strcmp(fE,'.txt'))
+                        % read tracks from unisys database file
+                        tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep raw_data_file_temp]);
+                    elseif  (strcmp(fE,'.nc'))
+                        % read tracks from (NCAR) netCDF file
+                        tc_track=climada_tc_read_cam_ibtrac_v02([tc_tracks_folder filesep raw_data_file_temp]);
+                    else
+                        fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
+                    end
+                    tc_track_nodes.lon=[];
+                    tc_track_nodes.lat=[];
+                    tc_track_nodes.track_no=[]; % store also track number
+                    fprintf('collecting all nodes for %i TC tracks\n',length(tc_track));
+                    for track_i=1:length(tc_track)
+                        tc_track_nodes.lon=[tc_track_nodes.lon tc_track(track_i).lon];
+                        tc_track_nodes.lat=[tc_track_nodes.lat tc_track(track_i).lat];
+                        tc_track_nodes.track_no=[tc_track_nodes.track_no (tc_track(track_i).lat)*0+track_i];
+                    end % track_i
+                    fprintf('saving TC track nodes as %s\n',tc_track_nodes_file);
+                    save(tc_track_nodes_file,'tc_track_nodes');
                 else
-                    fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
+                    load(tc_track_nodes_file);
                 end
-                tc_track_nodes.lon=[];
-                tc_track_nodes.lat=[];
-                tc_track_nodes.track_no=[]; % store also track number
-                fprintf('collecting all nodes for %i TC tracks\n',length(tc_track));
-                for track_i=1:length(tc_track)
-                    tc_track_nodes.lon=[tc_track_nodes.lon tc_track(track_i).lon];
-                    tc_track_nodes.lat=[tc_track_nodes.lat tc_track(track_i).lat];
-                    tc_track_nodes.track_no=[tc_track_nodes.track_no (tc_track(track_i).lat)*0+track_i];
-                end % track_i
-                fprintf('saving TC track nodes as %s\n',tc_track_nodes_file);
-                save(tc_track_nodes_file,'tc_track_nodes');
-            else
-                load(tc_track_nodes_file);
-            end
-            
-            % check for track nodes within centroids_rect
-            in_track_poly = inpolygon(tc_track_nodes.lon,tc_track_nodes.lat,centroids_edges_x,centroids_edges_y);
-            
-            if check_plots
-                climada_plot_world_borders; hold on;
-                plot(tc_track_nodes.lon,tc_track_nodes.lat,'.b','MarkerSize',3);
-                plot(tc_track_nodes.lon(in_track_poly),tc_track_nodes.lat(in_track_poly),'xg','MarkerSize',4);
-                plot(centroids_edges_x,centroids_edges_y,'-g')
-            else
-                close all
-            end
-            
-            if sum(in_track_poly)>0
-                hazard_count = hazard_count+1;
-                centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TC';
-                centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
-                hazard_count = hazard_count+1;
-                centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TS';
-                centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
-                if calculate_TR
+                
+                % check for track nodes within centroids_rect
+                in_track_poly = inpolygon(tc_track_nodes.lon,tc_track_nodes.lat,centroids_edges_x,centroids_edges_y);
+                
+                if check_plots
+                    climada_plot_world_borders; hold on;
+                    plot(tc_track_nodes.lon,tc_track_nodes.lat,'.b','MarkerSize',3);
+                    plot(tc_track_nodes.lon(in_track_poly),tc_track_nodes.lat(in_track_poly),'xg','MarkerSize',4);
+                    plot(centroids_edges_x,centroids_edges_y,'-g')
+                else
+                    close all
+                end
+                
+                if sum(in_track_poly)>0
                     hazard_count = hazard_count+1;
-                    centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
+                    centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TC';
                     centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                    if calculate_TS
+                        hazard_count = hazard_count+1;
+                        centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TS';
+                        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                    end
+                    if calculate_TR
+                        hazard_count = hazard_count+1;
+                        centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
+                        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                    end
+                    fprintf('* hazard TC %s detected\n',strrep(raw_data_file_temp,'.txt',''));
                 end
-                fprintf('* hazard TC %s detected\n',strrep(raw_data_file_temp,'.txt',''));
-            end
+                
+            end % only *.txt files
             
-        end % only *.txt files
+        end
+    end %
+    
+end % calculate_TC
+
+if calculate_EQ
+    
+    % EQ: figure whether the particular country is exposed
+    % ----------------------------------------------------
+    
+    if length(which('eq_isc_gem_read'))<2
+        cprintf([1,0.5,0],'Earthquake (EQ) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n\n');
+    else
+        % test EQ exposure
+        %eq_data=eq_centennial_read; % until 20141203
+        eq_data=eq_isc_gem_read;
         
+        % check for track nodes within centroids_rect
+        in_seismic_poly = inpolygon(eq_data.glon,eq_data.glat,centroids_edges_x,centroids_edges_y);
+        
+        if check_plots
+            climada_plot_world_borders; hold on;
+            plot(eq_data.glon,eq_data.glat,'.r','MarkerSize',3);
+            plot(eq_data.glon(in_seismic_poly),eq_data.glat(in_seismic_poly),'xg','MarkerSize',4);
+            plot(centroids_edges_x,centroids_edges_y,'-g')
+        else
+            close all
+        end
+        
+        if sum(in_seismic_poly)>0
+            hazard_count = hazard_count+1;
+            centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'EQ';
+            centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
+            fprintf('* hazard EQ detected\n');
+        end
     end
-end %
-
-
-% EQ: figure whether the particular country is exposed
-% ----------------------------------------------------
-
-if length(which('eq_isc_gem_read'))<2
-    cprintf([1,0.5,0],'Earthquake (EQ) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n\n');
-else
-    % test EQ exposure
-    %eq_data=eq_centennial_read; % until 20141203
-    eq_data=eq_isc_gem_read;
     
-    % check for track nodes within centroids_rect
-    in_seismic_poly = inpolygon(eq_data.glon,eq_data.glat,centroids_edges_x,centroids_edges_y);
+end % calculate_EQ
+
+if calculate_WS
     
-    if check_plots
-        climada_plot_world_borders; hold on;
-        plot(eq_data.glon,eq_data.glat,'.r','MarkerSize',3);
-        plot(eq_data.glon(in_seismic_poly),eq_data.glat(in_seismic_poly),'xg','MarkerSize',4);
-        plot(centroids_edges_x,centroids_edges_y,'-g')
+    % WS: figure whether the particular country is exposed to European winter storms
+    % ------------------------------------------------------------------------------
+    
+    if length(which('winterstorm_TEST'))<2
+        cprintf([1,0.5,0],'European winterstorm (WS) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_ws_europe\n\n');
     else
-        close all
+        % test WS exposure
+        WS_module_data_dir=[fileparts(fileparts(which('winterstorm_TEST'))) filesep 'data'];
+        
+        full_WS_Europe_hazard_set_file=[WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
+        if exist(full_WS_Europe_hazard_set_file,'file')
+            load([WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file]);
+        else
+            % generate the blended WS_Europe hazard set first
+            hazard=winterstorm_blend_hazard_event_sets;
+        end
+        
+        % check for WS centroids within centroids_rect
+        in_ws_poly = inpolygon(hazard.lon,hazard.lat,centroids_edges_x,centroids_edges_y);
+        
+        if check_plots
+            climada_plot_world_borders; hold on;
+            plot(hazard.lon,hazard.lat,'.m','MarkerSize',3);
+            plot(hazard.lon(in_ws_poly),hazard.lat(in_ws_poly),'xg','MarkerSize',4);
+            plot(centroids_edges_x,centroids_edges_y,'-g')
+        else
+            close all
+        end
+        
+        if sum(in_ws_poly)>0
+            hazard_count = hazard_count+1;
+            centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'WS';
+            centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
+            fprintf('* hazard WS Europe detected\n');
+        end
     end
     
-    if sum(in_seismic_poly)>0
-        hazard_count = hazard_count+1;
-        centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'EQ';
-        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
-        fprintf('* hazard EQ detected\n');
-    end
-end
-
-% WS: figure whether the particular country is exposed to European winter storms
-% ------------------------------------------------------------------------------
-
-if length(which('winterstorm_TEST'))<2
-    cprintf([1,0.5,0],'European winterstorm (WS) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_ws_europe\n\n');
-else
-    % test WS exposure
-    WS_module_data_dir=[fileparts(fileparts(which('winterstorm_TEST'))) filesep 'data'];
-    
-    full_WS_Europe_hazard_set_file=[WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
-    if exist(full_WS_Europe_hazard_set_file,'file')
-        load([WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file]);
-    else
-        % generate the blended WS_Europe hazard set first
-        hazard=winterstorm_blend_hazard_event_sets;
+    if hazard_count < 1
+        fprintf('NOTE: %s not exposed, skipped\n',country_name_char)
+        return
     end
     
-    % check for WS centroids within centroids_rect
-    in_ws_poly = inpolygon(hazard.lon,hazard.lat,centroids_edges_x,centroids_edges_y);
-    
-    if check_plots
-        climada_plot_world_borders; hold on;
-        plot(hazard.lon,hazard.lat,'.m','MarkerSize',3);
-        plot(hazard.lon(in_ws_poly),hazard.lat(in_ws_poly),'xg','MarkerSize',4);
-        plot(centroids_edges_x,centroids_edges_y,'-g')
-    else
-        close all
-    end
-    
-    if sum(in_ws_poly)>0
-        hazard_count = hazard_count+1;
-        centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'WS';
-        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
-        fprintf('* hazard WS Europe detected\n');
-    end
-end
-
-if hazard_count < 1
-    fprintf('NOTE: %s not exposed, skipped\n',country_name_char)
-    return
-end
+end % calculate_WS
 
 probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
 
@@ -469,7 +486,7 @@ for hazard_i=1:hazard_count
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
-
+        
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
             fprintf('*** hazard generation for TR %s%s in %s (can take some time, longer than TC)\n',hazard_name,probabilistic_str,country_name_char);
@@ -588,7 +605,7 @@ for hazard_i=1:hazard_count
                     % Warning: Variable 'hazard' cannot be saved to a MAT-file whose version is
                     % older than 7.3. To save this variable, use the -v7.3 switch. to avoid
                     % this warning, the switch is used. david's comment: only shows for large
-                    % hazard sets, seems to be due to huge size of hazard. 
+                    % hazard sets, seems to be due to huge size of hazard.
                     % Octave does not like -v7.3, but solved in climada_EDS_calc, see there
                 end
             end

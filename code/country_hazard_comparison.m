@@ -64,8 +64,12 @@ if ~exist('reference_RP','var'),reference_RP=[100 200];end % reference return pe
 
 % PARAMETERS
 %
-show_plot=0;
+show_plot=1;
 if show_plot,close all;end % since we may produce many figures...
+% 
+% plot layout, define how many subplots horizontally and vertically
+% (n_plots_horz*n_plots_vert+1 plot opens new figure)
+n_plots_horz=4;n_plots_vert=2;
 %
 report_filename=[climada_global.data_dir filesep 'results' filesep mfilename '.csv'];
 %
@@ -87,7 +91,6 @@ fprintf(fid,'%s\n',out_hdr);
 out_fmt='%s;%s;%f;%f;%s;%i;%f;%f\n';
 out_fmt=strrep(out_fmt,';',climada_global.csv_delimiter);
 
-
 for file_i=1:length(D)
     if ~D(file_i).isdir
         
@@ -108,6 +111,20 @@ for file_i=1:length(D)
         if exist(entity_file,'file') && exist(hazard_file,'file')
             load(entity_file)
             load(hazard_file)
+            
+            % hazard-dependent switches to adjust (later implement at
+            % proper place in DBs)
+            switch char(hazard.peril_ID(1:2))
+                case 'WS'
+%                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
+%                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
+%                     fprintf('NOTE: WS damagefunctions adjusted\n');
+                case 'TC'
+%                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
+%                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
+%                     fprintf('NOTE: WS damagefunctions adjusted\n');
+            end
+            
             DFC=climada_EDS2DFC(climada_EDS_calc(entity,hazard),DFC_cmp.return_period); % same return periods
             
             if scale_value_flag
@@ -120,8 +137,13 @@ for file_i=1:length(D)
             end % scale_value_flag
             
             if show_plot
+                subplot_no=mod(next_res_i-1,n_plots_horz*n_plots_vert)+1;
+                if subplot_no==1
+                    figure('Color',[1 1 1]) % new figure for each
+                end
+                subplot(n_plots_vert,n_plots_horz,subplot_no); % 4 plots
+
                 % show comparison
-                figure('Color',[1 1 1]) % new figure for each
                 plot(DFC.return_period,DFC.damage,'-b'); hold on
                 plot(DFC_cmp.return_period,DFC_cmp.damage,'-g'); hold on
                 legend('climada','cmp');title(strrep(file_name,'_',' '));

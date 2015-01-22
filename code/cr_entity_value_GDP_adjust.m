@@ -210,7 +210,7 @@ for file_i = 1:length(D_entity_mat)
 
             % save entity
             entity_adjusted = entity;
-            fprintf('saved %s in %s\n',D_entity_mat(file_i).name,fP)
+            fprintf('saved %s in %s (by %s)\n',D_entity_mat(file_i).name,fP,mfilename)
             save(entity_file_i,'entity')
             
         else
