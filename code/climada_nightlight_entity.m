@@ -83,7 +83,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       =10: use 10km instead of 1km night light image
 %       resolution. See also remark about using -(selections) below.
 %       =1: select admin0 (full country), not admin1 (country
-%       state/province). The assets are scaled using cr_entity_value_GDP_adjust
+%       state/province). The assets are scaled using climada_entity_value_GDP_adjust
 %       Note that selections=1 might lead to memory issues for large(r)
 %       countries, see option =2 or =10, too. This usage gets close to
 %       climada_create_GDP_entity.
@@ -110,7 +110,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %       or =2), but works in other cases, too (as the user might find it
 %       useful).
 %       Default= [0 1 0 1e9], except for selections=1, in which case the
-%       assets are scaled using cr_entity_value_GDP_adjust
+%       assets are scaled using climada_entity_value_GDP_adjust
 %   img_filename: the filename of an image with night light density, as
 %       created using the GUI at http://maps.ngdc.noaa.gov/viewers/dmsp_gcv4/
 %       and select Satellite F18, 2010, avg_lights_x_pct, then 'Download
@@ -738,7 +738,7 @@ if select_admin0 && restrict_Values_to_country % only one country
     fprintf('Note: GDP %g, Poupulation %i (from shapefile)\n',entity.assets.GDP_EST,entity.assets.population_EST)
 
     % Scale up asset values based on a country's estimated total asset value
-    cr_entity_value_GDP_adjust(entity_save_file);
+    climada_entity_value_GDP_adjust(entity_save_file);
 end
 
 return % climada_nightlight_entity

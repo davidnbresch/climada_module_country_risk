@@ -9,8 +9,8 @@
 % PURPOSE:
 %   Run all climada for project
 %
-%   In order to synchronize all entities with GDP etc, please run
-%   cr_entity_value_GDP_adjust once you have generated all entities
+%   In order to synchronize all entities with GDP etc, country_risk_calc
+%   uses climada_entity_value_GDP_adjust
 %
 % CALLING SEQUENCE:
 %   selected_countries_all_in_one
@@ -201,10 +201,10 @@ if generate_entities
             if isempty(centroids), return, end
             save(centroids_file,'centroids');
             save(entity_file,'entity');
-            cr_entity_value_GDP_adjust(entity_file); % assets based on GDP
+            climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
             entity = entity_future; %replace with entity future
             save(entity_future_file,'entity');
-            cr_entity_value_GDP_adjust(entity_future_file); % assets based on GDP
+            climada_entity_value_GDP_adjust(entity_future_file); % assets based on GDP
         end
     end % country_i
     return

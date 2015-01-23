@@ -70,6 +70,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150112, hazard extension '_hist' for historic, '' for probabilistic
 % David N. Bresch, david.bresch@gmail.com, 20150112, III_name_rrr_PP{|_hist}.mat
 % David N. Bresch, david.bresch@gmail.com, 20150118, tc_track nodes file with track number
+% David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km in TC added
 %-
 
 centroids_hazard_info = []; % init output
@@ -86,23 +87,17 @@ if ~exist('check_plots' ,'var'),  check_plots  = 0; end
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
-% whether we calculate torrential rain (TR)
-% since not really calibrated a (sub) peril yet
+%
+% switches to select which hazards to calculate, default is all =1
 calculate_TC=1; % whether we calculate TC
 calculate_TS=1; % whether we calculate TS (needs TC)
-calculate_TR=0; % whether we calculate TR (needs TC)
+calculate_TR=0; % whether we calculate TR
 calculate_EQ=1; % whether we calculate EQ
-calculate_WS=0; % whether we calculate WS
-%
-% TEST_location to mark and lable one spot
-%TEST_location.name      = '  San Salvador'; % first two spaces for nicer labeling
-%TEST_location.longitude = -89+11/60+24/3600;
-%TEST_location.latitude  =  13+41/60+24/3600;
-TEST_location=''; % set TEST_location='' to omit labeling
+calculate_WS=1; % whether we calculate WS
 %
 % the folder all data will be stored to, usually the standard climada
-% data tree. But since the option country_name='ALL' creates so many
-% files, one might divert to e.g. a data folder structure within the
+% data tree. But since the option country_name='ALL' in country_risk_calc
+% creates so many files, one might divert to e.g. a data folder structure within the 
 % module (see climada_init_folders to create the required folders automatically)
 local_data_dir = climada_global.data_dir;
 %local_data_dir = module_data_dir;
@@ -423,6 +418,14 @@ for hazard_i=1:hazard_count
                 
             end % probabilistic
             
+            if ~isfield(centroids,'distance2coast_km')
+                fprintf('calculating distance2coast_km (speeds up windfield calculation)\n')
+                % it takes a bit of time to calculate
+                % climada_distance2coast_km, but the windfield calcuklation is
+                % much faster that way (see climada_tc_windfield)
+                centroids.distance2coast_km=climada_distance2coast_km(centroids.Longitude,centroids.Latitude);
+            end
+            
             hazard = climada_tc_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
             fprintf('TC: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
             
@@ -640,10 +643,6 @@ for hazard_i=1:hazard_count
             cbfreeze(colorbar)
         end
         
-        if ~isempty(TEST_location)
-            text(TEST_location.longitude,TEST_location.latitude,TEST_location.name)
-            plot(TEST_location.longitude,TEST_location.latitude,'xk');
-        end
     else
         close all % to be on the safe side
     end % check_plots

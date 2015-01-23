@@ -89,6 +89,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20141222, method parameter simplified (replaces and includes probabilistic)
 % David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
 % David N. Bresch, david.bresch@gmail.com, 20150121, method=7 added
+% David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km added
 %-
 
 country_risk = []; % init output
@@ -205,15 +206,15 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
             if isempty(centroids), return, end
             save(centroids_file,'centroids');
             save(entity_file,'entity');
-            cr_entity_value_GDP_adjust(entity_file); % adjust GDP
+            climada_entity_value_GDP_adjust(entity_file); % adjust GDP
             entity = entity_future; %replace with entity future
             save(entity_future_file,'entity');
-            cr_entity_value_GDP_adjust(entity_future_file); % adjust GDP
+            climada_entity_value_GDP_adjust(entity_future_file); % adjust GDP
         else
             fprintf('%s: method=%i not implemented, aborted\n',mfilename,method);
             return
         end % method
-        
+                
         if ~exist('centroids','var')
             if isempty(entity),return,end
             % since climada_nightlight_entity only created the entity,
@@ -241,6 +242,14 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
     if isempty(centroids)
         fprintf('ERROR: %s no centroids\n',country_name_char);
         return
+    end
+    
+    if ~isfield(centroids,'distance2coast_km')
+        % it takes a bit of time to calculate
+        % climada_distance2coast_km, but the windfield calcuklation is
+        % much faster that way (see climada_tc_windfield)
+        centroids.distance2coast_km=climada_distance2coast_km(centroids.Longitude,centroids.Latitude);
+        save(centroids_file,'centroids'); % save centrois with field distance2coast_km
     end
     
     if check_plots
