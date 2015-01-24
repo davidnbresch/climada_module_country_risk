@@ -388,33 +388,38 @@ for hazard_i=1:hazard_count
                     fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
                 end
                 
-                tc_track = climada_tc_random_walk(tc_track); % overwrites tc_track to save memory
-                
-                if exist('climada_tc_track_wind_decay_calculate','file')
-                    % add the inland decay correction to all probabilistic nodes
-                    tc_track   = climada_tc_track_wind_decay(tc_track, p_rel,check_plots);
-                end
-                
-                if check_plots
-                    % plot the tracks
-                    figure('Name','TC tracks','Color',[1 1 1]); hold on
-                    for event_i=1:length(tc_track) % plot all tracks
-                        plot(tc_track(event_i).lon,tc_track(event_i).lat,'-b');
-                    end % event_i
-                    % overlay historic (to make them visible, too)
-                    for event_i=1:length(tc_track)
-                        if tc_track(event_i).orig_event_flag
-                            plot(tc_track(event_i).lon,tc_track(event_i).lat,'-r');
-                        end
-                    end % event_i
-                    climada_plot_world_borders(2)
-                    box on; axis equal; axis(centroids_rect);
-                    xlabel('blue: probabilistic, red: historic');
-                end
-                
-                % save probabilistic track set
                 tc_track_prob_mat = strrep(tc_track_mat,'_proc.mat','_prob.mat');
-                save(tc_track_prob_mat,'tc_track');
+                if exist(tc_track_prob_mat,'file')
+                    load(tc_track_prob_mat)
+                else
+                    
+                    tc_track = climada_tc_random_walk(tc_track); % overwrites tc_track to save memory
+                    
+                    if exist('climada_tc_track_wind_decay_calculate','file')
+                        % add the inland decay correction to all probabilistic nodes
+                        tc_track   = climada_tc_track_wind_decay(tc_track, p_rel,check_plots);
+                    end
+                    
+                    if check_plots
+                        % plot the tracks
+                        figure('Name','TC tracks','Color',[1 1 1]); hold on
+                        for event_i=1:length(tc_track) % plot all tracks
+                            plot(tc_track(event_i).lon,tc_track(event_i).lat,'-b');
+                        end % event_i
+                        % overlay historic (to make them visible, too)
+                        for event_i=1:length(tc_track)
+                            if tc_track(event_i).orig_event_flag
+                                plot(tc_track(event_i).lon,tc_track(event_i).lat,'-r');
+                            end
+                        end % event_i
+                        climada_plot_world_borders(2)
+                        box on; axis equal; axis(centroids_rect);
+                        xlabel('blue: probabilistic, red: historic');
+                    end
+                    
+                    % save probabilistic track set
+                    save(tc_track_prob_mat,'tc_track');
+                end % exist(tc_track_prob_mat)
                 
             end % probabilistic
             
