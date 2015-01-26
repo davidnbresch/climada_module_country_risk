@@ -22,3 +22,25 @@ data/economic_indicators_mastertable.mat
 code/country_hazard_comparison.m~
 
 code/selected_countries_all_in_one.m~
+
+data/emdat/emdat_BGD_Bangladesh.csv
+
+data/emdat/emdat_CHN_China.csv
+
+data/emdat/emdat_PHL_Philippines.csv
+
+data/emdat/emdat_BGD_Bangladesh.xls
+
+data/emdat/emdat_subtype.csv
+
+data/emdat/emdat_type.csv
+
+data/emdat/emdat_USA_UnitedStates_TC.xls
+
+data/emdat/emdat_USA_UnitedStates.csv
+
+data/emdat/emdat_USA_UnitedStates.xls
+
+data/emdat/emdat.csv
+
+data/emdat/emdat.mat

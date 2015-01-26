@@ -46,6 +46,7 @@ function res=country_hazard_comparison(cmp_folder,cmp_file_regexp,scale_value_fl
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150120, initial
 % David N. Bresch, david.bresch@gmail.com, 20150122, scale_value_flag
+% David N. Bresch, david.bresch@gmail.com, 20150126, ED also reported
 %-
 
 res=[];next_res_i=1; % init output
@@ -66,7 +67,10 @@ if ~exist('reference_RP','var'),reference_RP=[100 200];end % reference return pe
 %
 show_plot=1;
 if show_plot,close all;end % since we may produce many figures...
-% 
+%
+% whether we only want to check entity
+check_entity_only=0; % default=0
+%
 % plot layout, define how many subplots horizontally and vertically
 % (n_plots_horz*n_plots_vert+1 plot opens new figure)
 n_plots_horz=4;n_plots_vert=2;
@@ -110,79 +114,112 @@ for file_i=1:length(D)
         
         if exist(entity_file,'file') && exist(hazard_file,'file')
             load(entity_file)
-            load(hazard_file)
             
-            % hazard-dependent switches to adjust (later implement at
-            % proper place in DBs)
-            switch char(hazard.peril_ID(1:2))
-                case 'WS'
-%                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
-%                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
-%                     fprintf('NOTE: WS damagefunctions adjusted\n');
-                case 'TC'
-%                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
-%                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
-%                     fprintf('NOTE: WS damagefunctions adjusted\n');
-            end
+            entity.assets.Cover=entity.assets.Value;
+            %             Cover_pct=entity.assets.Cover./entity.assets.Value;
+            %             if max(Cover_pct)<0.01
+            %                 fprintf('Warning: max Cover less than 1%% of Value -> set to Value\n');
+            %                 entity.assets.Cover=entity.assets.Value;
+            %             end
+            %             fprintf('min/max Cover: %f%%..%f%%\n',min(Cover_pct)*100,max(Cover_pct)*100);
             
-            DFC=climada_EDS2DFC(climada_EDS_calc(entity,hazard),DFC_cmp.return_period); % same return periods
-            
-            if scale_value_flag
-                % multiply climada to match cmp value
-                scale_value_factor=DFC_cmp.value/DFC.value;
-                DFC.value=DFC.value*scale_value_factor;
-                DFC.damage=DFC.damage*scale_value_factor;
-            else
-                scale_value_factor=1;
-            end % scale_value_flag
-            
-            if show_plot
-                subplot_no=mod(next_res_i-1,n_plots_horz*n_plots_vert)+1;
-                if subplot_no==1
-                    figure('Color',[1 1 1]) % new figure for each
+            if ~check_entity_only
+                
+                load(hazard_file)
+                
+                % hazard-dependent switches to adjust (later implement at
+                % proper place in DBs)
+                switch char(hazard.peril_ID(1:2))
+                    case 'WS'
+                        %                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
+                        %                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
+                        %                     fprintf('NOTE: WS damagefunctions adjusted\n');
+                    case 'TC'
+                        %                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
+                        %                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
+                        %                     fprintf('NOTE: WS damagefunctions adjusted\n');
                 end
-                subplot(n_plots_vert,n_plots_horz,subplot_no); % 4 plots
-
-                % show comparison
-                plot(DFC.return_period,DFC.damage,'-b'); hold on
-                plot(DFC_cmp.return_period,DFC_cmp.damage,'-g'); hold on
-                legend('climada','cmp');title(strrep(file_name,'_',' '));
-                % zoom to 0..500 years return period
-                pos500=find(DFC.return_period==500);
-                y_max=max(DFC.damage(pos500),DFC_cmp.damage(pos500));
-                axis([0 500 0 y_max]);
-                hold off
-                drawnow
-            end
-            
-            res(next_res_i).file_name=file_name;
-            res(next_res_i).admin0_ISO3='';
-            res(next_res_i).admin0_name='';
-            if isfield(entity.assets,'admin0_ISO3'),...
-                    res(next_res_i).admin0_ISO3=entity.assets.admin0_ISO3;end
-            if isfield(entity.assets,'admin0_name'),...
-                    res(next_res_i).admin0_name=entity.assets.admin0_name;end
-            res(next_res_i).DFC.value=DFC.value;
-            res(next_res_i).DFC_cmp.value=DFC_cmp.value;
-            res(next_res_i).return_period=[];
-            res(next_res_i).DFC.damage=[];
-            res(next_res_i).DFC_cmp.damage=[];
-            
-            for reference_RP_i=1:length(reference_RP)
-                ref_pos=find(DFC.return_period==reference_RP(reference_RP_i));
-                if ~isempty(ref_pos)
-                    res(next_res_i).return_period(end+1) =reference_RP(reference_RP_i);
-                    res(next_res_i).DFC.damage(end+1)    =DFC.damage(ref_pos);
-                    res(next_res_i).DFC_cmp.damage(end+1)=DFC_cmp.damage(ref_pos);
-                    fprintf('  %i yr climada %f, cmp %f (value factor %f)\n',reference_RP(reference_RP_i),DFC.damage(ref_pos),DFC_cmp.damage(ref_pos),scale_value_factor);
+                
+                DFC=climada_EDS2DFC(climada_EDS_calc(entity,hazard),DFC_cmp.return_period); % same return periods
+                
+                if scale_value_flag
+                    % multiply climada to match cmp value
+                    scale_value_factor=DFC_cmp.value/DFC.value;
+                    DFC.value=DFC.value*scale_value_factor;
+                    DFC.damage=DFC.damage*scale_value_factor;
+                else
+                    scale_value_factor=1;
+                end % scale_value_flag
+                
+                if show_plot
+                    subplot_no=mod(next_res_i-1,n_plots_horz*n_plots_vert)+1;
+                    if subplot_no==1
+                        figure('Color',[1 1 1]) % new figure for each
+                    end
+                    subplot(n_plots_vert,n_plots_horz,subplot_no); % 4 plots
                     
-                    % admin0_name;admin0_ISO3;climada value;cmp value;return period;climada damage;cmp damage';
-                    fprintf(fid,out_fmt,res(next_res_i).admin0_ISO3,res(next_res_i).admin0_name,...
-                        res(next_res_i).DFC.value,res(next_res_i).DFC_cmp.value,char(hazard.peril_ID),...
-                        reference_RP(reference_RP_i),DFC.damage(ref_pos),DFC_cmp.damage(ref_pos));
+                    % show comparison
+                    plot(DFC.return_period,DFC.damage,'-b'); hold on
+                    plot(DFC_cmp.return_period,DFC_cmp.damage,'-g'); hold on
+                    
+                    em_data=emdat_read('',entity.assets.admin0_name,char(hazard.peril_ID(1:2)));
+                    if ~isempty(em_data)
+                        plot(em_data.DFC.return_period,em_data.DFC.damage,'xr'); hold on
+                        legend('climada','cmp','EM-DAT');title(strrep(file_name,'_',' '));
+                    else
+                        legend('climada','cmp');title(strrep(file_name,'_',' '));
+                    end
+                    % zoom to 0..500 years return period
+                    pos500= DFC.return_period==500;
+                    pos500_cmp= DFC_cmp.return_period==500;
+                    DFC_val=DFC.damage(pos500);if isnan(DFC_val),DFC_val=max(DFC.damage);end
+                    DFC_cmp_val=DFC_cmp.damage(pos500_cmp);if isnan(DFC_cmp_val),DFC_cmp_val=max(DFC_cmp.damage);end
+                    y_max=max(DFC_val,DFC_cmp_val);
+                    axis([0 500 0 y_max]);
+                    hold off
+                    drawnow
                 end
-            end % reference_RP_i
-            next_res_i=next_res_i+1;
+                
+                res(next_res_i).file_name=file_name;
+                res(next_res_i).admin0_ISO3='';
+                res(next_res_i).admin0_name='';
+                if isfield(entity.assets,'admin0_ISO3'),...
+                        res(next_res_i).admin0_ISO3=entity.assets.admin0_ISO3;end
+                if isfield(entity.assets,'admin0_name'),...
+                        res(next_res_i).admin0_name=entity.assets.admin0_name;end
+                res(next_res_i).DFC.value=DFC.value;
+                res(next_res_i).DFC_cmp.value=DFC_cmp.value;
+                res(next_res_i).return_period=[];
+                res(next_res_i).DFC.damage=[];
+                res(next_res_i).DFC_cmp.damage=[];
+                
+                v1=DFC.ED;v2=DFC_cmp.ED;vq=v1/v2*100;
+                fprintf('  ED     climada %2.2g, cmp %2.2g, %3.0f%% (value factor %3.0f)\n',v1,v2,vq,scale_value_factor);
+                
+                % admin0_name;admin0_ISO3;climada value;cmp value;return period;climada damage;cmp damage';
+                fprintf(fid,out_fmt,res(next_res_i).admin0_ISO3,res(next_res_i).admin0_name,...
+                    res(next_res_i).DFC.value,res(next_res_i).DFC_cmp.value,char(hazard.peril_ID),1,DFC.ED,DFC_cmp.ED);
+                
+                for reference_RP_i=1:length(reference_RP)
+                    ref_pos=find(DFC.return_period==reference_RP(reference_RP_i));
+                    if ~isempty(ref_pos)
+                        res(next_res_i).return_period(end+1) =reference_RP(reference_RP_i);
+                        res(next_res_i).DFC.damage(end+1)    =DFC.damage(ref_pos);
+                        res(next_res_i).DFC_cmp.damage(end+1)=DFC_cmp.damage(ref_pos);
+                        
+                        v1=DFC.damage(ref_pos);v2=DFC_cmp.damage(ref_pos);vq=v1/v2*100;
+                        fprintf('  %i yr climada %2.2g, cmp %2.2g, %3.0f%% (value factor %3.0f)\n',reference_RP(reference_RP_i),...
+                            v1,v2,vq,scale_value_factor);
+                        
+                        % admin0_name;admin0_ISO3;climada value;cmp value;return period;climada damage;cmp damage';
+                        fprintf(fid,out_fmt,res(next_res_i).admin0_ISO3,res(next_res_i).admin0_name,...
+                            res(next_res_i).DFC.value,res(next_res_i).DFC_cmp.value,char(hazard.peril_ID),...
+                            reference_RP(reference_RP_i),DFC.damage(ref_pos),DFC_cmp.damage(ref_pos));
+                    end
+                end % reference_RP_i
+                next_res_i=next_res_i+1;
+                
+            end % ~check_entity_only
             
         else
             inset_str='';
