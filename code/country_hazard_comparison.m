@@ -75,6 +75,10 @@ check_entity_only=0; % default=0
 % (n_plots_horz*n_plots_vert+1 plot opens new figure)
 n_plots_horz=4;n_plots_vert=2;
 %
+% the maximum return period (RP) to show in plots - has to be one of the
+% return periods the comparison DFC exists for
+plot_max_RP=200; % default=200
+%
 report_filename=[climada_global.data_dir filesep 'results' filesep mfilename '.csv'];
 %
 climada_global.waitbar=0; % no progress bar
@@ -140,7 +144,44 @@ for file_i=1:length(D)
                         %                     fprintf('NOTE: WS damagefunctions adjusted\n');
                 end
                 
-                DFC=climada_EDS2DFC(climada_EDS_calc(entity,hazard),DFC_cmp.return_period); % same return periods
+                % calculate climada EDS and DFC
+                EDS=climada_EDS_calc(entity,hazard);
+                DFC=climada_EDS2DFC(EDS,DFC_cmp.return_period); % same return periods as comparison
+               
+                % use EM-DAT information to calibrate, if available
+                em_data=emdat_read('',entity.assets.admin0_name,char(hazard.peril_ID(1:2)),1,0);
+                if ~isempty(em_data)
+                    
+                    % calculate climada DFC on EM-DAT return periods
+                    DFC_0=climada_EDS2DFC(EDS,em_data.DFC.return_period);
+                    
+                    % figure adjustment factor for climada to match EM-DAT
+                    climada2emdat_factor=em_data.DFC.damage./DFC_0.damage;
+                    
+                    DFC_weight_pos=em_data.DFC.return_period>20 & DFC_0.damage>0; % we look into >20 years
+                    if ~isempty(DFC_weight_pos)
+                        % weight the factor, in order to only have one global
+                        climada2emdat_factor_weighted=climada2emdat_factor(DFC_weight_pos)*...
+                            em_data.DFC.return_period(DFC_weight_pos)'/sum(em_data.DFC.return_period(DFC_weight_pos));
+                        fprintf('EM-DAT: climada scaling factor %f\n',climada2emdat_factor_weighted);
+                    else
+                        climada2emdat_factor_weighted=1.0;
+                        fprintf('EM-DAT: no adjustment (not enough EM-DAT data)\n');
+                    end
+                    
+%                     fprintf('RP EM-DAT     climada\n');
+%                     for i=1:length(DFC_0.damage)
+%                         fprintf('%i %f %f\n',ceil(em_data.DFC.return_period(i)),em_data.DFC.damage(i),DFC_0.damage(i));
+%                     end
+                    
+                    % adjust damagefunctions (the crude way)
+                    entity.damagefunctions.MDD=entity.damagefunctions.MDD*climada2emdat_factor_weighted;
+                    
+                    % and, since a linear scale, we omit fgu recaculation
+                    EDS.damage=EDS.damage*climada2emdat_factor_weighted;
+                    DFC=climada_EDS2DFC(EDS,DFC_cmp.return_period); % same return periods as comparison
+ 
+                end % em_data
                 
                 if scale_value_flag
                     % multiply climada to match cmp value
@@ -159,23 +200,36 @@ for file_i=1:length(D)
                     subplot(n_plots_vert,n_plots_horz,subplot_no); % 4 plots
                     
                     % show comparison
-                    plot(DFC.return_period,DFC.damage,'-b'); hold on
-                    plot(DFC_cmp.return_period,DFC_cmp.damage,'-g'); hold on
+                    plot(DFC.return_period,DFC.damage,'-b','LineWidth',2); hold on
+                    plot(DFC_cmp.return_period,DFC_cmp.damage,'-k','LineWidth',1); hold on
                     
-                    em_data=emdat_read('',entity.assets.admin0_name,char(hazard.peril_ID(1:2)));
+                    % add EM-DAT information if available
                     if ~isempty(em_data)
-                        plot(em_data.DFC.return_period,em_data.DFC.damage,'xr'); hold on
-                        legend('climada','cmp','EM-DAT');title(strrep(file_name,'_',' '));
+                        if isfield(em_data,'DFC_orig')
+                            plot(em_data.DFC.return_period,em_data.DFC.damage,'xg'); hold on
+                            plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'og'); hold on
+                            legend('climada','cmp',em_data.DFC.annotation_name,em_data.DFC_orig.annotation_name);
+                            title(strrep(file_name,'_',' '));
+                        else
+                            plot(em_data.DFC.return_period,em_data.DFC.damage,'og'); hold on
+                            legend('climada','cmp',em_data.DFC.annotation_name);title(strrep(file_name,'_',' '));
+                        end
                     else
                         legend('climada','cmp');title(strrep(file_name,'_',' '));
                     end
-                    % zoom to 0..500 years return period
-                    pos500= DFC.return_period==500;
-                    pos500_cmp= DFC_cmp.return_period==500;
-                    DFC_val=DFC.damage(pos500);if isnan(DFC_val),DFC_val=max(DFC.damage);end
-                    DFC_cmp_val=DFC_cmp.damage(pos500_cmp);if isnan(DFC_cmp_val),DFC_cmp_val=max(DFC_cmp.damage);end
+                    
+                    if ~isempty(DFC_0) % show unadjusted climada
+                        plot(DFC_0.return_period,DFC_0.damage,':b','LineWidth',2); hold on
+                        DFC_0=[];
+                    end
+                    
+                    % zoom to 0..plot_max_RP years return period
+                    posRP= DFC.return_period==plot_max_RP;
+                    posRP_cmp= DFC_cmp.return_period==plot_max_RP;
+                    DFC_val=DFC.damage(posRP);if isnan(DFC_val),DFC_val=max(DFC.damage);end
+                    DFC_cmp_val=DFC_cmp.damage(posRP_cmp);if isnan(DFC_cmp_val),DFC_cmp_val=max(DFC_cmp.damage);end
                     y_max=max(DFC_val,DFC_cmp_val);
-                    axis([0 500 0 y_max]);
+                    axis([0 plot_max_RP 0 y_max]);
                     hold off
                     drawnow
                 end
