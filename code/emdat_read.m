@@ -106,6 +106,7 @@ if isempty(emdat_file),emdat_file=[module_data_dir filesep 'emdat' filesep 'emda
 EMDAT_last_year=2013; 
 % Note that EMDAT_first_year is not the same for all countries, hence
 % determined in code
+year0=1800; % earlier than min(GDP.year), not the smallest EM-DAT year, but a year really in the past
 %
 % the table to match climada peril_ID with EM-data disaster subtype
 peril_match_table={
@@ -239,11 +240,12 @@ if ~isempty(exposure_growth)
         
         [fP,fN]=fileparts(GDP_data_file);
         GDP_data_file_mat=[fP filesep fN '.mat'];
-        
+                
         if climada_check_matfile(GDP_data_file,GDP_data_file_mat)
             load(GDP_data_file_mat); % contains GDP
         else
             GDP=climada_GDP_read(GDP_data_file, 1, 1, 1);
+            save(GDP_data_file_mat,'GDP'); % save for subsequent calls
         end
         
         country_pos=strmatch(country_name,GDP.country_names); % more tolerant a matching
@@ -251,9 +253,17 @@ if ~isempty(exposure_growth)
             %country_pos = strcmp(country_name,GDP.country_names)==1;
             %if sum(country_pos)==1
             
-            year0=1800; % earlier than min(GDP.year)
+            GDP_value=GDP.value(country_pos,:);
+            
+            % get rid of occasional NaN (missing GDP years)
+            % BUT: this might lead to shifts +/- 1 year in GDP (better than
+            % nothing, but really a fix)
+            valid_GDP_pos=~isnan(GDP_value);
+            GDP.year = GDP.year(valid_GDP_pos);
+            GDP_value=GDP_value(valid_GDP_pos);
+                    
             GDP_factor=ones(2200-year0,1); % allocate, such that GDP_factor(year-year0) is the factor for year
-            GDP_factor(GDP.year-year0)=GDP.value(country_pos,end)./GDP.value(country_pos,:);
+            GDP_factor(GDP.year-year0)=GDP_value(end)./GDP_value;
             
             % fill earlier years with earliest correction factor
             GDP_factor(1:GDP.year(1)-year0-1)=max(GDP_factor);
@@ -282,7 +292,7 @@ em_data.DFC.value=NaN;
 em_data.DFC.peril_ID=peril_ID;
 em_data.DFC.annotation_name=annotation_name;
 
-em_data.frequency=(em_data.damage*0+1)*1/(EMDAT_last_year-EMDAT_first_year+1);
+em_data.frequency=ones(length(em_data.damage),1)/(EMDAT_last_year-EMDAT_first_year+1);
 em_data.DFC.ED=em_data.damage'*em_data.frequency; % just assume...
 
 [sorted_damage,exceedence_freq]=climada_damage_exceedence(em_data.damage',em_data.frequency');

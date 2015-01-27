@@ -99,13 +99,17 @@ fprintf(fid,'%s\n',out_hdr);
 out_fmt='%s;%s;%f;%f;%s;%i;%f;%f\n';
 out_fmt=strrep(out_fmt,';',climada_global.csv_delimiter);
 
+out_fmt2='%s;%s;%f;%f;%s;SCALING FACTOR:;%f\n';
+out_fmt2=strrep(out_fmt2,';',climada_global.csv_delimiter);
+
+
 for file_i=1:length(D)
     if ~D(file_i).isdir
         
         [~,fN]=fileparts([cmp_folder filesep D(file_i).name]);
         
         file_name=strrep(fN,'_cmp_results',''); %e.g. fN=CHE_Switzerland_glb_EQ_cmp_results
-        fprintf('%s:\n',file_name);
+        fprintf('%s: (file_i=%i)\n',file_name,file_i);
         
         % get the damage frequency curve (DFC)
         DFC_cmp=climada_DFC_read([cmp_folder filesep D(file_i).name]);
@@ -177,10 +181,21 @@ for file_i=1:length(D)
                     % adjust damagefunctions (the crude way)
                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*climada2emdat_factor_weighted;
                     
+                    % admin0_name;admin0_ISO3;climada value;cmp value;SCALING FACTOR:;factor';
+                    fprintf(fid,out_fmt2,entity.assets.admin0_ISO3,entity.assets.admin0_name,...
+                        0,0,char(hazard.peril_ID),...
+                        climada2emdat_factor_weighted);
+                    
                     % and, since a linear scale, we omit fgu recaculation
                     EDS.damage=EDS.damage*climada2emdat_factor_weighted;
                     DFC=climada_EDS2DFC(EDS,DFC_cmp.return_period); % same return periods as comparison
  
+                else
+                    
+                    % admin0_name;admin0_ISO3;climada value;cmp value;SCALING FACTOR:;factor';
+                    fprintf(fid,out_fmt2,entity.assets.admin0_ISO3,entity.assets.admin0_name,...
+                        0,0,char(hazard.peril_ID)); % no scaling factor
+                    
                 end % em_data
                 
                 if scale_value_flag
