@@ -59,7 +59,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   centroids_hazard_info(centroids_i): a structure with hazard information for
 %       each set of centroids. See centroids_hazard_info.res.hazard with
 %       peril_ID: 'TC' or ...
-%       raw_data_file: for TC only: the file sused to generste the event set
+%       data_file: for TC only: the file sused to generste the event set
 %       hazard_set_file: the full filename of the hazard set generated
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141025, moved out of country_risk_calc
@@ -71,6 +71,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150112, III_name_rrr_PP{|_hist}.mat
 % David N. Bresch, david.bresch@gmail.com, 20150118, tc_track nodes file with track number
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km in TC added
+% David N. Bresch, david.bresch@gmail.com, 20150128, tc_track handling simplified, climada_tc_track_nodes
 %-
 
 centroids_hazard_info = []; % init output
@@ -84,20 +85,20 @@ if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'),  force_recalc = 0; end
 if ~exist('check_plots' ,'var'),  check_plots  = 0; end
 
-module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+%module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
 % switches to select which hazards to calculate, default is all =1
 calculate_TC=1; % whether we calculate TC
 calculate_TS=1; % whether we calculate TS (needs TC)
-calculate_TR=0; % whether we calculate TR
+calculate_TR=1; % whether we calculate TR
 calculate_EQ=1; % whether we calculate EQ
 calculate_WS=1; % whether we calculate WS
 %
 % the folder all data will be stored to, usually the standard climada
 % data tree. But since the option country_name='ALL' in country_risk_calc
-% creates so many files, one might divert to e.g. a data folder structure within the 
+% creates so many files, one might divert to e.g. a data folder structure within the
 % module (see climada_init_folders to create the required folders automatically)
 local_data_dir = climada_global.data_dir;
 %local_data_dir = module_data_dir;
@@ -187,10 +188,33 @@ if calculate_TC
     % TC, TS, TR: figure which ocean basin(s) to use for the particular country
     % -------------------------------------------------------------------------
     
+    % note on process: here, we read the TC tracks a first time and make
+    % sure the .mat file with tc_track is generated (in case it does not
+    % exists to start with). The core functions which read the TC tracks do
+    % not only return the tracks in strcuture tc_track, but also the .mat
+    % file where they got saved (usually *_hist.mat, to indicate it's the
+    % processed - means cleaned - tracks).
+    % We also save just the track nodes (in _nodes.mat, for speedup in later use)
+    % Futher down, the file *_prob.mat is generated, which contains the
+    % probabilistic tracks to make sure we use the exact same
+    % probabilistic set for subsequent calls (as the generation of
+    % probabilistic tracks involves a random number, we avoid troubles this
+    % way).
+    %
+    % in summary:
+    % *_hist.mat contains the cleaned original (historic) TC tracks structure tc_track(i)
+    % *_nodes.mat contains the TC track nodes (tc_track_nodes.lon(j) and .lat(j), all in one, not by track)
+    % *_prob.mat contains the tc_track(i) structure with the full probabilistic set
+    %
+    % It is highly recommended to use above .mat files in subsequent calls,
+    % in order to ensure full consistency with hazard sets etc.
+    
     tc_tracks_folder=[local_data_dir filesep 'tc_tracks'];
     if ~exist(tc_tracks_folder,'dir'),mkdir(local_data_dir,'tc_tracks');end
-    if ~exist([tc_tracks_folder filesep 'tracks.atl.txt'],'file') % check for first
-        % get all TC tracks from www
+    if strcmp(climada_global.tc.default_raw_data_ext,'.txt') && ...
+            ~exist([tc_tracks_folder filesep 'tracks.epa.txt'],'file') % check for .epa., as .atl. comes with core climada
+        % if we expect UNISYS (.txt) tc track raw data files and do not
+        % find them, get them all from www
         climada_tc_get_unisys_databases(tc_tracks_folder);
     end
     
@@ -199,34 +223,26 @@ if calculate_TC
         if ~D(file_i).isdir
             raw_data_file_temp=D(file_i).name;
             [~,~,fE]=fileparts(raw_data_file_temp);
-            if (strcmp(fE,'.txt') || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
+            if (strcmp(fE,climada_global.tc.default_raw_data_ext) || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
                 
-                tc_track_nodes_file=strrep([tc_tracks_folder filesep raw_data_file_temp],fE,'_nodes.mat');
+                tc_track_raw_file=[tc_tracks_folder filesep raw_data_file_temp]; % original raw data file
+                tc_track_hist_file=strrep(tc_track_raw_file,fE,'_hist.mat'); % the *_hist.mat file where tc_track is stored
                 
-                if ~climada_check_matfile([tc_tracks_folder filesep raw_data_file_temp],tc_track_nodes_file)
-                    if  (strcmp(fE,'.txt'))
+                if ~climada_check_matfile(tc_track_raw_file,tc_track_hist_file)
+                    % get the tc_tracks (or re-read in case the .mat file is older then the raw data file)
+                    if (strcmp(fE,'.txt'))
                         % read tracks from unisys database file
-                        tc_track = climada_tc_read_unisys_database([tc_tracks_folder filesep raw_data_file_temp]);
-                    elseif  (strcmp(fE,'.nc'))
+                        [tc_track,tc_track_hist_file] = climada_tc_read_unisys_database(tc_track_raw_file);
+                    elseif (strcmp(fE,'.nc'))
                         % read tracks from (NCAR) netCDF file
-                        tc_track=climada_tc_read_cam_ibtrac_v02([tc_tracks_folder filesep raw_data_file_temp]);
+                        [tc_track,tc_track_hist_file] = climada_tc_read_cam_ibtrac_v02(tc_track_raw_file);
                     else
-                        fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
+                        fprintf('*** ERROR reading original tc_track data file: %s\n',tc_track_raw_file);
                     end
-                    tc_track_nodes.lon=[];
-                    tc_track_nodes.lat=[];
-                    tc_track_nodes.track_no=[]; % store also track number
-                    fprintf('collecting all nodes for %i TC tracks\n',length(tc_track));
-                    for track_i=1:length(tc_track)
-                        tc_track_nodes.lon=[tc_track_nodes.lon tc_track(track_i).lon];
-                        tc_track_nodes.lat=[tc_track_nodes.lat tc_track(track_i).lat];
-                        tc_track_nodes.track_no=[tc_track_nodes.track_no (tc_track(track_i).lat)*0+track_i];
-                    end % track_i
-                    fprintf('saving TC track nodes as %s\n',tc_track_nodes_file);
-                    save(tc_track_nodes_file,'tc_track_nodes');
-                else
-                    load(tc_track_nodes_file);
                 end
+                
+                % obtain all TC track nodes:
+                tc_track_nodes=climada_tc_track_nodes(tc_track_hist_file);
                 
                 % check for track nodes within centroids_rect
                 in_track_poly = inpolygon(tc_track_nodes.lon,tc_track_nodes.lat,centroids_edges_x,centroids_edges_y);
@@ -243,16 +259,16 @@ if calculate_TC
                 if sum(in_track_poly)>0
                     hazard_count = hazard_count+1;
                     centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TC';
-                    centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                    centroids_hazard_info.res.hazard(hazard_count).data_file = tc_track_hist_file;
                     if calculate_TS
                         hazard_count = hazard_count+1;
                         centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TS';
-                        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                        centroids_hazard_info.res.hazard(hazard_count).data_file = tc_track_hist_file;
                     end
                     if calculate_TR
                         hazard_count = hazard_count+1;
                         centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'TR';
-                        centroids_hazard_info.res.hazard(hazard_count).raw_data_file = [tc_tracks_folder filesep raw_data_file_temp];
+                        centroids_hazard_info.res.hazard(hazard_count).data_file = tc_track_hist_file;
                     end
                     fprintf('* hazard TC %s detected\n',strrep(raw_data_file_temp,'.txt',''));
                 end
@@ -274,7 +290,7 @@ if calculate_EQ
     else
         % test EQ exposure
         %eq_data=eq_centennial_read; % until 20141203
-        eq_data=eq_isc_gem_read;
+        [eq_data,isc_gem_file_mat]=eq_isc_gem_read;
         
         % check for track nodes within centroids_rect
         in_seismic_poly = inpolygon(eq_data.glon,eq_data.glat,centroids_edges_x,centroids_edges_y);
@@ -291,7 +307,7 @@ if calculate_EQ
         if sum(in_seismic_poly)>0
             hazard_count = hazard_count+1;
             centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'EQ';
-            centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
+            centroids_hazard_info.res.hazard(hazard_count).data_file = isc_gem_file_mat; % for information, not needed
             fprintf('* hazard EQ detected\n');
         end
     end
@@ -311,7 +327,7 @@ if calculate_WS
         
         full_WS_Europe_hazard_set_file=[WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
         if exist(full_WS_Europe_hazard_set_file,'file')
-            load([WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file]);
+            load(full_WS_Europe_hazard_set_file);
         else
             % generate the blended WS_Europe hazard set first
             hazard=winterstorm_blend_hazard_event_sets;
@@ -332,7 +348,7 @@ if calculate_WS
         if sum(in_ws_poly)>0
             hazard_count = hazard_count+1;
             centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'WS';
-            centroids_hazard_info.res.hazard(hazard_count).raw_data_file = []; % for safety, not needed
+            centroids_hazard_info.res.hazard(hazard_count).data_file = full_WS_Europe_hazard_set_file;
             fprintf('* hazard WS Europe detected\n');
         end
     end
@@ -353,8 +369,10 @@ for hazard_i=1:hazard_count
     
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'TC')
         
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-        hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).data_file);
+        hazard_name=strrep(hazard_name,'.','');
+        hazard_name=strrep(hazard_name,'tracks','');
+        hazard_name=strrep(hazard_name,'_hist','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_TC' probabilistic_str '.mat'];
@@ -366,38 +384,30 @@ for hazard_i=1:hazard_count
             
             fprintf('*** hazard generation for TC %s%s in %s (can take some time)\n',hazard_name,probabilistic_str,country_name_char);
             
-            [~,~,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-            
-            % read tracks from database file (.txt or .nc)
-            if (strcmp(fE,'.txt'))
-                % read tracks from unisys database file (txt)
-                [tc_track,tc_track_mat] = climada_tc_read_unisys_database(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-            elseif  (strcmp(fE,'.nc'))
-                % read tracks from (NCAR) netCDF files
-                [tc_track,tc_track_mat] = climada_tc_read_cam_ibtrac_v02(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-            else
-                fprintf('*** ERROR generating tc_track nodes file: %s\n',tc_track_nodes_file);
-            end
+            tc_track_hist_file=centroids_hazard_info.res.hazard(hazard_i).data_file;
+            load(tc_track_hist_file) % contains tc_track
             
             if probabilistic
                 
-                if exist('climada_tc_track_wind_decay_calculate','file')
-                    % wind speed decay at track nodes after landfall
-                    [~,p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,check_plots);
-                else
-                    fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
-                end
-                
-                tc_track_prob_mat = strrep(tc_track_mat,'_proc.mat','_prob.mat');
+                tc_track_prob_mat  = strrep(tc_track_hist_file,'_hist.mat','_prob.mat');
                 if exist(tc_track_prob_mat,'file')
                     load(tc_track_prob_mat)
                 else
                     
+                    if exist('climada_tc_track_wind_decay_calculate','file')
+                        % wind speed decay at track nodes after landfall
+                        [~,p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,check_plots);
+                    else
+                        fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
+                    end
+                    
                     tc_track = climada_tc_random_walk(tc_track); % overwrites tc_track to save memory
                     
-                    if exist('climada_tc_track_wind_decay_calculate','file')
+                    if exist('climada_tc_track_wind_decay','file')
                         % add the inland decay correction to all probabilistic nodes
                         tc_track   = climada_tc_track_wind_decay(tc_track, p_rel,check_plots);
+                    else
+                        fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
                     end
                     
                     if check_plots
@@ -430,7 +440,7 @@ for hazard_i=1:hazard_count
                 % much faster that way (see climada_tc_windfield)
                 centroids.distance2coast_km=climada_distance2coast_km(centroids.Longitude,centroids.Latitude);
             end
-            
+                        
             hazard = climada_tc_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
             fprintf('TC: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
             
@@ -445,8 +455,10 @@ for hazard_i=1:hazard_count
         
         % NOTE: TC has to have run before (usually the case)
         
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-        hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).data_file);
+        hazard_name=strrep(hazard_name,'.','');
+        hazard_name=strrep(hazard_name,'tracks','');
+        hazard_name=strrep(hazard_name,'_hist','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_TS' probabilistic_str '.mat'];
@@ -486,8 +498,10 @@ for hazard_i=1:hazard_count
         
         % NOTE: TC has to have run before (usually the case)
         
-        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-        hazard_name=strrep(strrep(hazard_name,'.',''),'tracks','');
+        [~,hazard_name]=fileparts(centroids_hazard_info.res.hazard(hazard_i).data_file);
+        hazard_name=strrep(hazard_name,'.','');
+        hazard_name=strrep(hazard_name,'tracks','');
+        hazard_name=strrep(hazard_name,'_hist','');
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_TR'  probabilistic_str '.mat'];
@@ -502,21 +516,17 @@ for hazard_i=1:hazard_count
             if exist('climada_tr_hazard_set', 'file') % the function exists
                 
                 % we need the TC track set to start with
-                [fP,fN]=fileparts(centroids_hazard_info.res.hazard(hazard_i).raw_data_file);
-                tc_track_mat=[fP filesep fN '_proc.mat'];
-                tc_track_prob_mat = strrep(tc_track_mat,'_proc.mat','_prob.mat');
+                tc_track_file=centroids_hazard_info.res.hazard(hazard_i).data_file;
                 if probabilistic
-                    raw_data_file_mat = tc_track_prob_mat;
-                else
-                    raw_data_file_mat = tc_track_mat;
+                    tc_track_file = strrep(tc_track_file,'_hist.mat','_prob.mat');
                 end
-                fprintf('loading tc tracks from %s\n',raw_data_file_mat);
-                load(raw_data_file_mat)
+                fprintf('loading tc tracks from %s\n',tc_track_file);
+                load(tc_track_file) % contains tc_track
                 
                 hazard = climada_tr_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 fprintf('TR: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
             else
-                cprintf([1,0.5,0],'Torrential rain module not found. Please download from github. \nhttps://github.com/davidnbresch/climada_module_tc_rain \n\n'); % a kind of easy check
+                fprintf('Torrential rain module not found. Please download from github:\nhttps://github.com/davidnbresch/climada_module_tc_rain\n'); % a kind of easy check
                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=[];
             end
         else
@@ -527,7 +537,7 @@ for hazard_i=1:hazard_count
     
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'EQ')
         
-        hazard_name='glb'; % once could in theory run more than one 'region', as we do with TC
+        hazard_name='glb'; % one could in theory run more than one 'region', as we do with TC
         
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_EQ' probabilistic_str '.mat'];
@@ -540,16 +550,32 @@ for hazard_i=1:hazard_count
             fprintf('*** hazard generation for EQ%s in %s\n',probabilistic_str,country_name_char);
             
             if exist('eq_global_hazard_set','file') % the function exists
-                %eq_data=eq_centennial_read; % to be on the safe side, until 20141203
-                eq_data=eq_isc_gem_read; % to be on the safe side
                 
-                if probabilistic,eq_data=eq_global_probabilistic(eq_data,9);end
+                if exist(centroids_hazard_info.res.hazard(hazard_i).data_file,'file')
+                    load(centroids_hazard_info.res.hazard(hazard_i).data_file); % contains eq_data
+                else
+                    %eq_data=eq_centennial_read; % to be on the safe side, until 20141203
+                    [eq_data,eq_data_file]=eq_isc_gem_read; % to be on the safe side
+                    centroids_hazard_info.res.hazard(hazard_i).data_file=eq_data_file;
+                end
+                
+                if probabilistic
+                    [fP,fN,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).data_file);
+                    eq_data_prob_file=[fP filesep fN '_prob' fE];
+                    if exist(eq_data_prob_file,'file')
+                        load(eq_data_prob_file); % contains eq_data
+                    else
+                        eq_data=eq_global_probabilistic(eq_data,9);
+                        save(eq_data_prob_file,'eq_data');
+                    end
+                    centroids_hazard_info.res.hazard(hazard_i).data_file=eq_data_prob_file;
+                end
                 hazard=eq_global_hazard_set(eq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 if ~isempty(hazard)
                     fprintf('EQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
                 end
             else
-                cprintf([1,0.5,0],'Earthquake module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n\n');
+                fprintf('Earthquake module not found. Please download from github and install.\nhttps://github.com/davidnbresch/climada_module_eq_global\n');
                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
             end
         else
@@ -561,7 +587,8 @@ for hazard_i=1:hazard_count
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'WS')
         hazard_name='eur'; % once could in theory run more than one 'region', as we do with TC
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
-            [WS_module_data_dir filesep 'hazards' filesep WS_Europe_hazard_set_file];
+            centroids_hazard_info.res.hazard(hazard_i).data_file;
+        
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file')
             fprintf('WARNING WS Europe hazard set file not found for %s\n',country_name_char);
         else

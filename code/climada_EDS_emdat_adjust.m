@@ -1,7 +1,7 @@
-function EDS=climada_EDS_emdat_adjust(EDS,verbose_mode)
+function [EDS,climada2emdat_factor_weighted]=climada_EDS_emdat_adjust(EDS,verbose_mode)
 % climada template
 % MODULE:
-%   core
+%   country_risk
 % NAME:
 %   climada_EDS_emdat_adjust
 % PURPOSE:
@@ -12,7 +12,7 @@ function EDS=climada_EDS_emdat_adjust(EDS,verbose_mode)
 %   previous call: climada_EDS_calc
 %   See also: emdat_read
 % CALLING SEQUENCE:
-%   EDS=climada_EDS_emdat_adjust(EDS)
+%   [EDS,climada2emdat_factor_weighted]=climada_EDS_emdat_adjust(EDS,verbose_mode)
 % EXAMPLE:
 %   EDS=climada_EDS_emdat_adjust(climada_EDS_calc)
 % INPUTS:
@@ -25,6 +25,8 @@ function EDS=climada_EDS_emdat_adjust(EDS,verbose_mode)
 %       Default=0 (silent)
 % OUTPUTS:
 %   EDS: the adjusted EDS
+%   climada2emdat_factor_weighted: the weighted adjustment factor (i.e.
+%       EDS.damage output = EDS.damage input * climada2emdat_factor_weighted
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150127, initial
 %-
