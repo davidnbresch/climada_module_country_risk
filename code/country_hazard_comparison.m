@@ -120,6 +120,9 @@ for file_i=1:length(D)
         hazard_file=[climada_global.data_dir filesep 'hazards' filesep hazard_file '.mat'];
         entity_file=[climada_global.data_dir filesep 'entities' filesep entity_file '.mat'];
         
+        % make sure we have latest GDP
+        entity_adjusted=climada_entity_value_GDP_adjust(entity_file,2);
+        
         if exist(entity_file,'file') && exist(hazard_file,'file')
             load(entity_file)
             
