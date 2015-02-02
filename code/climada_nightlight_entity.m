@@ -3,7 +3,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 % NAME:
 %	climada_nightlight_entity
 % PURPOSE:
-%   Construct an entity file based on high-res (1km!) or mif -res (10km)
+%   Construct an entity file based on high-res (1km!) or mid -res (10km)
 %   night light data.
 %
 %   Reads an image file with nightlight density and matches it to the local
