@@ -60,6 +60,9 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       to avoid any re-generation of - missing - hazard event sets, the
 %       code just takes what's there)
 %       internally: if method<0, probabilistic=1, =0 else (default)
+%       =sign(.)*(abs(.)+100): use future entities, e.g. -107 uses
+%       future entity, and probabilistic hazards, but skips entity and
+%       hazard calculation. 
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
@@ -134,6 +137,8 @@ force_re_encoding=0; % default=0
 probabilistic=0; % default
 orig_method=method;
 if method<0,probabilistic=1;method=abs(method);end
+use_future_entity=0; % we use entity today by default
+if method>100,method=method-100;use_future_entity=1;end % indicates to use entity_future
 
 
 % some folder checks (to be on the safe side)
@@ -296,6 +301,11 @@ country_risk.res.country_ISO3 = country_ISO3;
 
 % 4) risk calculation
 % ===================
+
+if use_future_entity
+    entity_file=entity_future_file;
+    fprintf('FUTURE calculations instead of today\n');
+end
 
 if isfield(country_risk.res,'hazard')
     
