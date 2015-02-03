@@ -224,7 +224,7 @@ if n_admin1>0
             load(entity_filename)% load entity
             entity_assets_Value=entity.assets.Value;
             entity.assets.Value=entity.assets.Value*0;
-            admin1_centroids=inpolygon(entity.assets.Longitude,entity.assets.Latitude,shapes(shape_i).X,shapes(shape_i).Y);
+            admin1_centroids=inpolygon(entity.assets.lon,entity.assets.lat,shapes(shape_i).X,shapes(shape_i).Y);
             if sum(admin1_centroids)>0 % at least 1 centroid in admin1
                 entity.assets.Value(admin1_centroids)=entity_assets_Value(admin1_centroids);
                 fprintf('%i centroids (%2.1f%%), val %1.0f (%2.1f%%)\n',...
@@ -237,8 +237,8 @@ if n_admin1>0
                     subplot(N_n_plots,n_N_plots,admin1_i);
                     climada_plot_world_borders,hold on;
                     climada_plot_entity_assets(entity,[],shapes(shape_i).name);
-                    %plot(entity.assets.Longitude,entity.assets.Latitude,'xr')
-                    %plot(entity.assets.Longitude(admin1_centroids),entity.assets.Latitude(admin1_centroids),'og')
+                    %plot(entity.assets.lon,entity.assets.lat,'xr')
+                    %plot(entity.assets.lon(admin1_centroids),entity.assets.lat(admin1_centroids),'og')
                     plot(shapes(shape_i).X,shapes(shape_i).Y,'LineWidth',2)
                     dbb=1; % degrees around BoundingBox
                     axis([shapes(shape_i).BoundingBox(1)-dbb shapes(shape_i).BoundingBox(2)+dbb ...

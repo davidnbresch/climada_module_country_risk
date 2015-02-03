@@ -35,12 +35,12 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   centroids_generate_hazard_sets; % interactive, prompt for centroids
 % INPUTS:
 %   centroids: a centroid structure, see e.g. climada_centroids_load
-%       or an entity (in which case it takes the entity.assets.Latitude and
-%       entity.assets.Longitude)
+%       or an entity (in which case it takes the entity.assets.lat and
+%       entity.assets.lon)
 %       > prompted for if empty (centroids need to exist als .mat file
 %       already - otherwise run e.g. climada_centroids_read first).
-%       In case you select an entity, it takes entity.assets.Latitude and
-%       entity.assets.Longitude.
+%       In case you select an entity, it takes entity.assets.lat and
+%       entity.assets.lon.
 % OPTIONAL INPUT PARAMETERS:
 %   probabilistic: if =1, generate probabilistic hazard event sets,
 %       =0 generate 'historic' hazard event sets (default)
@@ -139,8 +139,8 @@ end
 
 if isfield(centroids,'assets') % centroids contains in fact an entity
     entity=centroids; centroids=[]; % silly switch, but fastest
-    centroids.Latitude =entity.assets.Latitude;
-    centroids.Longitude=entity.assets.Longitude;
+    centroids.lat =entity.assets.lat;
+    centroids.lon=entity.assets.lon;
     if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
     if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
     if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
@@ -175,7 +175,7 @@ country_name_char=strrep(country_name_char,')','');
 % ==========================================
 
 % prep the region we need
-centroids_rect = [min(centroids.Longitude) max(centroids.Longitude) min(centroids.Latitude) max(centroids.Latitude)];
+centroids_rect = [min(centroids.lon) max(centroids.lon) min(centroids.lat) max(centroids.lat)];
 centroids_edges_x = [centroids_rect(1),centroids_rect(1),centroids_rect(2),centroids_rect(2),centroids_rect(1)];
 centroids_edges_y = [centroids_rect(3),centroids_rect(4),centroids_rect(4),centroids_rect(3),centroids_rect(3)];
 
@@ -438,7 +438,7 @@ for hazard_i=1:hazard_count
                 % it takes a bit of time to calculate
                 % climada_distance2coast_km, but the windfield calcuklation is
                 % much faster that way (see climada_tc_windfield)
-                centroids.distance2coast_km=climada_distance2coast_km(centroids.Longitude,centroids.Latitude);
+                centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
             end
                         
             hazard = climada_tc_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
@@ -613,7 +613,7 @@ for hazard_i=1:hazard_count
                     % re-arrange hazard to match centroids and create a hazard
                     % sub-set specific to the country (saves time later in risk
                     % calculation, since centroids and hazard.intensity match)
-                    n_centroids=length(centroids.Longitude);
+                    n_centroids=length(centroids.lon);
                     centroid_index=zeros(1,n_centroids);
                     hazard.event_count=size(hazard.intensity,1);
                     hazard_intensity = spalloc(hazard.event_count,n_centroids,...
@@ -622,7 +622,7 @@ for hazard_i=1:hazard_count
                     if climada_global.waitbar,h = waitbar(0,sprintf('WSEU: Encoding %i records...',n_centroids));end
                     for centroid_i=1:n_centroids
                         if climada_global.waitbar,waitbar(centroid_i/n_centroids,h);end
-                        dist_m=climada_geo_distance(centroids.Longitude(centroid_i),centroids.Latitude(centroid_i),hazard.lon,hazard.lat);
+                        dist_m=climada_geo_distance(centroids.lon(centroid_i),centroids.lat(centroid_i),hazard.lon,hazard.lat);
                         [~,min_dist_index] = min(dist_m);
                         centroid_index(centroid_i)=min_dist_index;
                         hazard_intensity(:,centroid_i)=sparse(hazard.intensity(:,min_dist_index));
@@ -631,8 +631,8 @@ for hazard_i=1:hazard_count
                     
                     hazard=rmfield(hazard,'intensity');
                     hazard.intensity=hazard_intensity;hazard_intensity=[];
-                    hazard.lat=centroids.Latitude;
-                    hazard.lon=centroids.Longitude;
+                    hazard.lat=centroids.lat;
+                    hazard.lon=centroids.lon;
                     hazard.centroid_ID=1:n_centroids;
                     
                     hazard.filename=centroids_hazard_info.res.hazard(hazard_i).hazard_set_file;
@@ -654,15 +654,15 @@ for hazard_i=1:hazard_count
         if ~exist('main_fig_h','var'),main_fig_h = climada_figuresize(0.75,0.8);end
         figure(main_fig_h); subplot(3,3,hazard_i);
         values   = full(hazard.intensity(max_intensity_pos,:)); % get one footprint
-        centroids.Longitude   = hazard.lon; % as the gridding routine needs centroids
-        centroids.Latitude    = hazard.lat;
+        centroids.lon   = hazard.lon; % as the gridding routine needs centroids
+        centroids.lat    = hazard.lat;
         [X, Y, gridded_VALUE] = climada_gridded_VALUE(values,centroids);
         contourf(X, Y, gridded_VALUE,200,'edgecolor','none')
         hold on
-        plot(centroids.Longitude,centroids.Latitude,'.r','MarkerSize',1);
+        plot(centroids.lon,centroids.lat,'.r','MarkerSize',1);
         if isfield(centroids,'onLand')
             water_points=find(centroids.onLand==0);
-            plot(centroids.Longitude(water_points),centroids.Latitude(water_points),'.b','MarkerSize',1);
+            plot(centroids.lon(water_points),centroids.lat(water_points),'.b','MarkerSize',1);
         end
         box on; climada_plot_world_borders
         axis equal; axis(centroids_rect);

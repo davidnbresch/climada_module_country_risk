@@ -1,4 +1,4 @@
-function [EDS,climada2emdat_factor_weighted]=climada_EDS_emdat_adjust(EDS,verbose_mode)
+function [EDS,climada2emdat_factor_weighted,em_data]=climada_EDS_emdat_adjust(EDS,verbose_mode)
 % climada template
 % MODULE:
 %   country_risk
@@ -17,6 +17,8 @@ function [EDS,climada2emdat_factor_weighted]=climada_EDS_emdat_adjust(EDS,verbos
 %   EDS=climada_EDS_emdat_adjust(climada_EDS_calc)
 % INPUTS:
 %   EDS: an event damge set (EDS), as calculated by climada_EDS_calc
+%       Only one EDS supported, e.g. use EDS(i) as input if EDS is an array
+%       of structs
 % OPTIONAL INPUT PARAMETERS:
 %   verbose_mode: if =1, print list of countries and disaster subtypes that
 %       are returned from EM-DAT. 
@@ -27,9 +29,14 @@ function [EDS,climada2emdat_factor_weighted]=climada_EDS_emdat_adjust(EDS,verbos
 %   EDS: the adjusted EDS
 %   climada2emdat_factor_weighted: the weighted adjustment factor (i.e.
 %       EDS.damage output = EDS.damage input * climada2emdat_factor_weighted
+%   em_data: the EM-DAT data as used to adjust
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150127, initial
+% David N. Bresch, david.bresch@gmail.com, 20150202, em_data as output
 %-
+
+climada2emdat_factor_weighted=[]; % init output
+em_data=[]; % init output
 
 %global climada_global
 if ~climada_init_vars,return;end % init/import global variables

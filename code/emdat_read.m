@@ -230,7 +230,7 @@ if ~isempty(peril_ID) && isfield(em_data,'disaster_subtype')
         
 end % peril_ID
 
-if ~isempty(exposure_growth)
+if exposure_growth
     
     % Check if economic data file is available
     if ~exist(GDP_data_file,'file')

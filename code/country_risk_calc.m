@@ -73,8 +73,8 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       e.g. plot damage for one hazard in one country at each centroid with
 %         climada_circle_plot(...
 %          country_risk(country_i).res.hazard(hazard_i).EDS.ED_at_centroid,...
-%          country_risk(country_i).res.hazard(hazard_i).EDS.assets.Longitude,...
-%          country_risk(country_i).res.hazard(hazard_i).EDS.assets.Latitude)
+%          country_risk(country_i).res.hazard(hazard_i).EDS.assets.lon,...
+%          country_risk(country_i).res.hazard(hazard_i).EDS.assets.lat)
 %       see country_risk_report to create a readable report to stdout
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20140831, initial
@@ -219,13 +219,13 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
             if isempty(entity),return,end
             % since climada_nightlight_entity only created the entity,
             % create centroids, too
-            entity.assets.centroid_index=1:length(entity.assets.Longitude); % as we later construct the hazard accordingly
+            entity.assets.centroid_index=1:length(entity.assets.lon); % as we later construct the hazard accordingly
             save(entity_file,'entity');
             
             % get centroids from entity
-            centroids.Latitude =entity.assets.Latitude;
-            centroids.Longitude=entity.assets.Longitude;
-            centroids.centroid_ID=1:length(centroids.Longitude);
+            centroids.lat =entity.assets.lat;
+            centroids.lon=entity.assets.lon;
+            centroids.centroid_ID=1:length(centroids.lon);
             if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
             if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
             if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
@@ -248,7 +248,7 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
         % it takes a bit of time to calculate
         % climada_distance2coast_km, but the windfield calcuklation is
         % much faster that way (see climada_tc_windfield)
-        centroids.distance2coast_km=climada_distance2coast_km(centroids.Longitude,centroids.Latitude);
+        centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
         save(centroids_file,'centroids'); % save centrois with field distance2coast_km
     end
     
