@@ -1,8 +1,11 @@
 % selected_countries_CAM
-% climada template
+% climada batch code
 % MODULE:
 %   country_risk
 % NAME:
+%   selected_countries_CAM
+% PURPOSE:
+%   Run all cl
 %   selected_countries_CAM, run all CAM project countries, all calculations
 %
 %   run this code (see PARAMETERS)
@@ -21,18 +24,15 @@
 %   processing the UNISYS ('.txt') files in tc_track, see code
 %   centroids_generate_hazard_sets
 %
-%   run as a batch code, such that all is available on command line
-% PURPOSE:
-%   Run all climada for project
-%
-%   In order to synchronize all entities with GDP etc, country_risk_calc
-%   uses climada_entity_value_GDP_adjust
+%   run as a batch code, such that all is available on command line, all
+%   PARAMETERS are set in this file, see section belowimada for project
 %
 % CALLING SEQUENCE:
-%   selected_countries_CAM
+%   selected_countries_CAM % a batch code
 % EXAMPLE:
-%   selected_countries_CAM
+%   selected_countries_CAM % a batch code
 % INPUTS:
+%   see PARAMETERS in this batch code
 % OPTIONAL INPUT PARAMETERS:
 % OUTPUTS:
 % MODIFICATION HISTORY:
@@ -52,15 +52,16 @@ if ~climada_init_vars,return;end % init/import global variables
 % switches to run only parts of the code:
 % ---------------------------------------
 %
+peril_ID='TC'; % if ='', run TC, TS and TR (and also EQ and WS, but this does not take much time)
+%
 climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
+climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
 %
 % to check for climada-conformity of country names
-check_country_names=1; % default=0, if=1, stops after check
+check_country_names=0; % default=0, if=1, stops after check
 %
 % to generate entities
-generate_entities=0; % default=0, if=1, stops after
-USA_UnitedStates_entity_treatment=1; % =1, treat USA entity, see code below
-NZL_NewZealand_entity_treatment=1; % =1, treat NZL entity, see code below
+generate_entities=1; % default=0, if=1, stops after
 %
 % parameters for country_risk_calc
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
@@ -77,6 +78,10 @@ calculate_admin1=0; % default=1, but set to =0 for TEST
 %
 generate_damage_report=1; % default=0, we need the economic loss report
 damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'CAM_damage_report.xls'];
+%
+% whether we plot all the global damage frequency curves
+plot_global_DFC=1;
+plot_max_RP=200; % the maxium RP we show (to zoom in a bit)
 %
 % the explicit list of countires we'd like to process
 % see climada_country_name('ALL'); to obtain it
@@ -111,7 +116,7 @@ country_list={
     %'Benin'
     'Bermuda'
     %'Bhutan'
-    'Bolivia'
+    %'Bolivia'
     %'Bosnia and Herzegovina'
     %'Botswana'
     %'Brazil'
@@ -128,7 +133,7 @@ country_list={
     'Cayman Islands'
     %'Central African Republic'
     %'Chad'
-    'Chile'
+    %'Chile'
     'China'
     %'Clipperton Island'
     'Colombia'
@@ -140,7 +145,7 @@ country_list={
     %'Cote dIvoire'
     %'Croatia'
     'Cuba'
-    'Curacao'
+    %'Curacao' % NOT supported in climada_create_GDP_entity
     %'Cyprus'
     %'Cyprus UN Buffer Zone'
     %'Czech Republic'
@@ -150,7 +155,7 @@ country_list={
     %'Djibouti'
     'Dominica'
     'Dominican Republic'
-    'Ecuador'
+    %'Ecuador'
     %'Egypt'
     'El Salvador'
     %'Equatorial Guinea'
@@ -186,7 +191,7 @@ country_list={
     %'Hungary'
     %'Iceland'
     'India'
-    'Indian Ocean Territory'
+    %'Indian Ocean Territory' % NOT supported in climada_create_GDP_entity
     'Indonesia'
     %'Iran'
     %'Iraq'
@@ -214,23 +219,23 @@ country_list={
     %'Liechtenstein'
     %'Lithuania'
     %'Luxembourg'
-    'Macao'
+    %'Macao' % NOT supported in climada_create_GDP_entity
     %'Macedonia'
     'Madagascar'
     %'Malawi'
     'Malaysia'
-    'Maldives'
+    %'Maldives' % NOT supported in climada_create_GDP_entity
     %'Mali'
     %'Malta'
     'Marshall Islands'
-    'Mauritania'
+    %'Mauritania'
     'Mauritius'
     'Mexico'
     'Micronesia'
     %'Moldova'
     %'Monaco'
     %'Mongolia'
-    'Montenegro'
+    %'Montenegro' % NOT supported in climada_create_GDP_entity
     'Montserrat'
     %'Morocco'
     'Mozambique'
@@ -251,13 +256,13 @@ country_list={
     'Northern Mariana Islands'
     %'Norway'
     %'Oman'
-    %'Pakistan'
+    'Pakistan'
     'Palau'
     %'Palestine'
     'Panama'
     'Papua New Guinea'
-    'Paraguay'
-    'Peru'
+    %'Paraguay'
+    %'Peru'
     'Philippines'
     'Pitcairn Islands'
     %'Poland'
@@ -270,7 +275,7 @@ country_list={
     'Saint Helena'
     'Saint Kitts and Nevis'
     'Saint Lucia'
-    'Saint Martin'
+    %'Saint Martin' % NOT supported in climada_create_GDP_entity
     'Saint Pierre and Miquelon'
     'Saint Vincent and the Grenadines'
     'Samoa'
@@ -285,7 +290,7 @@ country_list={
     %'Siachen Glacier'
     %'Sierra Leone'
     'Singapore'
-    'Sint Maarten'
+    %'Sint Maarten' % NOT supported in climada_create_GDP_entity
     %'Slovakia'
     %'Slovenia'
     'Solomon Islands'
@@ -295,9 +300,9 @@ country_list={
     'South Georgia and South Sandwich Islands'
     %'South Sudan'
     %'Spain'
-    'Spratly Islands'
+    %'Spratly Islands' % NOT supported in climada_create_GDP_entity
     'Sri Lanka'
-    'St-Barthelemy'
+    %'St-Barthelemy' % NOT supported in climada_create_GDP_entity
     %'Sudan'
     'Suriname'
     %'Swaziland'
@@ -317,15 +322,15 @@ country_list={
     %'Turkmenistan'
     'Turks and Caicos Islands'
     'Tuvalu'
-    'US Minor Outlying Islands'
+    %'US Minor Outlying Islands' % NOT supported in climada_create_GDP_entity (even an error)
     'US Virgin Islands'
     %'USNB Guantanamo Bay'
     %'Uganda'
     %'Ukraine'
-    'United Arab Emirates'
-    'United Kingdom'
+    %'United Arab Emirates'
+    %'United Kingdom'
     'United States'
-    'Uruguay'
+    %'Uruguay'
     %'Uzbekistan'
     'Vanuatu'
     %'Vatican'
@@ -340,10 +345,12 @@ country_list={
 %
 % TEST list (only a few)
 % ----
-country_list={
-    'Barbados'
-    'Puerto Rico'
-    };
+% country_list={
+%     'Barbados'
+%     'Puerto Rico'
+%     'Vietnam'
+%     'United States'
+%     };
 %
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off
@@ -374,92 +381,21 @@ if generate_entities
         
         if ~exist(entity_file,'file')
             % invoke the GDP_entity module to generate centroids and entity
-            [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
+            [centroids,entity,entity_future]=climada_create_GDP_entity(country_name_char,[],0,1);
             if isempty(centroids), return, end
             save(centroids_file,'centroids');
             save(entity_file,'entity');
-            climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
             entity = entity_future; %replace with entity future
             save(entity_future_file,'entity');
-            climada_entity_value_GDP_adjust(entity_future_file); % assets based on GDP
         end
     end % country_i
     
-    if USA_UnitedStates_entity_treatment
-        % special treatent for USA (restrict to contiguous US)
-        fprintf('USA UnitedStates, restricting to contiguous US\n');
-        centroids_file    =[climada_global.data_dir filesep 'system'   filesep 'USA_UnitedStates_centroids.mat'];
-        entity_file       =[climada_global.data_dir filesep 'entities' filesep 'USA_UnitedStates_entity.mat'];
-        entity_future_file=[climada_global.data_dir filesep 'entities' filesep 'USA_UnitedStates_entity_future.mat'];
-        
-        for entity_i=1:2
-            if entity_i==2,entity_file=entity_future_file;end % ugly but pragmatic
-            load(entity_file) % contains entity
-            pos=find(entity.assets.lon>-130 & entity.assets.lat<50);
-            entity.assets.centroid_index=entity.assets.centroid_index(pos);
-            entity.assets.lon=entity.assets.lon(pos);
-            entity.assets.lat=entity.assets.lat(pos);
-            entity.assets.Value=entity.assets.Value(pos);
-            if isfield(entity.assets,'Value_today'),entity.assets.Value_today=entity.assets.Value_today(pos);end
-            if isfield(entity.assets,'distance2coast_km'),entity.assets.distance2coast_km=entity.assets.distance2coast_km(pos);end
-            entity.assets.Deductible=entity.assets.Deductible(pos);
-            entity.assets.Cover=entity.assets.Cover(pos);
-            entity.assets.DamageFunID=entity.assets.DamageFunID(pos);
-            save(entity_file,'entity') % write back
-            climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
-        end % entity_i
-        
-        load(centroids_file) % contains centroids
-        pos=find(centroids.lon>-130 & centroids.lat<50);
-        centroids.lon=centroids.lon(pos);
-        centroids.lat=centroids.lat(pos);
-        centroids.centroid_ID=centroids.centroid_ID(pos);
-        if isfield(centroids,'onLand'),centroids.onLand=centroids.onLand(pos);end
-        if isfield(centroids,'distance2coast_km'),centroids.distance2coast_km=centroids.distance2coast_km(pos);end
-        centroids=rmfield(centroids,'country_name');
-        save(centroids_file,'centroids');
-    end % USA_UnitedStates_entity_treatment
-    
-    if NZL_NewZealand_entity_treatment
-        % special treatent for NZL (date line issue)
-        fprintf('NZL_ NewZealand, resolving date line issue\n');
-        centroids_file    =[climada_global.data_dir filesep 'system'   filesep 'NZL_NewZealand_centroids.mat'];
-        entity_file       =[climada_global.data_dir filesep 'entities' filesep 'NZL_NewZealand_entity.mat'];
-        entity_future_file=[climada_global.data_dir filesep 'entities' filesep 'NZL_NewZealand_entity_future.mat'];
-        
-        for entity_i=1:2
-            if entity_i==2,entity_file=entity_future_file;end % ugly but pragmatic
-            load(entity_file) % contains entity
-            pos=find(entity.assets.lon>150);
-            entity.assets.centroid_index=entity.assets.centroid_index(pos);
-            entity.assets.lon=entity.assets.lon(pos);
-            entity.assets.lat=entity.assets.lat(pos);
-            entity.assets.Value=entity.assets.Value(pos);
-            if isfield(entity.assets,'Value_today'),entity.assets.Value_today=entity.assets.Value_today(pos);end
-            if isfield(entity.assets,'distance2coast_km'),entity.assets.distance2coast_km=entity.assets.distance2coast_km(pos);end
-            entity.assets.Deductible=entity.assets.Deductible(pos);
-            entity.assets.Cover=entity.assets.Cover(pos);
-            entity.assets.DamageFunID=entity.assets.DamageFunID(pos);
-            save(entity_file,'entity') % write back
-            climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
-        end % entity_i
-        
-        load(centroids_file) % contains centroids
-        pos=find(centroids.lon>150);
-        centroids.lon=centroids.lon(pos);
-        centroids.lat=centroids.lat(pos);
-        centroids.centroid_ID=centroids.centroid_ID(pos);
-        if isfield(centroids,'onLand'),centroids.onLand=centroids.onLand(pos);end
-        if isfield(centroids,'distance2coast_km'),centroids.distance2coast_km=centroids.distance2coast_km(pos);end
-        centroids=rmfield(centroids,'country_name');
-        save(centroids_file,'centroids');
-    end % NZL_NewZealand_entity_treatment
     fprintf('STOP after generate entities, now set generate_entities=0\n')
     return
 end % generate_entities
 
 % calculate damage on admin0 (country) level
-country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
+country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID);
 
 % next line allows to combine sub-perils, such as wind (TC) and surge (TS)
 % EDC is the maximally combined EDS, i.e. only one fully combined EDS per
@@ -476,6 +412,7 @@ if calculate_admin1
 end
 
 % next line allows to calculate annual aggregate where appropriate
+% see also below in plot_global_DFC
 %country_risk=country_risk_EDS2YDS(country_risk);
 
 % next line to compare with EM-DAT, needs still a bit of work to compare
@@ -489,3 +426,56 @@ if generate_damage_report
         country_risk_report(country_risk,1,damage_report_filename);
     end
 end
+
+if plot_global_DFC
+    
+    % plot the aggregate per event (PE) and annual aggregate (AA) for each
+    % basin as well as the total global aggregate
+    
+    PE_damage=[];PE_frequency=[]; % init
+    legend_str={}; % init
+    AA_damage=[];AA_frequency=[]; % init for annual aggregate
+    plot_symboll={'-b','-g','-r','-c','-m','-y'}; % line
+    plot_symbold={':b',':g',':r',':c',':m',':y'}; % dotted
+    figure('Name','EDC','Color',[1 1 1]);
+    for EDC_i=1:length(EDC)
+        % the per event perspective:
+        PE_damage=[PE_damage EDC(EDC_i).EDS.damage]; % collect per event damage
+        PE_frequency=[PE_frequency EDC(EDC_i).EDS.frequency]; % collect per event frequency
+        DFC=climada_EDS2DFC(EDC(EDC_i).EDS);
+        plot(DFC.return_period,DFC.damage,plot_symboll{EDC_i},'LineWidth',2);hold on
+        legend_str{end+1}=strrep(EDC(EDC_i).EDS.comment,'_',' ');
+        % and the annual aggregate perspective
+        YDS=climada_EDS2YDS(EDC(EDC_i).EDS);
+        AA_damage=[AA_damage YDS.damage]; % collect AA damage
+        AA_frequency=[AA_frequency YDS.frequency]; % collect AA frequency
+        YFC=climada_EDS2DFC(YDS);
+        plot(YFC.return_period,YFC.damage,plot_symbold{EDC_i},'LineWidth',2);hold on
+        legend_str{end+1}=[strrep(EDC(EDC_i).EDS.comment,'_',' ') ' annual aggregate'];
+    end % EDC_i
+   
+    % the per event perspective:
+    [sorted_damage,exceedence_freq]=climada_damage_exceedence(PE_damage',PE_frequency);
+    nonzero_pos      = find(exceedence_freq);
+    agg_PE_damage       = sorted_damage(nonzero_pos);
+    exceedence_freq  = exceedence_freq(nonzero_pos);
+    agg_PE_return_period    = 1./exceedence_freq;
+    plot(agg_PE_return_period,agg_PE_damage,'-k','LineWidth',2);
+    legend_str{end+1}='full global aggregate';
+    
+    % the AA perspective:
+    [sorted_damage,exceedence_freq]=climada_damage_exceedence(AA_damage',AA_frequency);
+    nonzero_pos      = find(exceedence_freq);
+    agg_AA_damage       = sorted_damage(nonzero_pos);
+    exceedence_freq  = exceedence_freq(nonzero_pos);
+    agg_AA_return_period    = 1./exceedence_freq;
+    plot(agg_AA_return_period,agg_AA_damage,':k','LineWidth',2);
+    legend_str{end+1}='full global annual aggregate';
+    
+    legend(legend_str);title([peril_ID ' global aggregate'])
+    
+    % zoom to 0..plot_max_RP years return period
+    YLim = get(get(gcf,'CurrentAxes'),'YLim');
+    axis([0 plot_max_RP 0 YLim(2)]);
+    
+end % plot_global_DFC

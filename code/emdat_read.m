@@ -107,6 +107,8 @@ EMDAT_last_year=2013;
 % Note that EMDAT_first_year is not the same for all countries, hence
 % determined in code
 year0=1800; % earlier than min(GDP.year), not the smallest EM-DAT year, but a year really in the past
+% in case there is no GDP for a given country, use simple discounting
+CAGR=0.02; % compound annual growth rate, decimal, e.g. 0.02 for 2%
 %
 % the table to match climada peril_ID with EM-data disaster subtype
 peril_match_table={
@@ -161,6 +163,32 @@ EMDAT_first_year=min(em_data.year);
 %fields: (country), year, disaster type, disaster subtype, occurrence, deaths, affected, injured, homeless, total_affected, total_damage
 
 if ~isempty(country_name) && isfield(em_data,'country')
+    
+    % explicitely deal with non-standard country names
+    if strcmp(country_name,'Vietnam'),country_name='Viet Nam';end
+    if strcmp(country_name,'US Virgin Islands'),country_name='Virgin Is (US)';end
+    if strcmp(country_name,'Turks and Caicos Islands'),country_name='Turks and Caicos';end
+    if strcmp(country_name,'Taiwan'),country_name='Taiwan (China)';end
+    if strcmp(country_name,'Syria'),country_name='Syrian Arab Rep';end
+    if strcmp(country_name,'Saint Vincent and the Grenadines'),country_name='St Vincent and t';end
+    if strcmp(country_name,'Saint Lucia'),country_name='St Lucia';end
+    if strcmp(country_name,'St. Kitts and Nevis'),country_name='St Kitts and Nev';end
+    if strcmp(country_name,'Saint Helena'),country_name='St Helena';end
+    if strcmp(country_name,'Russia'),country_name='Soviet Union';end
+    if strcmp(country_name,'Sao Tome and Principe'),country_name='Sao Tome et Prin';end
+    if strcmp(country_name,'Solomon Is.'),country_name='Solomon Is';end
+    if strcmp(country_name,'Moldova'),country_name='Moldova Rep';end
+    if strcmp(country_name,'Solomon Islands'),country_name='Marshall Is';end
+    if strcmp(country_name,'Marshall Islands'),country_name='Solomon Is';end
+    if strcmp(country_name,'Congo'),country_name='Zaire/Congo Dem';end
+    if strcmp(country_name,'Laos'),country_name='Lao P Dem Rep';end
+    if strcmp(country_name,'Korea'),country_name='Korea Rep';end
+    if strcmp(country_name,'Iran'),country_name='Iran Islam Rep';end
+    if strcmp(country_name,'Hong Kong'),country_name='Hong Kong (China';end
+    if strcmp(country_name,'Dominican Republic'),country_name='Dominican Rep';end
+    if strcmp(country_name,'Czech Republic'),country_name='Czech Rep';end
+    if strcmp(country_name,'Gambia'),country_name='Gambia The';end
+    if strcmp(country_name,'Antigua and Barbuda'),country_name='Antigua and Barb';end
     
     country_pos=strmatch(country_name,em_data.country);
     if ~isempty(country_pos)
@@ -232,6 +260,8 @@ end % peril_ID
 
 if exposure_growth
     
+    GDP_factor=ones(2200-year0,1); % allocate, such that GDP_factor(year-year0) is the factor for year
+
     % Check if economic data file is available
     if ~exist(GDP_data_file,'file')
         fprintf('Error: %s is missing, no exposure growth correction\n',GDP_data_file)
@@ -249,6 +279,9 @@ if exposure_growth
         end
         
         country_pos=strmatch(country_name,GDP.country_names); % more tolerant a matching
+        
+        if length(country_pos)>1,country_pos=[];end % more than one country, resort to CAGR below
+        
         if ~isempty(country_pos)
             %country_pos = strcmp(country_name,GDP.country_names)==1;
             %if sum(country_pos)==1
@@ -261,24 +294,29 @@ if exposure_growth
             valid_GDP_pos=~isnan(GDP_value);
             GDP.year = GDP.year(valid_GDP_pos);
             GDP_value=GDP_value(valid_GDP_pos);
-                    
-            GDP_factor=ones(2200-year0,1); % allocate, such that GDP_factor(year-year0) is the factor for year
+            
             GDP_factor(GDP.year-year0)=GDP_value(end)./GDP_value;
             
             % fill earlier years with earliest correction factor
             GDP_factor(1:GDP.year(1)-year0-1)=max(GDP_factor);
+            
             % fill later years with latest correction factor
             GDP_factor(GDP.year(end)-year0+1:end)=min(GDP_factor);
             
             %plot(GDP.year,GDP.value(country_pos,:)) % GDP checkplot
             %figure,year=(1:length(GDP_factor))+year0;plot(year,GDP_factor) % GDP factor checkplot
             
-            em_data.damage_orig=em_data.damage; % store uncorrected
-            em_data.damage=em_data.damage.*GDP_factor(em_data.year-year0);
             annotation_name=[annotation_name ' indexed'];
         else
-            fprintf('Warning: no GDP for country %s, no correction for exposure growth\n',char(country_name));
+            fprintf('Warning: no GDP for country %s, %2.1f%% CAGR correction for exposure growth\n',char(country_name),CAGR*100);
+            
+            GDP_factor(1:EMDAT_last_year-year0)=(1+CAGR).^(EMDAT_last_year-year0-1:-1:0);
+            annotation_name=[annotation_name ' indexed*']; % '*' indicates the CAGR appraoch
         end
+             
+        em_data.damage_orig=em_data.damage; % store uncorrected
+        em_data.damage=em_data.damage.*GDP_factor(em_data.year-year0);
+
     end % table missing
     
 end % exposure_growth

@@ -1,4 +1,4 @@
-function country_risk=country_risk_calc(country_name,method,force_recalc,check_plots)
+function country_risk=country_risk_calc(country_name,method,force_recalc,check_plots,peril_ID)
 % climada
 % MODULE:
 %   country_risk
@@ -25,7 +25,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %
 %   next step: country_risk_report, see also country_admin1_risk_calc
 % CALLING SEQUENCE:
-%   country_risk=country_risk_calc(country_name,method,force_recalc,check_plots)
+%   country_risk=country_risk_calc(country_name,method,force_recalc,check_plots,peril_ID)
 % EXAMPLE:
 %   country_risk0=country_risk_calc('CHE',1,0); % 10x10km resolution for
 %       % Switzerland, using climada_nightlight_entity (not GDP_entity)
@@ -46,12 +46,15 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % OPTIONAL INPUT PARAMETERS:
 %   method: =1: use 10km nightlight (climada_nightlight_entity, default)
 %       =2: use 1km nightlight (climada_nightlight_entity)
-%       =3: use 10km nightlight (GDP_entity)
+%       =3: use 10km nightlight (GDP_entity). In this case, USA is
+%           restricted to contiguous US excl. Alaska and NZL only West of dateline.
+%
 %       Since the code uses the entity (III_Name, with III Iso3 code and
 %       Name the country name) if it exists already, the resolution only
 %       matters on the first call, that's why we can use force_recalc to
 %       direct resolution. For another entity resolution, delete or rename
 %       the entity.
+%
 %       <0: all above options *(-1) trigger the generation of the full
 %       probabilistic hazard sets (adding extension _p to the hazard
 %       event sets)
@@ -62,12 +65,14 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       internally: if method<0, probabilistic=1, =0 else (default)
 %       =sign(.)*(abs(.)+100): use future entities, e.g. -107 uses
 %       future entity, and probabilistic hazards, but skips entity and
-%       hazard calculation. 
+%       hazard calculation.
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 %       If country_name is set to 'ALL', be careful to set check_plots=1
+%   peril_ID: if passed on, run all calculations only for specified peril
+%       peril_ID can be 'TC','TS','TR','EQ','WS'..., default='' for all
 % OUTPUTS:
 %   writes a couple files, such as entities and hazard event sets (the
 %       output to stdout lists all names)
@@ -105,6 +110,7 @@ if ~exist('country_name','var'), country_name = '';end
 if ~exist('method','var'),       method       =  1;end % default=1
 if ~exist('force_recalc','var'), force_recalc =  0;end
 if ~exist('check_plots' ,'var'), check_plots  =  0;end
+if ~exist('peril_ID' ,'var'),    peril_ID     = '';end
 
 % check for module GDP_entity, as it otherwise fails anyway
 if length(which('climada_create_GDP_entity'))<2 && method==3
@@ -163,7 +169,7 @@ if length(country_name)>1 % more than one country, process recursively
         single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(single_country_name),country_i,n_countries);
-        country_risk_out(country_i)=country_risk_calc(single_country_name,orig_method,force_recalc,check_plots);
+        country_risk_out(country_i)=country_risk_calc(single_country_name,orig_method,force_recalc,check_plots,peril_ID);
     end % country_i
     close all
     country_risk=country_risk_out;
@@ -215,11 +221,13 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
             entity = entity_future; %replace with entity future
             save(entity_future_file,'entity');
             climada_entity_value_GDP_adjust(entity_future_file); % adjust GDP
+            if strcmp(country_ISO3,'USA'),LOCAL_USA_UnitedStates_entity_treatment;end
+            if strcmp(country_ISO3,'NZL'),LOCAL_NZL_NewZealand_entity_treatment;end
         else
             fprintf('%s: method=%i not implemented, aborted\n',mfilename,method);
             return
         end % method
-                
+        
         if ~exist('centroids','var')
             if isempty(entity),return,end
             % since climada_nightlight_entity only created the entity,
@@ -268,7 +276,7 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
     % centroids are the ones for the country, not visible in code sinde loaded
     % above with load(centroids_file)
     fprintf('--> calling centroids_generate_hazard_sets...\n');
-    country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots);
+    country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots,peril_ID);
     fprintf('<-- back from calling centroids_generate_hazard_sets\n');
     
 else
@@ -398,4 +406,81 @@ if isfield(country_risk.res,'hazard')
     
 end % isfield(country_risk.res,'hazard')
 
-return
+end % country_risk_calc
+
+
+% local HELPER functions
+
+function LOCAL_USA_UnitedStates_entity_treatment
+% special treatent for USA (restrict to contiguous US excl. Alaska)
+global climada_global
+fprintf('USA UnitedStates, restricting to contiguous US\n');
+centroids_file    =[climada_global.data_dir filesep 'system'   filesep 'USA_UnitedStates_centroids.mat'];
+entity_file       =[climada_global.data_dir filesep 'entities' filesep 'USA_UnitedStates_entity.mat'];
+entity_future_file=[climada_global.data_dir filesep 'entities' filesep 'USA_UnitedStates_entity_future.mat'];
+
+for entity_i=1:2
+    if entity_i==2,entity_file=entity_future_file;end % ugly but pragmatic
+    load(entity_file) % contains entity
+    pos=find(entity.assets.lon>-130 & entity.assets.lat<50);
+    entity.assets.centroid_index=entity.assets.centroid_index(pos);
+    entity.assets.lon=entity.assets.lon(pos);
+    entity.assets.lat=entity.assets.lat(pos);
+    entity.assets.Value=entity.assets.Value(pos);
+    if isfield(entity.assets,'Value_today'),entity.assets.Value_today=entity.assets.Value_today(pos);end
+    if isfield(entity.assets,'distance2coast_km'),entity.assets.distance2coast_km=entity.assets.distance2coast_km(pos);end
+    entity.assets.Deductible=entity.assets.Deductible(pos);
+    entity.assets.Cover=entity.assets.Cover(pos);
+    entity.assets.DamageFunID=entity.assets.DamageFunID(pos);
+    save(entity_file,'entity') % write back
+    climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
+end % entity_i
+
+load(centroids_file) % contains centroids
+pos=find(centroids.lon>-130 & centroids.lat<50);
+centroids.lon=centroids.lon(pos);
+centroids.lat=centroids.lat(pos);
+centroids.centroid_ID=centroids.centroid_ID(pos);
+if isfield(centroids,'onLand'),centroids.onLand=centroids.onLand(pos);end
+if isfield(centroids,'distance2coast_km'),centroids.distance2coast_km=centroids.distance2coast_km(pos);end
+centroids=rmfield(centroids,'country_name');
+save(centroids_file,'centroids');
+end % LOCAL_USA_UnitedStates_entity_treatment
+
+
+function LOCAL_NZL_NewZealand_entity_treatment
+% special treatent for NZL (date line issue, restrict to West of dateline)
+global climada_global
+
+fprintf('NZL_ NewZealand, resolving date line issue\n');
+centroids_file    =[climada_global.data_dir filesep 'system'   filesep 'NZL_NewZealand_centroids.mat'];
+entity_file       =[climada_global.data_dir filesep 'entities' filesep 'NZL_NewZealand_entity.mat'];
+entity_future_file=[climada_global.data_dir filesep 'entities' filesep 'NZL_NewZealand_entity_future.mat'];
+
+for entity_i=1:2
+    if entity_i==2,entity_file=entity_future_file;end % ugly but pragmatic
+    load(entity_file) % contains entity
+    pos=find(entity.assets.lon>150);
+    entity.assets.centroid_index=entity.assets.centroid_index(pos);
+    entity.assets.lon=entity.assets.lon(pos);
+    entity.assets.lat=entity.assets.lat(pos);
+    entity.assets.Value=entity.assets.Value(pos);
+    if isfield(entity.assets,'Value_today'),entity.assets.Value_today=entity.assets.Value_today(pos);end
+    if isfield(entity.assets,'distance2coast_km'),entity.assets.distance2coast_km=entity.assets.distance2coast_km(pos);end
+    entity.assets.Deductible=entity.assets.Deductible(pos);
+    entity.assets.Cover=entity.assets.Cover(pos);
+    entity.assets.DamageFunID=entity.assets.DamageFunID(pos);
+    save(entity_file,'entity') % write back
+    climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
+end % entity_i
+
+load(centroids_file) % contains centroids
+pos=find(centroids.lon>150);
+centroids.lon=centroids.lon(pos);
+centroids.lat=centroids.lat(pos);
+centroids.centroid_ID=centroids.centroid_ID(pos);
+if isfield(centroids,'onLand'),centroids.onLand=centroids.onLand(pos);end
+if isfield(centroids,'distance2coast_km'),centroids.distance2coast_km=centroids.distance2coast_km(pos);end
+centroids=rmfield(centroids,'country_name');
+save(centroids_file,'centroids');
+end % LOCAL_NZL_NewZealand_entity_treatment

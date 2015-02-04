@@ -1,4 +1,4 @@
-function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots)
+function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots,peril_ID)
 % climada
 % MODULE:
 %   country_risk
@@ -30,7 +30,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %   you might rather calculate the risk yourself, e.g. using
 %   climada_EDS_calc...)
 % CALLING SEQUENCE:
-%   centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots)
+%   centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots,peril_ID)
 % EXAMPLE:
 %   centroids_generate_hazard_sets; % interactive, prompt for centroids
 % INPUTS:
@@ -51,6 +51,8 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
+%   peril_ID: if passed on, run all calculations only for specified peril
+%       peril_ID can be 'TC','TS','TR','EQ','WS'..., default='' for all
 % OUTPUTS:
 %   writes hazard event set files: III_name_rrr_PP{|_hist}.mat with III
 %       ISO2 country (admin0) code, country name, rrr peril region and PP
@@ -83,7 +85,8 @@ if ~climada_init_vars,return;end % init/import global variables
 if ~exist('centroids','var'),     centroids = '';   end
 if ~exist('probabilistic','var'), probabilistic = 0;end
 if ~exist('force_recalc','var'),  force_recalc = 0; end
-if ~exist('check_plots' ,'var'),  check_plots  = 0; end
+if ~exist('check_plots','var'),   check_plots  = 0; end
+if ~exist('peril_ID','var'),      peril_ID  = ''; end
 
 %module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
@@ -121,6 +124,33 @@ if ~exist(local_data_dir,'dir'),mkdir(fileparts(local_data_dir),'data');end
 if ~exist([local_data_dir filesep 'system'],'dir'),mkdir(local_data_dir,'system');end
 if ~exist([local_data_dir filesep 'entities'],'dir'),mkdir(local_data_dir,'entities');end
 if ~exist([local_data_dir filesep 'hazards'],'dir'),mkdir(local_data_dir,'hazards');end
+
+if ~isempty(peril_ID)
+    % first, reset all
+    calculate_TC=0;
+    calculate_TS=0;
+    calculate_TR=0;
+    calculate_EQ=0;
+    calculate_WS=0;
+    switch peril_ID
+        case 'TC'
+            calculate_TC=1;
+        case 'TS'
+            calculate_TS=1;
+            calculate_TC=1;% needs TC
+        case 'TR'
+            calculate_TR=1;
+            calculate_TC=1;% needs TC
+        case 'EQ'
+            calculate_EQ=1;
+        case 'WS'
+            calculate_WS=1;
+        otherwise
+            fprintf('%s: peril_ID %s not implemented, aborted\n',mfilename,peril_ID)
+            return
+    end
+end % ~isempty(peril_ID)
+
 
 % prompt for centroids if not given
 
