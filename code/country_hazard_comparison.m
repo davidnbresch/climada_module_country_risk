@@ -104,6 +104,7 @@ out_fmt2=strrep(out_fmt2,';',climada_global.csv_delimiter);
 
 
 for file_i=1:length(D)
+%for file_i=2:2 % 2 for TC CHN
     if ~D(file_i).isdir
         
         [~,fN]=fileparts([cmp_folder filesep D(file_i).name]);
@@ -149,6 +150,11 @@ for file_i=1:length(D)
                         %                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
                         %                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
                         %                     fprintf('NOTE: WS damagefunctions adjusted\n');
+%                         if strfind(hazard.filename,'_wpa_')
+%                             fprintf(' >> wpa detected, adjusted <<\n')
+%                             entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+10;
+%                             hazard.intensity=hazard.intensity/1.15;
+%                         end
                 end
                 
                 % calculate climada EDS and DFC

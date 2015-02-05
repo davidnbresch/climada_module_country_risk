@@ -56,8 +56,8 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       the entity.
 %
 %       <0: all above options *(-1) trigger the generation of the full
-%       probabilistic hazard sets (adding extension _p to the hazard
-%       event sets)
+%       probabilistic hazard sets (otherwise _hist is added to the hazard
+%       event sets) 
 %       =7 (for historic, or -7 to use probabilistic sets): skip entity and
 %       hazard set generation, straight to damage calculations (this allows
 %       to avoid any re-generation of - missing - hazard event sets, the
@@ -208,13 +208,14 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
     if ( ~exist(centroids_file,'file') || ~exist(entity_file,'file') ) || force_recalc
         
         if method==1
-            entity=climada_nightlight_entity(country_name_char,'',-1,0,[],'',0); % no save
+            entity=climada_nightlight_entity(country_name_char,'',[-1 1],0,[],'',0); % no save
         elseif method==2
-            entity=climada_nightlight_entity(country_name_char,'', 1,0,[],'',0); % no save
+            entity=climada_nightlight_entity(country_name_char,'',[ 1 1],0,[],'',0); % no save
         elseif method==3
             % invoke the GDP_entity module to generate centroids and entity
             [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
             if isempty(centroids), return, end
+            centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
             save(centroids_file,'centroids');
             save(entity_file,'entity');
             climada_entity_value_GDP_adjust(entity_file); % adjust GDP
@@ -236,7 +237,7 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
             save(entity_file,'entity');
             
             % get centroids from entity
-            centroids.lat =entity.assets.lat;
+            centroids.lat=entity.assets.lat;
             centroids.lon=entity.assets.lon;
             centroids.centroid_ID=1:length(centroids.lon);
             if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
@@ -351,6 +352,12 @@ if isfield(country_risk.res,'hazard')
             
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
+%             if strfind(hazard.filename,'_wpa_')
+%                 fprintf(' >> wpa detected, adjusted <<\n')
+%                 %hazard.intensity=hazard.intensity/1.15;
+%                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+10;
+%             end
+
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
             
             % find the damagefunctions for the peril under consideration

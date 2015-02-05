@@ -65,7 +65,7 @@ country_data_dir=climada_global.data_dir;
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 country_list={
@@ -132,44 +132,44 @@ country_list={
 %
 % TEST list (only a few)
 % ----
-country_list={
-    'Philippines'
-    'Mexico'
-    'Italy'
-    };
+% country_list={
+%     'Philippines'
+%     'Mexico'
+%     'Italy'
+%     };
 %
 % LOCAL TEST
-country_list={
-    'Aruba'
-    'Australia'
-    'Bangladesh'
-    'Bermuda'
-    'Switzerland'
-    'Chile'
-    'China'
-    'Cuba'
-    'Germany'
-    'Dominican Republic'
-    'Algeria'
-    'Greece'
-    'Indonesia'
-    'India'
-    'Israel'
-    'Italy'
-    'Japan'
-    'Mexico'
-    'Philippines'
-    'Singapore'
-    'El Salvador'
-    'Taiwan'
-    'Vietnam'
-    };
+% country_list={
+%     'Aruba'
+%     'Australia'
+%     'Bangladesh'
+%     'Bermuda'
+%     'Switzerland'
+%     'Chile'
+%     'China'
+%     'Cuba'
+%     'Germany'
+%     'Dominican Republic'
+%     'Algeria'
+%     'Greece'
+%     'Indonesia'
+%     'India'
+%     'Israel'
+%     'Italy'
+%     'Japan'
+%     'Mexico'
+%     'Philippines'
+%     'Singapore'
+%     'El Salvador'
+%     'Taiwan'
+%     'Vietnam'
+%     };
 % LOCAL TEST
-country_list={
-    'Greece'
-    'Taiwan'
-    'Vietnam'
-    };
+% country_list={
+%     'Greece'
+%     'Taiwan'
+%     'Vietnam'
+%     };
 %
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off
@@ -199,6 +199,7 @@ if generate_entities
             % invoke the GDP_entity module to generate centroids and entity
             [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
             if isempty(centroids), return, end
+            centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
             save(centroids_file,'centroids');
             save(entity_file,'entity');
             climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
@@ -208,7 +209,7 @@ if generate_entities
         end
     end % country_i
     return
-end
+end % generate_entities
 
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);

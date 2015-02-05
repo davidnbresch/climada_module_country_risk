@@ -60,14 +60,11 @@ climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track 
 % to check for climada-conformity of country names
 check_country_names=0; % default=0, if=1, stops after check
 %
-% to generate entities
-generate_entities=1; % default=0, if=1, stops after
-%
 % parameters for country_risk_calc
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: FAST for checks, using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 % whether we calculate admin1 level (you might not set this =1 for the full
@@ -81,7 +78,7 @@ damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'CAM_d
 %
 % whether we plot all the global damage frequency curves
 plot_global_DFC=1;
-plot_max_RP=200; % the maxium RP we show (to zoom in a bit)
+plot_max_RP=500; % the maxium RP we show (to zoom in a bit)
 %
 % the explicit list of countires we'd like to process
 % see climada_country_name('ALL'); to obtain it
@@ -367,33 +364,6 @@ if check_country_names
     return
 end
 
-% generate entites only
-% this allows to re-check entities (e.g for proper GDP before next steps)
-if generate_entities
-    for country_i=1:length(country_list)
-        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
-        country_name_char = char(country_name); % as to create filenames etc., needs to be char
-        
-        % define easy to read filenames
-        centroids_file     = [climada_global.data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
-        entity_file        = [climada_global.data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
-        entity_future_file = [climada_global.data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
-        
-        if ~exist(entity_file,'file')
-            % invoke the GDP_entity module to generate centroids and entity
-            [centroids,entity,entity_future]=climada_create_GDP_entity(country_name_char,[],0,1);
-            if isempty(centroids), return, end
-            save(centroids_file,'centroids');
-            save(entity_file,'entity');
-            entity = entity_future; %replace with entity future
-            save(entity_future_file,'entity');
-        end
-    end % country_i
-    
-    fprintf('STOP after generate entities, now set generate_entities=0\n')
-    return
-end % generate_entities
-
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID);
 
@@ -417,7 +387,7 @@ end
 
 % next line to compare with EM-DAT, needs still a bit of work to compare
 % country_risk structure with EM-DAT data
-%climada_EDS_emdat_adjust
+%climada_EDS_emdat_adjust % not yet fit for country_risk
 
 if generate_damage_report
     if calculate_admin1
@@ -426,6 +396,7 @@ if generate_damage_report
         country_risk_report(country_risk,1,damage_report_filename);
     end
 end
+
 
 if plot_global_DFC
     
