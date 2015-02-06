@@ -66,6 +66,9 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       =sign(.)*(abs(.)+100): use future entities, e.g. -107 uses
 %       future entity, and probabilistic hazards, but skips entity and
 %       hazard calculation.
+%       If method has two elements, the seconf one triggers
+%       EDS_emdat_adjust, i.e. if method(2)=1, we adjust the EDS by
+%       comparison with EM-DAT, see climada_EDS_emdat_adjust
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
@@ -121,6 +124,9 @@ end
 
 % PARAMETERS
 %
+% whether we automatically adjust to EM-DAT (where available)
+EDS_emdat_adjust=1;
+%
 % the folder all data will be stored to, usually the standard climada
 % data tree. But since the option country_name='ALL' creates so many
 % files, one might divert to e.g. a data folder structure within the
@@ -141,7 +147,11 @@ country_data_dir = climada_global.data_dir; % default
 force_re_encoding=0; % default=0
 %
 probabilistic=0; % default
+
+% process method (it has complex meaning ;-)
 orig_method=method;
+%
+if size(method)>1,EDS_emdat_adjust=method(2);method=method(1);end
 if method<0,probabilistic=1;method=abs(method);end
 use_future_entity=0; % we use entity today by default
 if method>100,method=method-100;use_future_entity=1;end % indicates to use entity_future
@@ -352,10 +362,14 @@ if isfield(country_risk.res,'hazard')
             
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
-%             if strfind(hazard.filename,'_wpa_')
-%                 fprintf(' >> wpa detected, adjusted <<\n')
+%             if strfind(hazard.filename,'_wpa_TC')
+%                 fprintf(' >> wpa TC detected, adjusted <<\n')
 %                 %hazard.intensity=hazard.intensity/1.15;
-%                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+10;
+%                 %entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
+%                 hazard.intensity=hazard.intensity/1.15; % reduce intensity
+%                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.133665;
+%                 % >> EM-DAT: climada scaling factor 0.059897
+%                 % >> with intens/1.15, we get EM-DAT: climada scaling factor 0.133665
 %             end
 
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
@@ -396,6 +410,14 @@ if isfield(country_risk.res,'hazard')
             end % isfield 'peril_ID'
             
             country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
+            
+            if EDS_emdat_adjust
+                [country_risk.res.hazard(hazard_i).EDS,climada2emdat_factor_weighted]=...
+                    climada_EDS_emdat_adjust(country_risk.res.hazard(hazard_i).EDS);
+%                 fprintf(6,'%s,%s,%s,%s,%f\n',entity.assets.admin0_ISO3,...
+%                     entity.assets.admin0_name,hazard.peril_ID,hazard_name,climada2emdat_factor_weighted);
+            end
+            
         else
             fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
         end

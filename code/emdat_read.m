@@ -283,6 +283,8 @@ if exposure_growth
         if length(country_pos)>1,country_pos=[];end % more than one country, resort to CAGR below
         
         if ~isempty(country_pos)
+            
+            % we have a country entry in the GDP table
             %country_pos = strcmp(country_name,GDP.country_names)==1;
             %if sum(country_pos)==1
             
@@ -291,7 +293,16 @@ if exposure_growth
             % get rid of occasional NaN (missing GDP years)
             % BUT: this might lead to shifts +/- 1 year in GDP (better than
             % nothing, but really a fix)
-            valid_GDP_pos=~isnan(GDP_value);
+            GDP_value(isnan(GDP_value))=0;
+            valid_GDP_pos=find(GDP_value>0);
+        else
+            valid_GDP_pos=[];
+        end
+          
+        if ~isempty(valid_GDP_pos)
+            
+            % we have non-zero (or non-NaN GDPs)
+            
             GDP.year = GDP.year(valid_GDP_pos);
             GDP_value=GDP_value(valid_GDP_pos);
             

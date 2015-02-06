@@ -5,27 +5,26 @@
 % NAME:
 %   selected_countries_CAM
 % PURPOSE:
-%   Run all cl
-%   selected_countries_CAM, run all CAM project countries, all calculations
+%   Run all CAM project countries, all calculations
 %
 %   run this code (see PARAMETERS)
 %   - first with  check_country_names=1;
 %     > checks for country list being ok
-%   - second with check_country_names=0;generate_entities=1;
-%     > generates the entities, adjusts them to GDP
-%   - third with  check_country_names=0;generate_entities=0;
-%     > generates all hazard event sets and calculates damages
-%
-%   If you then repeat the third step, since all hazard sets are stored, it
-%   will be fast and easy to play with parameters (e.g. damage functions).
+%   - second check_country_names=0
+%     > generates all entities (the assets) and hazard event sets and
+%     calculates damages
+%   - subsequent calls just repeat the damage calculations (unless you set
+%   country_risk_calc_force_recalc=1). Thus if you repeat the second step,
+%   since all hazard sets are stored, it will be fast and easy to play with
+%   parameters (e.g. damage functions). 
 %
 %   SPECIAL: in order to process CAM files only, the global variable
 %   climada_global.tc.default_raw_data_ext is set to '.nc' to avoid
-%   processing the UNISYS ('.txt') files in tc_track, see code
+%   processing the UNISYS ('.txt') files in tc_track, see also code
 %   centroids_generate_hazard_sets
 %
 %   run as a batch code, such that all is available on command line, all
-%   PARAMETERS are set in this file, see section belowimada for project
+%   PARAMETERS are set in this file, see section below
 %
 % CALLING SEQUENCE:
 %   selected_countries_CAM % a batch code
@@ -37,22 +36,21 @@
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150203, initial (on ICE to Paris)
+% David N. Bresch, david.bresch@gmail.com, 20150206, tested, ok
 %-
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
-
-% locate the module's (or this code's) data folder (usually  afolder
-% 'parallel' to the code folder, i.e. in the same level as code folder)
-%module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
-
 
 % PARAMETERS
 %
 % switches to run only parts of the code:
 % ---------------------------------------
 %
-peril_ID='TC'; % if ='', run TC, TS and TR (and also EQ and WS, but this does not take much time)
+% define the peril to treat. If ='', run TC, TS and TR (and also EQ and WS,
+% but this does not take much time, see PARAMETERS section in
+% centroids_generate_hazard_sets)
+peril_ID='TC'; % default='TC'
 %
 climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
 climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
@@ -71,17 +69,21 @@ country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 % country list, i.e. first run all requested countries with
 % calculate_admin1=0, then restrict the list and only run with
 % calculate_admin1=1 for these (e.g. USA, CHN...)
-calculate_admin1=0; % default=1, but set to =0 for TEST
+calculate_admin1=0; % default=0
 %
-generate_damage_report=1; % default=0, we need the economic loss report
-damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'CAM_damage_report.xls'];
+% where we store the .mat file with key results, set='' to omit
+country_risk_results_mat_file=[climada_global.data_dir filesep 'results' filesep 'country_risk.mat'];
+%
+% where we store the results table, set='' to omit writing the report
+damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'country_risk_report.xls'];
 %
 % whether we plot all the global damage frequency curves
 plot_global_DFC=1;
 plot_max_RP=500; % the maxium RP we show (to zoom in a bit)
 %
 % the explicit list of countires we'd like to process
-% see climada_country_name('ALL'); to obtain it
+% see climada_country_name('ALL'); to obtain it. The ones either not TC
+% exposed or otherwise not needed are just commented out 
 country_list={
     %'Afghanistan'
     %'Akrotiri'
@@ -343,14 +345,14 @@ country_list={
 % TEST list (only a few)
 % ----
 % country_list={
+%     'Bangladesh'
 %     'Barbados'
-%     'Puerto Rico'
+%     'El Salvador'
 %     'Vietnam'
-%     'United States'
 %     };
 %
 % more technical parameters
-climada_global.waitbar=0; % switch waitbar off
+climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)
 
 
 % check names
@@ -373,13 +375,18 @@ country_risk=country_risk_calc(country_list,country_risk_calc_method,country_ris
 % (per event), one for TC Pacific etc.
 [country_risk,EDC]=country_risk_EDS_combine(country_risk); % combine TC and TS and calculate EDC
 
+if ~isempty(country_risk_results_mat_file)
+    fprintf('storing country_risk and EDC in %s\n',country_risk_results_mat_file);
+    save(country_risk_results_mat_file,'country_risk','EDC')
+end % country_risk_results_mat_file
+
 % next few lines would allow results by state/province (e.g. for US states)
 if calculate_admin1
     % calculate damage on admin1 (state/province) level
     probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
     country_risk1=country_admin1_risk_calc(country_list,probabilistic,0);
     country_risk1=country_risk_EDS_combine(country_risk1); % combine TC and TS
-end
+end % calculate_admin1
 
 % next line allows to calculate annual aggregate where appropriate
 % see also below in plot_global_DFC
@@ -389,19 +396,19 @@ end
 % country_risk structure with EM-DAT data
 %climada_EDS_emdat_adjust % not yet fit for country_risk
 
-if generate_damage_report
+if ~isempty(damage_report_filename)
     if calculate_admin1
         country_risk_report([country_risk country_risk1],1,damage_report_filename);
     else
         country_risk_report(country_risk,1,damage_report_filename);
     end
-end
+end % generate_damage_report
 
 
 if plot_global_DFC
     
-    % plot the aggregate per event (PE) and annual aggregate (AA) for each
-    % basin as well as the total global aggregate
+    % plot the aggregate per event (PE) and annual aggregate (AA) damage
+    % frequency curve for each basin as well as the total global aggregate 
     
     PE_damage=[];PE_frequency=[]; % init
     legend_str={}; % init

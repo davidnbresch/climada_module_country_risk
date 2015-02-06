@@ -113,6 +113,8 @@ for file_i=1:length(D)
         fprintf('%s: (file_i=%i)\n',file_name,file_i);
         
         % get the damage frequency curve (DFC)
+        [cmp_folder filesep D(file_i).name]
+        return
         DFC_cmp=climada_DFC_read([cmp_folder filesep D(file_i).name]);
         
         % get the corresponding climada result
@@ -120,7 +122,7 @@ for file_i=1:length(D)
         entity_file=[hazard_file(1:end-7) '_entity'];
         hazard_file=[climada_global.data_dir filesep 'hazards' filesep hazard_file '.mat'];
         entity_file=[climada_global.data_dir filesep 'entities' filesep entity_file '.mat'];
-        
+           
         % make sure we have latest GDP
         entity_adjusted=climada_entity_value_GDP_adjust(entity_file,2);
         
@@ -150,11 +152,19 @@ for file_i=1:length(D)
                         %                     entity.damagefunctions.MDD=entity.damagefunctions.MDD*1;
                         %                     entity.damagefunctions.PAA=entity.damagefunctions.PAA*1;
                         %                     fprintf('NOTE: WS damagefunctions adjusted\n');
-%                         if strfind(hazard.filename,'_wpa_')
-%                             fprintf(' >> wpa detected, adjusted <<\n')
-%                             entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+10;
-%                             hazard.intensity=hazard.intensity/1.15;
-%                         end
+                        if strfind(hazard.filename,'_wpa_')
+                            fprintf(' >> wpa detected, adjusted <<\n')
+                            %entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
+                            %hazard.intensity=hazard.intensity/1.15;
+                            
+%                             entity.damagefunctions.Intensity=[0 20 30 40 50 60 70 80 100];
+%                             entity.damagefunctions.MDR=[0 0 0.0000 0.0000 0.0004 0.0054 0.0584 0.1694 0.1694];
+%                             entity.damagefunctions.MDD=entity.damagefunctions.MDR;
+%                             entity.damagefunctions.PAA=entity.damagefunctions.MDR*0+1;
+%                             entity.damagefunctions.DamageFunID=entity.damagefunctions.MDR*0+1;
+%                             entity.damagefunctions.peril_ID=entity.damagefunctions.peril_ID(1:length(entity.damagefunctions.MDR));
+                            
+                        end
                 end
                 
                 % calculate climada EDS and DFC
