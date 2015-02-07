@@ -298,11 +298,16 @@ else
     hazard_dir=[country_data_dir filesep 'hazards'];
     hazard_files=dir([hazard_dir filesep country_ISO3 '_' ...
         strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
-    
-    % filter, depending on probabilistic
+        
+    % some filtering
     valid_hazard=1:length(hazard_files);
     for hazard_i=1:length(hazard_files)
         if probabilistic && ~isempty(strfind(hazard_files(hazard_i).name,'_hist.mat'))
+            % filter, depending on probabilistic
+            valid_hazard(hazard_i)=0;
+        end
+        if ~isempty(peril_ID) && isempty(strfind(hazard_files(hazard_i).name,['_' peril_ID]))
+            % filter, depending on peril_ID
             valid_hazard(hazard_i)=0;
         end
     end % hazard_i
@@ -362,15 +367,16 @@ if isfield(country_risk.res,'hazard')
             
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
-%             if strfind(hazard.filename,'_wpa_TC')
-%                 fprintf(' >> wpa TC detected, adjusted <<\n')
+             if strfind(hazard.filename,'_wpa_TC')
+                 fprintf(' >> wpa TC detected, adjusted <<\n')
 %                 %hazard.intensity=hazard.intensity/1.15;
-%                 %entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
+%                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
 %                 hazard.intensity=hazard.intensity/1.15; % reduce intensity
 %                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.133665;
+                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.01;
 %                 % >> EM-DAT: climada scaling factor 0.059897
 %                 % >> with intens/1.15, we get EM-DAT: climada scaling factor 0.133665
-%             end
+             end
 
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
             
@@ -411,12 +417,14 @@ if isfield(country_risk.res,'hazard')
             
             country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
             
-            if EDS_emdat_adjust
-                [country_risk.res.hazard(hazard_i).EDS,climada2emdat_factor_weighted]=...
-                    climada_EDS_emdat_adjust(country_risk.res.hazard(hazard_i).EDS);
-%                 fprintf(6,'%s,%s,%s,%s,%f\n',entity.assets.admin0_ISO3,...
-%                     entity.assets.admin0_name,hazard.peril_ID,hazard_name,climada2emdat_factor_weighted);
-            end
+%             if EDS_emdat_adjust
+%                 [country_risk.res.hazard(hazard_i).EDS,climada2emdat_factor_weighted]=...
+%                     climada_EDS_emdat_adjust(country_risk.res.hazard(hazard_i).EDS);
+% %                 fprintf(3,'%s,%s,%f,%f,%s,%s,%f\n',entity.assets.admin0_ISO3,...
+% %                     entity.assets.admin0_name,sum(entity.assets.Value),...
+% %                     country_risk.res.hazard(hazard_i).EDS.ED,...
+% %                     hazard.peril_ID,hazard_name,climada2emdat_factor_weighted);
+%             end
             
         else
             fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)

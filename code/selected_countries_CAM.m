@@ -53,7 +53,7 @@ if ~climada_init_vars,return;end % init/import global variables
 peril_ID='TC'; % default='TC'
 %
 climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
-climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
+%climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
 %
 % to check for climada-conformity of country names
 check_country_names=0; % default=0, if=1, stops after check
@@ -63,6 +63,7 @@ check_country_names=0; % default=0, if=1, stops after check
 % method=3: FAST for checks, using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
 country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 % whether we calculate admin1 level (you might not set this =1 for the full
@@ -342,14 +343,33 @@ country_list={
     %'Zimbabwe'
     };
 %
-% TEST list (only a few)
-% ----
+% % only wpa (West Pacific Ocean) - to show how one can define a region
 % country_list={
-%     'Bangladesh'
-%     'Barbados'
-%     'El Salvador'
+%     'Cambodia'
+%     'China'
+%     'Hong Kong'
+%     'Indonesia'
+%     'Japan'
+%     'Korea'
+%     'Laos'
+%     'Malaysia'
+%     'Micronesia'
+%     'Myanmar'
+%     'Philippines'
+%     'Singapore'
+%     'Taiwan'
+%     'Thailand'
 %     'Vietnam'
 %     };
+%
+% TEST list (only a few)
+% ----
+country_list={
+    'Bangladesh'
+    'Barbados'
+    'El Salvador'
+    'Vietnam'
+    };
 %
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)

@@ -1,4 +1,4 @@
-function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,verbose_mode)
+function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,verbose_mode,CAGR)
 % climada template
 % MODULE:
 %   country_rsk
@@ -31,7 +31,8 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %       see PARAMETERS for its default location
 %       if ='ASK', prompt for
 % OPTIONAL INPUT PARAMETERS:
-%   country_name: if provided, only return records for specific country
+%   country_name: if provided, only return records for specific country - r
+%   for the list of countries, if provided as cell, i.e. {'Vanuata','Aruba'}
 %       default: all countries
 %   peril_ID: if provided, only return records for specific peril,
 %       currently implemented are
@@ -52,6 +53,10 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %       =0: no correction (default)
 %   verbose_mode: if =1, print list of countries and disaster subtypes that
 %       are returned in em_data. Default=0 (silent)
+%   CAGR: the compound annual growht rate (decimal). If not specified, the
+%       GDP development of thw past is used to index damages, and a CAGR
+%       default is used where no GDP exists (see PARAMETERS section, CAGR set
+%       to 0.02).
 % OUTPUTS:
 %   em_data, a structure with (for each event i)
 %       filename: the original filename with EM-DAT fata
@@ -75,6 +80,7 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %       DFC_orig: the DFC of the original damages in case exposure_growth=1
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150126, initial, Sils Maria
+% David N. Bresch, david.bresch@gmail.com, 20150207, list of countries accepted
 %-
 
 em_data=[]; % init output
@@ -91,6 +97,7 @@ if ~exist('country_name','var'),country_name='';end
 if ~exist('peril_ID','var'),peril_ID='';end
 if ~exist('exposure_growth','var'),exposure_growth=0;end
 if ~exist('verbose_mode','var'),verbose_mode=0;end
+if ~exist('CAGR','var'),CAGR=[];end
 
 % locate the module's (or this code's) data folder (usually  afolder
 % 'parallel' to the code folder, i.e. in the same level as code folder)
@@ -108,7 +115,12 @@ EMDAT_last_year=2013;
 % determined in code
 year0=1800; % earlier than min(GDP.year), not the smallest EM-DAT year, but a year really in the past
 % in case there is no GDP for a given country, use simple discounting
-CAGR=0.02; % compound annual growth rate, decimal, e.g. 0.02 for 2%
+if isempty(CAGR)
+    CAGR=0.02; % compound annual growth rate, decimal, e.g. 0.02 for 2%
+    force_CAGR=0; % since default set)
+else
+    force_CAGR=1; % since CAGR specified on input
+end
 %
 % the table to match climada peril_ID with EM-data disaster subtype
 peril_match_table={
@@ -158,42 +170,71 @@ else
     save(emdat_file_mat,'em_data');
 end
 
+% get rid of all zero values
+orig_datacount=length(em_data.damage);
+non_zero_damage=em_data.damage>0;
+em_data.damage=em_data.damage(non_zero_damage);
+em_data.country=em_data.country(non_zero_damage);
+em_data.disaster_subtype=em_data.disaster_subtype(non_zero_damage);
+em_data.year=em_data.year(non_zero_damage);
+em_data.occurrence=em_data.occurrence(non_zero_damage);
+em_data.deaths=em_data.deaths(non_zero_damage);
+em_data.affected=em_data.affected(non_zero_damage);
+em_data.injured=em_data.injured(non_zero_damage);
+em_data.homeless=em_data.homeless(non_zero_damage);
+em_data.disaster_type=em_data.disaster_type(non_zero_damage);
+em_data.total_affected=em_data.total_affected(non_zero_damage);
+nonzero_datacount=length(em_data.damage);
+if verbose_mode,fprintf('%i entries damage>0 (%i raw entries)\n',nonzero_datacount,orig_datacount);end
+
 EMDAT_first_year=min(em_data.year);
 
 %fields: (country), year, disaster type, disaster subtype, occurrence, deaths, affected, injured, homeless, total_affected, total_damage
 
 if ~isempty(country_name) && isfield(em_data,'country')
+        
+    % if only one country (char), convert to cell
+    if ischar(country_name),country_name=cellstr(country_name);end
+
+    if iscell(country_name)
+        country_pos=[]; % init
+        for country_i=1:length(country_name)
+            country_name_char=char(country_name{country_i});
+            % explicitely deal with non-standard country names
+            if strcmp(country_name_char,'Vietnam'),country_name_char='Viet Nam';end
+            if strcmp(country_name_char,'US Virgin Islands'),country_name_char='Virgin Is (US)';end
+            if strcmp(country_name_char,'Turks and Caicos Islands'),country_name_char='Turks and Caicos';end
+            if strcmp(country_name_char,'Taiwan'),country_name_char='Taiwan (China)';end
+            if strcmp(country_name_char,'Syria'),country_name_char='Syrian Arab Rep';end
+            if strcmp(country_name_char,'Saint Vincent and the Grenadines'),country_name_char='St Vincent and t';end
+            if strcmp(country_name_char,'Saint Lucia'),country_name_char='St Lucia';end
+            if strcmp(country_name_char,'St. Kitts and Nevis'),country_name_char='St Kitts and Nev';end
+            if strcmp(country_name_char,'Saint Helena'),country_name_char='St Helena';end
+            if strcmp(country_name_char,'Russia'),country_name_char='Soviet Union';end
+            if strcmp(country_name_char,'Sao Tome and Principe'),country_name_char='Sao Tome et Prin';end
+            if strcmp(country_name_char,'Solomon Is.'),country_name_char='Solomon Is';end
+            if strcmp(country_name_char,'Moldova'),country_name_char='Moldova Rep';end
+            if strcmp(country_name_char,'Solomon Islands'),country_name_char='Marshall Is';end
+            if strcmp(country_name_char,'Marshall Islands'),country_name_char='Solomon Is';end
+            if strcmp(country_name_char,'Congo'),country_name_char='Zaire/Congo Dem';end
+            if strcmp(country_name_char,'Laos'),country_name_char='Lao P Dem Rep';end
+            if strcmp(country_name_char,'Korea'),country_name_char='Korea Rep';end
+            if strcmp(country_name_char,'Iran'),country_name_char='Iran Islam Rep';end
+            if strcmp(country_name_char,'Hong Kong'),country_name_char='Hong Kong (China';end
+            if strcmp(country_name_char,'Dominican Republic'),country_name_char='Dominican Rep';end
+            if strcmp(country_name_char,'Czech Republic'),country_name_char='Czech Rep';end
+            if strcmp(country_name_char,'Gambia'),country_name_char='Gambia The';end
+            if strcmp(country_name_char,'Antigua and Barbuda'),country_name_char='Antigua and Barb';end
+            country_name{country_i}=country_name_char;            
+            country_pos=[country_pos strmatch(country_name_char,em_data.country)']; 
+        end % country_i
+    else
+        country_pos=strmatch(country_name,em_data.country);
+    end
     
-    % explicitely deal with non-standard country names
-    if strcmp(country_name,'Vietnam'),country_name='Viet Nam';end
-    if strcmp(country_name,'US Virgin Islands'),country_name='Virgin Is (US)';end
-    if strcmp(country_name,'Turks and Caicos Islands'),country_name='Turks and Caicos';end
-    if strcmp(country_name,'Taiwan'),country_name='Taiwan (China)';end
-    if strcmp(country_name,'Syria'),country_name='Syrian Arab Rep';end
-    if strcmp(country_name,'Saint Vincent and the Grenadines'),country_name='St Vincent and t';end
-    if strcmp(country_name,'Saint Lucia'),country_name='St Lucia';end
-    if strcmp(country_name,'St. Kitts and Nevis'),country_name='St Kitts and Nev';end
-    if strcmp(country_name,'Saint Helena'),country_name='St Helena';end
-    if strcmp(country_name,'Russia'),country_name='Soviet Union';end
-    if strcmp(country_name,'Sao Tome and Principe'),country_name='Sao Tome et Prin';end
-    if strcmp(country_name,'Solomon Is.'),country_name='Solomon Is';end
-    if strcmp(country_name,'Moldova'),country_name='Moldova Rep';end
-    if strcmp(country_name,'Solomon Islands'),country_name='Marshall Is';end
-    if strcmp(country_name,'Marshall Islands'),country_name='Solomon Is';end
-    if strcmp(country_name,'Congo'),country_name='Zaire/Congo Dem';end
-    if strcmp(country_name,'Laos'),country_name='Lao P Dem Rep';end
-    if strcmp(country_name,'Korea'),country_name='Korea Rep';end
-    if strcmp(country_name,'Iran'),country_name='Iran Islam Rep';end
-    if strcmp(country_name,'Hong Kong'),country_name='Hong Kong (China';end
-    if strcmp(country_name,'Dominican Republic'),country_name='Dominican Rep';end
-    if strcmp(country_name,'Czech Republic'),country_name='Czech Rep';end
-    if strcmp(country_name,'Gambia'),country_name='Gambia The';end
-    if strcmp(country_name,'Antigua and Barbuda'),country_name='Antigua and Barb';end
-    
-    country_pos=strmatch(country_name,em_data.country);
     if ~isempty(country_pos)
-    %country_pos = strcmp(country_name,em_data.country)==1;
-    %if sum(country_pos)>0
+        %country_pos = strcmp(country_name,em_data.country)==1;
+        %if sum(country_pos)>0
         
         em_data.country=em_data.country(country_pos);
         if isfield(em_data,'disaster_type'),em_data.disaster_type=em_data.disaster_type(country_pos);end;
@@ -216,7 +257,7 @@ if ~isempty(country_name) && isfield(em_data,'country')
     
 elseif ~isempty(country_name) && ~isfield(em_data,'country')
     
-    fprintf('Warning: no field em_data.country, check whether data is only for country %s\n',char(country_name));
+    fprintf('Warning: no field em_data.country, check whether data is only for country %s\n',char(country_name)');
     
 end % country_name
 
@@ -232,8 +273,8 @@ if ~isempty(peril_ID) && isfield(em_data,'disaster_subtype')
     
     peril_pos=strmatch(disaster_subtype,em_data.disaster_subtype);
     if ~isempty(peril_pos)
-    %peril_pos = strcmp(disaster_subtype,em_data.disaster_subtype)==1;
-    %if sum(peril_pos)>0
+        %peril_pos = strcmp(disaster_subtype,em_data.disaster_subtype)==1;
+        %if sum(peril_pos)>0
         
         if isfield(em_data,'country'),em_data.country=em_data.country(peril_pos);end;
         if isfield(em_data,'disaster_type'),em_data.disaster_type=em_data.disaster_type(peril_pos);end;
@@ -299,8 +340,14 @@ if exposure_growth
             valid_GDP_pos=[];
         end
           
-        if ~isempty(valid_GDP_pos)
+        if isempty(valid_GDP_pos) || force_CAGR % either no GDP or CAGR specified
             
+            fprintf('Warning: no GDP for country %s, %2.1f%% CAGR correction for exposure growth\n',char(country_name)',CAGR*100);
+            
+            GDP_factor(1:EMDAT_last_year-year0)=(1+CAGR).^(EMDAT_last_year-year0-1:-1:0);
+            annotation_name=[annotation_name ' indexed*']; % '*' indicates the CAGR appraoch
+            
+        else
             % we have non-zero (or non-NaN GDPs)
             
             GDP.year = GDP.year(valid_GDP_pos);
@@ -318,11 +365,6 @@ if exposure_growth
             %figure,year=(1:length(GDP_factor))+year0;plot(year,GDP_factor) % GDP factor checkplot
             
             annotation_name=[annotation_name ' indexed'];
-        else
-            fprintf('Warning: no GDP for country %s, %2.1f%% CAGR correction for exposure growth\n',char(country_name),CAGR*100);
-            
-            GDP_factor(1:EMDAT_last_year-year0)=(1+CAGR).^(EMDAT_last_year-year0-1:-1:0);
-            annotation_name=[annotation_name ' indexed*']; % '*' indicates the CAGR appraoch
         end
              
         em_data.damage_orig=em_data.damage; % store uncorrected
