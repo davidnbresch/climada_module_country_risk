@@ -61,6 +61,12 @@ climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track 
 country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
+% whether we calculate admin1 level (you might not set this =1 for the full
+% country list, i.e. first run all requested countries with
+% calculate_admin1=0, then restrict the list and only run with
+% calculate_admin1=1 for these (e.g. USA, CHN...)
+calculate_admin1=0; % default=0
+%
 % where we store the .mat file with key results, set='' to omit
 country_risk_results_mat_file=[climada_global.data_dir filesep 'results' filesep 'region_peril.mat'];
 %
@@ -258,6 +264,10 @@ if plot_global_DFC
     legend_str{end+1}='EM-DAT';
     plot(em_data.DFC.return_period,em_data.DFC.damage,'xg'); hold on
     legend_str{end+1}='EM-DAT indexed';
+    
+    em_data.YDS.DFC=climada_EDS2DFC(em_data.YDS);
+    plot(em_data.YDS.DFC.return_period,em_data.YDS.DFC.damage,'sg'); hold on
+    legend_str{end+1}=em_data.YDS.DFC.annotation_name;
     
     legend(legend_str);title([peril_ID ' global aggregate'])
     % zoom to 0..plot_max_RP years return period
