@@ -63,7 +63,6 @@ check_country_names=0; % default=0, if=1, stops after check
 % method=3: FAST for checks, using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
 country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
-country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 % whether we calculate admin1 level (you might not set this =1 for the full
