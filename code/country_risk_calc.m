@@ -369,11 +369,11 @@ if isfield(country_risk.res,'hazard')
             
              if strfind(hazard.filename,'_wpa_TC')
                  fprintf(' >> wpa TC detected, adjusted <<\n')
+                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.01;
 %                 %hazard.intensity=hazard.intensity/1.15;
 %                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
 %                 hazard.intensity=hazard.intensity/1.15; % reduce intensity
 %                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.133665;
-                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.01;
 %                 % >> EM-DAT: climada scaling factor 0.059897
 %                 % >> with intens/1.15, we get EM-DAT: climada scaling factor 0.133665
              end
