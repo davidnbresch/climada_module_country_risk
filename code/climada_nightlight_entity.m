@@ -214,9 +214,9 @@ restrict_Values_to_country=1; % default=1
 % whether we select admin0 or admin1 (see parameter selections)
 select_admin0=0; % default=0, to select admin1
 
-if selections<0 || selections==10
-    if selections<0,selections=-selections;end % reverse sign
-    if selections<0.2,selections=0;end % to avoid troubles
+if selections(1)<0 || selections(1)==10
+    if selections(1)<0,selections(1)=-selections(1);end % reverse sign
+    if selections(1)<0.2,selections(1)=0;end % to avoid troubles
     full_img_filename=low_img_filename;
     fprintf('%s: switched to moderate resolution (10x10km) nightlight image\n',mfilename)
     moderate_resolution=1;

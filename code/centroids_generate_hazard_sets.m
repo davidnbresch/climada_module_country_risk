@@ -410,6 +410,14 @@ for hazard_i=1:hazard_count
         centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
             strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
         
+        if exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') && force_recalc
+            % we need to delete the hazard set file, as
+            % climada_tc_hazard_set picks up from last file if it exists
+            % already
+            delete(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
+        end 
+         
+        
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
             fprintf('*** hazard generation for TC %s%s in %s (can take some time)\n',hazard_name,probabilistic_str,country_name_char);
