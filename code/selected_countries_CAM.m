@@ -52,8 +52,8 @@ if ~climada_init_vars,return;end % init/import global variables
 % centroids_generate_hazard_sets)
 peril_ID='TC'; % default='TC'
 %
-climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
-%climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
+%climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
+climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
 %
 % to check for climada-conformity of country names
 check_country_names=0; % default=0, if=1, stops after check
