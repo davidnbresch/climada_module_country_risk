@@ -62,7 +62,7 @@ check_country_names=0; % default=0, if=1, stops after check
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: FAST for checks, using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 % whether we calculate admin1 level (you might not set this =1 for the full
@@ -78,7 +78,7 @@ country_risk_results_mat_file=[climada_global.data_dir filesep 'results' filesep
 damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'country_risk_report.xls'];
 %
 % whether we plot all the global damage frequency curves
-plot_global_DFC=1;
+plot_global_DFC=0; % WARNING: needs a X-windows server or the like
 plot_max_RP=500; % the maxium RP we show (to zoom in a bit)
 %
 % the explicit list of countires we'd like to process
@@ -415,6 +415,11 @@ end % calculate_admin1
 % country_risk structure with EM-DAT data
 %climada_EDS_emdat_adjust % not yet fit for country_risk
 
+% write a short report to stdout
+fprintf('\n\n');
+country_risk_report_raw(country_risk);
+fprintf('\n\n');
+
 if ~isempty(damage_report_filename)
     if calculate_admin1
         country_risk_report([country_risk country_risk1],1,damage_report_filename);
@@ -422,7 +427,6 @@ if ~isempty(damage_report_filename)
         country_risk_report(country_risk,1,damage_report_filename);
     end
 end % generate_damage_report
-
 
 if plot_global_DFC
     
