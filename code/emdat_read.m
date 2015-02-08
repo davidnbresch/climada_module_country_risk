@@ -78,9 +78,12 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %           climada_EDS2DFC for this structures's fields, e.g.
 %           DFC.return_period and DFC.damage
 %       DFC_orig: the DFC of the original damages in case exposure_growth=1
+%       YDS: the year damage set, just plain summation of all damages in
+%           one year, use climada_EDS2DFC(em_data.YDS) to plot...
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150126, initial, Sils Maria
 % David N. Bresch, david.bresch@gmail.com, 20150207, list of countries accepted
+% David N. Bresch, david.bresch@gmail.com, 20150208, YDS added
 %-
 
 em_data=[]; % init output
