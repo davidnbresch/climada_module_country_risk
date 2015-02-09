@@ -46,7 +46,7 @@ if ~climada_init_vars,return;end % init/import global variables
 % define the peril to treat. If ='', run TC, TS and TR (and also EQ and WS,
 % but this does not take much time, see PARAMETERS section in
 % centroids_generate_hazard_sets)
-peril_ID='TC';peril_region='wpa_'; % default='TC' and 'wpa_'
+%peril_ID='TC';peril_region='wpa_'; % default='TC' and 'wpa_'
 peril_ID='TC';peril_region='atl_'; % default='TC' and 'wpa_'
 %peril_ID='EQ';peril_region='glb_'; % EQ global
 %peril_ID='WS';peril_region='eur_'; % WS europe
@@ -60,6 +60,9 @@ climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track 
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
 country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
+%
+% whether we check for each country
+country_DFC_sensitivity=1;
 %
 % whether we calculate admin1 level (you might not set this =1 for the full
 % country list, i.e. first run all requested countries with
@@ -144,6 +147,21 @@ switch [peril_region peril_ID]
             'United States'
             'Venezuela'
             };
+        
+        % short for tests
+        country_list={
+            'Barbados'
+            'Cayman Islands'
+            'Dominican Republic'
+%             'El Salvador'
+%             'Guatemala'
+%             'Jamaica'
+%             'Nicaragua'
+%             'Puerto Rico'
+%             'Saint Lucia'
+%             'United States'
+            };
+        
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.08; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
     case 'glb_EQ'
@@ -275,3 +293,18 @@ if plot_global_DFC
     axis([0 plot_max_RP 0 YLim(2)]);
     
 end % plot_global_DFC
+
+if country_DFC_sensitivity
+    
+    probabilistic=0;if country_risk_calc_method>0,probabilistic=1;end
+    
+    for country_i=1:length(country_list)
+        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
+        fprintf('%s: %s %s\n',country_list{country_i},country_name,country_ISO3);
+        
+        cr_country_DFC_sensitivity(country_ISO3,1,probabilistic,[],peril_ID,strrep(peril_region,'_',''));
+        %cr_country_DFC_sensitivity(country_ISO3,1,probabilistic,damagefunctions,strrep(peril_region,'_',''));
+        
+    end % country_i
+end % country_DFC_sensitivity
+
