@@ -1,4 +1,4 @@
-function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show_plot,save_dir)
+function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show_plot,peril_region)
 % explore the DFCs' sensitivity to underlying damagefunctions
 % MODULE:
 %   country_risk
@@ -9,7 +9,7 @@ function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show
 %   (EDSs) by varying the underlying damagefunctions. Plot the 
 %   resulting damage frequency curves (DFCs) together with the two DFCs
 %   (indexed and original) that stem from the historic event set of the
-%   international disaster database EM-DAT.
+%   international disaster database EM-DAT (www.emdat.be).
 %
 %   The plot then allows to determine by eye which of the damagefunctions
 %   used to calculate the DFCs produces the best fit to the EM-DAT data.
@@ -26,12 +26,11 @@ function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show
 %   For the generation of entities and hazards in one single function, see 
 %   country_risk_calc (in the module country_risk), which creates hazard 
 %   sets and an entity for a given country before it runs the risk 
-%   calculations.
-%
-%   For more information on the EM-DAT database, see http://www.emdat.be/
+%   calculations. For automatic comparison of a series of countries in one
+%   hazard region, see selected_countries_region_peril
 %   
 % CALLING SEQUENCE:
-%   entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show_plot,save_dir)
+%   entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show_plot,peril_region)
 % EXAMPLE:
 %   entity_out=cr_damagefunction_sensitivity(entity,hazard,4) 
 %   overwrites the damagefunctions of the entity with damagefunction 4
@@ -41,14 +40,13 @@ function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show
 %       - damagefunctions
 %       - measures
 %       - discount
-%   to generate an entity, see climada_nightlight_entity (in the module 
-%   country_risk) or climada_create_GDP_entity (in the module GDP_entity)
-%
+%       to generate an entity, see climada_nightlight_entity (in the module 
+%       country_risk) or climada_create_GDP_entity (in the module GDP_entity)
 %   hazard: a climada hazard event set structure, see e.g. 
 %        climada_tc_hazard_set
 % OPTIONAL INPUT PARAMETERS:
 %   selection_i: selection of the damagefunction to overwrite the entity's
-%   damagefunction with
+%       damagefunction with
 %       1: original damagefunctions, entity is left unchanged (=default)
 %       2: shift to the right by 15% of max intensity
 %       3: shift to the left by 15% of max intensity
@@ -57,23 +55,17 @@ function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show
 %       selections will be added later. See section 'implement 
 %       damagefunction modifications here' in this code for the
 %       currently implemented damagefunctions)
-%   show_plot: only save the plot (=0), or show and save the plots (=1;
-%   default)
-%   save_dir: directory where the plot will be saved 
+%   show_plot: only save the plot (=0), or show and save the plots (=1,default)
+%   peril_region: the peril region (only used to label the plot, such as
+%       'atl' or 'glb'), Default=''
 % OUTPUTS:
 %   entity_out: entity with the damagefunction selection_i refers to
-%   (default for selection_i is 1, i.e. entity_out is the same as the 
-%   original entity).
-% NOTE 1: 
-% Feel free to play around and implement further damagefunctions in the 
-% code (in the section 'implement damagefunction modifications here')
-% NOTE 2:
-% This is a preliminary version that might need some clean-up /
-% optimization
-%
+%       (default for selection_i is 1, i.e. entity_out is the same as the 
+%       original entity).
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150203, initial
-% Melanie Bieli, melanie.bieli@bluewin.ch, 20150206, added show_plot and save_dir
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150206, added show_plot
+% David N. Bresch, david.bresch@gmail.com, 20150210, peril_region added
 %-
 
 % initialize output
@@ -93,7 +85,7 @@ if ~exist('hazard','var')
 end
 if ~exist('selection_i','var') || isempty(selection_i), selection_i = 1;end
 if ~exist('show_plot','var'), show_plot = 1;end
-if ~exist('save_dir','var'), save_dir = [];end
+if ~exist('peril_region','var'), peril_region = '';end
 
 % PARAMETERS
 %
@@ -101,13 +93,14 @@ if ~exist('save_dir','var'), save_dir = [];end
 damfun_ID = 1;
 %
 % default directory where the plots will be saved 
-default_save_dir = [climada_global.data_dir filesep 'results' filesep ...
-    'damagefun_plots'];
+save_dir = [climada_global.data_dir filesep 'results' filesep 'damagefun_plots'];
+if ~exist(save_dir, 'dir'),mkdir(save_dir);end % create if, if not existing
 %
 % the maximum return period (RP) to show in plots - has to be one of the
 % return periods the comparison DFC exists for
-plot_max_RP = 120; % default=120
-%-
+plot_max_RP = 250; % default=250 years
+
+
 
 % find the ID of the peril we are dealing with (note: only take the first
 % two characters, otherwise 'WSEU' does not work)
@@ -223,7 +216,7 @@ else
     visibility_string = 'off';
 end
 
-f = figure('visible',visibility_string);
+f = figure('visible',visibility_string,'Color',[1 1 1]);
 max_sorted_damage = 0;
 h = zeros(length(EDS)+2,1);
 ii      = 1;
@@ -249,16 +242,37 @@ end % EDS_i
 % we also plot the EM-DAT DFCs for comparison
 green = [0 204 0]/255;
 em_data = emdat_read('',entity.assets.admin0_name,hazard_peril_ID,1);
-h(end-1)=plot(em_data.DFC.return_period,em_data.DFC.damage,'diamond','Color','k', ...
-    'MarkerSize',7,'markerfacecolor',green); 
-hold on
-h(end)=plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'o','Color','k',...
-    'MarkerSize',7,'markerfacecolor',green); hold on
-legend_str{end+1} = em_data.DFC.annotation_name;
-legend_str{end+1} = em_data.DFC_orig.annotation_name;
+if ~isempty(em_data)
+    h(end-1)=plot(em_data.DFC.return_period,em_data.DFC.damage,'diamond','Color','k', ...
+        'MarkerSize',7,'markerfacecolor',green);
+    legend_str{end+1} = em_data.DFC.annotation_name;
+    hold on
+    h(end)=plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'o','Color','k',...
+        'MarkerSize',7,'markerfacecolor',green); hold on
+    legend_str{end+1} = em_data.DFC_orig.annotation_name;
+    max_em_data_DFC_damage=max(em_data.DFC.damage);
+else
+    max_em_data_DFC_damage=0;
+end % em_data
+
+% add cmp results in case they exist
+cmp_DFC_file=[climada_global.data_dir filesep 'results' filesep 'cmp_results' ...
+    filesep hazard_peril_ID filesep entity.assets.admin0_ISO3 '_' ...
+    strrep(entity.assets.admin0_name,' ','') '_' ...
+    peril_region '_' hazard_peril_ID '_cmp_results.xlsx'];
+
+if exist(cmp_DFC_file,'file')
+    fprintf('cmp: %s\n',cmp_DFC_file);
+    DFC_cmp=climada_DFC_read(cmp_DFC_file);
+    if ~isempty(DFC_cmp)
+        hold on
+        plot(DFC_cmp.return_period,DFC_cmp.damage,'-k','LineWidth',1);
+        legend_str{end+1} = 'cmp';
+    end
+end
 
 % zoom to 0..plot_max_RP years return period
-y_max = max(max_sorted_damage,max(em_data.DFC.damage));
+y_max = max(max_sorted_damage,max_em_data_DFC_damage);
 axis([0 plot_max_RP 0 y_max]);
 
 % add legend and axis labels
@@ -275,14 +289,9 @@ title(title_str,'FontSize',12);
 hold off;
 
 %% save the plot 
-if isempty(save_dir), save_dir = default_save_dir; end
-if ~exist(default_save_dir, 'dir')
-    mkdir(default_save_dir);
-end
-plot_name = sprintf('%s_%s_%s_damfun_sensitivity.png', ...
-    entity.assets.admin0_ISO3, entity.assets.admin0_name, hazard_peril_ID);
-save_file = fullfile(save_dir, plot_name);
-saveas(f, save_file,'png');
+plot_name = [save_dir filesep sprintf('%s_%s_%s_%s_damfun_sensitivity.png',...
+    hazard_peril_ID,peril_region,entity.assets.admin0_ISO3, entity.assets.admin0_name)];
+saveas(f,plot_name,'png');
 
 
 %% Overwrite the damagefunction of the original entity with the

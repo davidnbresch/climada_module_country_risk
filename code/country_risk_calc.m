@@ -76,6 +76,8 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       If country_name is set to 'ALL', be careful to set check_plots=1
 %   peril_ID: if passed on, run all calculations only for specified peril
 %       peril_ID can be 'TC','TS','TR','EQ','WS'..., default='' for all
+%       Once generated, one can also specify the peril region within
+%       peril_ID, such as 'atl_TC'.
 % OUTPUTS:
 %   writes a couple files, such as entities and hazard event sets (the
 %       output to stdout lists all names)

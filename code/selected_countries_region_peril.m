@@ -46,10 +46,10 @@ if ~climada_init_vars,return;end % init/import global variables
 % define the peril to treat. If ='', run TC, TS and TR (and also EQ and WS,
 % but this does not take much time, see PARAMETERS section in
 % centroids_generate_hazard_sets)
-%peril_ID='TC';peril_region='wpa_'; % default='TC' and 'wpa_'
-peril_ID='TC';peril_region='atl_'; % default='TC' and 'wpa_'
-%peril_ID='EQ';peril_region='glb_'; % EQ global
-%peril_ID='WS';peril_region='eur_'; % WS europe
+peril_ID='TC';peril_region='wpa'; % default='TC' and 'wpa'
+%peril_ID='TC';peril_region='atl'; % default='TC' and 'wpa'
+%peril_ID='EQ';peril_region='glb'; % EQ global
+%peril_ID='WS';peril_region='eur'; % WS europe
 %
 %climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
 climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
@@ -79,31 +79,33 @@ damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'regio
 % whether we plot all the global damage frequency curves
 plot_global_DFC=1;
 plot_max_RP=500; % the maxium RP we show (to zoom in a bit)
+% the name of the plot
+plot_global_DFC_png_name=[climada_global.data_dir filesep 'results' filesep 'damagefun_plots' filesep peril_ID '_' peril_region '_aggregate.png'];
 %
 % the explicit list of countires we'd like to process
 % see climada_country_name('ALL'); to obtain it. The ones either not TC
 % exposed or otherwise not needed are just commented out
 %
 % only wpa (West Pacific Ocean)
-switch [peril_region peril_ID]
+switch [peril_region '_' peril_ID]
     case 'wpa_TC'
         % the list of reasonable countries to calibrate wpa TC
         country_list={
-            'Cambodia'
-            'China'
+%             'Cambodia'
+%             'China'
             'Hong Kong'
-            'Indonesia'
-            'Japan'
-            'Korea'
-            'Laos'
-            'Malaysia'
-            'Micronesia'
+%             'Indonesia'
+%             'Japan'
+%             'Korea'
+%             'Laos'
+%             'Malaysia'
+%             'Micronesia'
             'Myanmar'
             'Philippines'
             'Singapore'
             'Taiwan'
-            'Thailand'
-            'Vietnam'
+%             'Thailand'
+%             'Vietnam'
             };
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.08; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
@@ -153,13 +155,13 @@ switch [peril_region peril_ID]
             'Barbados'
             'Cayman Islands'
             'Dominican Republic'
-%             'El Salvador'
-%             'Guatemala'
-%             'Jamaica'
-%             'Nicaragua'
-%             'Puerto Rico'
-%             'Saint Lucia'
-%             'United States'
+            %             'El Salvador'
+            %             'Guatemala'
+            %             'Jamaica'
+            %             'Nicaragua'
+            %             'Puerto Rico'
+            %             'Saint Lucia'
+            %             'United States'
             };
         
         % the compound annual growth rate to inflate historic EM-DAT damages with
@@ -205,7 +207,7 @@ end
 climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)
 
 % calculate damage on admin0 (country) level
-country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  peril_ID]);
+country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID]);
 
 % next line allows to combine sub-perils, such as wind (TC) and surge (TS)
 % EDC is the maximally combined EDS, i.e. only one fully combined EDS per
@@ -292,19 +294,21 @@ if plot_global_DFC
     YLim = get(get(gcf,'CurrentAxes'),'YLim');
     axis([0 plot_max_RP 0 YLim(2)]);
     
+    if ~exist(fileparts(plot_global_DFC_png_name), 'dir'),mkdir(fileparts(plot_global_DFC_png_name));end
+    if ~isempty(plot_global_DFC_png_name),saveas(gcf,plot_global_DFC_png_name,'png');end
+    
 end % plot_global_DFC
 
 if country_DFC_sensitivity
     
-    probabilistic=0;if country_risk_calc_method>0,probabilistic=1;end
+    probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
     
     for country_i=1:length(country_list)
         [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
         fprintf('%s: %s %s\n',country_list{country_i},country_name,country_ISO3);
         
-        cr_country_DFC_sensitivity(country_ISO3,1,probabilistic,[],peril_ID,strrep(peril_region,'_',''));
-        %cr_country_DFC_sensitivity(country_ISO3,1,probabilistic,damagefunctions,strrep(peril_region,'_',''));
+        cr_country_DFC_sensitivity(country_ISO3,1,probabilistic,[],peril_ID,peril_region);
+        %cr_country_DFC_sensitivity(country_ISO3,1,probabilistic,damagefunctions,peril_region);
         
     end % country_i
 end % country_DFC_sensitivity
-

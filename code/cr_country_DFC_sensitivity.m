@@ -13,10 +13,17 @@ function cr_country_DFC_sensitivity(country_ISO3,show_plot,probabilistic,damagef
 %   "damagefun_sensitivity_plots" in climada-master/data/results
 %
 %   see cr_damagefunction_sensitivity for more information on how the
-%   damagefunctions are modified.
+%   damagefunctions are modified. The present code
+%   cr_country_DFC_sensitivity is a mere caller to cr_damagefunction_sensitivity
+%
+%   For the generation of entities and hazards in one single function, see 
+%   country_risk_calc (in the module country_risk), which creates hazard 
+%   sets and an entity for a given country before it runs the risk 
+%   calculations. For automatic comparison of a series of countries in one
+%   hazard region, see selected_countries_region_peril
 %   
 % CALLING SEQUENCE:
-%   cr_country_DFC_sensitivity(ISO3_code, silent_mode)
+%   cr_country_DFC_sensitivity(country_ISO3,show_plot,probabilistic,damagefunctions,peril_ID,peril_region)
 % EXAMPLE:
 %   cr_country_DFC_sensitivity('CHN', 1) % country: China, don't show plots
 % INPUTS:
@@ -146,7 +153,7 @@ for hazard_i = 1:length(hazard_files)
     full_hazard_file_i = [data_dir filesep 'hazards' filesep ...
         hazard_files(hazard_i).name];
     load(full_hazard_file_i);
-    cr_damagefunction_sensitivity(entity,hazard,'',show_plot);
+    cr_damagefunction_sensitivity(entity,hazard,'',show_plot,peril_region);
 end % hazard_i
 
 end
