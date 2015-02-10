@@ -25,13 +25,14 @@ function cr_country_DFC_sensitivity(country_ISO3,show_plot,probabilistic,damagef
 % OPTIONAL INPUT PARAMETERS:
 %   show_plot: only save the plots (=0; default), or show and save the 
 %       plots (=1)
-%   probabilistic: whether to use the probabilistic hazard sets (=1;
-%       default) or the historic ones (=0)
+%   probabilistic: whether to use the probabilistic hazard sets (=1, default) 
+%       or the historic ones (=0)
 %   damagefunctions: a struct containing the damagefunctions (for one
-%       single peril) to overwrite the entity's damagefunctions with
-%   peril_ID: 2-digit peril ID, like 'TC', 'TS'... 
-%       If not provided, the perils for which damagefunctions exist are
-%       processed
+%       single peril) to overwrite the entity's damagefunctions with. See
+%       e.g. climada_damagefunctions_read
+%   peril_ID: 2-digit peril ID, like 'TC','TS','TR','WS','EQ',... 
+%       If not provided, the peril for which the first damagefunction with
+%       DamageFunID =1 exists is used.
 %   peril_region: e.g. 'wpa' or 'atl', allows for selection of a
 %       specific region. If not provided, no selection of peril region,
 %       i.e. a country affected by tropical cyclones from two basins (such
@@ -56,6 +57,7 @@ function cr_country_DFC_sensitivity(country_ISO3,show_plot,probabilistic,damagef
 % MODIFICATION HISTORY:
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150206, initial
 % Melanie Bieli, melanie.bieli@bluewin.ch, 20150209, added damagefunctions and peril_region
+% Melanie Bieli, melanie.bieli@bluewin.ch, 20150209, simplified to one peril (and one region)
 %-
 
 
@@ -139,16 +141,13 @@ end % hazard_i
 valid_hazard = valid_hazard(valid_hazard>0);
 hazard_files = hazard_files(valid_hazard);
 
-% loop over all hazards
+% loop over all hazards (there are unlikely more than one, but we allow for)
 for hazard_i = 1:length(hazard_files)
     full_hazard_file_i = [data_dir filesep 'hazards' filesep ...
         hazard_files(hazard_i).name];
     load(full_hazard_file_i);
     cr_damagefunction_sensitivity(entity,hazard,'',show_plot);
 end % hazard_i
-
-fprintf('Generated %d DFC sensitivity plots for %s.\n',...
-    length(hazard_files),country_name_char);
 
 end
 
