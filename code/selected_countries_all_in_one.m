@@ -49,6 +49,7 @@ check_country_names=0; % default=0, if=1, stops after check
 %
 % to generate entities
 generate_entities=0; % default=0, if=1, stops after
+add_distance2coast=0; % default=0, if=1, stops after
 %
 % whether we calculate admin1 level
 calculate_admin1=0; % default=1, but set to =0 for TEST
@@ -65,7 +66,7 @@ country_data_dir=climada_global.data_dir;
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 country_list={
@@ -199,7 +200,6 @@ if generate_entities
             % invoke the GDP_entity module to generate centroids and entity
             [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
             if isempty(centroids), return, end
-            centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
             save(centroids_file,'centroids');
             save(entity_file,'entity');
             climada_entity_value_GDP_adjust(entity_file); % assets based on GDP
@@ -210,6 +210,23 @@ if generate_entities
     end % country_i
     return
 end % generate_entities
+
+if add_distance2coast
+    for country_i=1:length(country_list)
+        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
+        country_name_char = char(country_name); % as to create filenames etc., needs to be char
+        
+        % define easy to read filenames
+        centroids_file    = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+        load(centroids_file)
+        if ~isfield(centroids,'distance2coast_km')
+            fprintf('%s %s: adding distance2coast_km\n',country_ISO3,country_name_char);
+            centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
+            save(centroids_file,'centroids')
+        end
+    end % country_i
+    return
+end % add_distance2coast
 
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
