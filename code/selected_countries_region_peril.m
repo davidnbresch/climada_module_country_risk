@@ -5,9 +5,10 @@
 % NAME:
 %   selected_countries_region_peril
 % PURPOSE:
-%   Run all countries for a given region and hazard in order to e.g. adjust
-%   damage functions for this peril and region. On first call, you might
-%   have to set peril_region='' in order to generate all hazard event sets
+%   Run all countries for a given peril (e.g. TC) and region (e.g. atl) 
+%   in order to e.g. adjust damage functions for this peril and region. 
+%   On first call, you might have to set peril_region='' in order to
+%   generate all hazard event sets.
 %
 %   It generates all entities (the assets) and hazard event sets and
 %   calculates damages. In essence, a clever caller to country_risk_calc
@@ -63,6 +64,7 @@ climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track 
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: FAST for checks, using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
+% method=-999: to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
 country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
@@ -94,6 +96,7 @@ plot_global_DFC_png_name=[climada_global.data_dir filesep 'results' filesep 'dam
 % only wpa (West Pacific Ocean)
 switch [peril_region '_' peril_ID]
     case 'wpa_TC'
+        country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
         % the list of reasonable countries to calibrate wpa TC
         country_list={
             'Cambodia'
@@ -130,10 +133,11 @@ switch [peril_region '_' peril_ID]
         damagefunctions.PAA=[0 0.0050 0.0420 0.1600 0.3985 0.6570 1.0000 1.0000 1.0000];
         damagefunctions.DamageFunID=ones(1,length(damagefunctions.Intensity));
         damagefunctions.peril_ID=cellstr(repmat(peril_ID,length(damagefunctions.Intensity),1));
-        %
+        % first CRUDE correction for wpa
         damagefunctions.MDD=damagefunctions.MDD/5;
         damagefunctions.PAA=damagefunctions.PAA/5;
     case 'atl_TC'
+        country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
         % the list of reasonable countries to calibrate atl TC
         country_list={
             'Anguilla'
@@ -185,18 +189,18 @@ switch [peril_region '_' peril_ID]
             };
         
         % short for TESTS
-        %         country_list={
-        %             'Barbados'
-        %             'Cayman Islands'
-        %             'Dominican Republic'
-        %             %             'El Salvador'
-        %             %             'Guatemala'
-        %             %             'Jamaica'
-        %             %             'Nicaragua'
-        %             %             'Puerto Rico'
-        %             %             'Saint Lucia'
-        %             %             'United States'
-        %             };
+        country_list={
+            'Barbados'
+            'Cayman Islands'
+            'Dominican Republic'
+            'El Salvador'
+            %             'Guatemala'
+            %             'Jamaica'
+            %             'Nicaragua'
+            %             'Puerto Rico'
+            %             'Saint Lucia'
+            %             'United States'
+            };
         %
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.08; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
@@ -209,6 +213,7 @@ switch [peril_region '_' peril_ID]
         damagefunctions.PAA=[0 0.0050 0.0420 0.1600 0.3985 0.6570 1.0000 1.0000 1.0000];
         damagefunctions.DamageFunID=ones(1,length(damagefunctions.Intensity));
         damagefunctions.peril_ID=cellstr(repmat(peril_ID,length(damagefunctions.Intensity),1));
+        
     case 'glb_EQ'
         % the list of reasonable countries to calibrate wpa TC
         country_list={
@@ -231,19 +236,28 @@ switch [peril_region '_' peril_ID]
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.07; % 7% growth in wpa-exposed countries (for sure more than the global average 2%)
         climada_global.global_CAGR=CAGR; % to pass it on the emdat_read
-        damagefunctions=[];
+        damagefunctions=[]; % use the default damagefunctions as in entities
+        
     case 'eur_WS'
         % the list of reasonable countries to calibrate wpa TC
         country_list={
+            'Austria'
+            'Belgium'
+            'Denmark'
             'France'
             'Germany'
-            'United Kingdom'
+            'Ireland'
             'Netherlands'
+            'Norway'
+            'Sweden'
+            'Switzerland'
+            'United Kingdom'
             };
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.04; % 4% growth in wpa-exposed countries (for sure more than the global average 2%)
         climada_global.global_CAGR=CAGR; % to pass it on the emdat_read
-        damagefunctions=[];
+        damagefunctions=[]; % use the default damagefunctions as in entities
+        
     otherwise
         fprintf('NOT implemented, aborted\n')
         return
@@ -254,7 +268,57 @@ climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)
 
 % calculate damage on admin0 (country) level
 if country_risk_calc_method==-7
+    
     country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID],damagefunctions);
+    
+elseif country_risk_calc_method==-999
+    
+    clear country_risk % since it's a batch code
+    
+    for country_i=1:length(country_list)
+        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
+        
+        country_risk(country_i).res.country_name = country_name;
+        country_risk(country_i).res.country_ISO3 = country_ISO3;
+        
+        entity_file=[climada_global.data_dir filesep 'entities' filesep ...
+            country_ISO3 '_' strrep(country_name,' ','') '_entity.mat'];
+        
+        if exist(entity_file,'file')
+            load(entity_file) % contains entity
+            
+            if ~isempty(damagefunctions),entity.damagefunctions=damagefunctions;end
+            
+            next_hazard_i=1;
+            hazard_TC_file=[climada_global.data_dir filesep 'hazards' filesep ...
+                country_ISO3 '_' strrep(country_name,' ','') '_' peril_region '_' 'TC.mat'];
+            if exist(hazard_TC_file,'file')
+                country_risk(country_i).res.hazard(next_hazard_i).hazard_set_file=hazard_TC_file;
+                load(hazard_TC_file); % contains hazard
+                country_risk(country_i).res.hazard(next_hazard_i).EDS=climada_EDS_calc(entity,hazard);
+                country_risk(country_i).res.hazard(next_hazard_i).peril_ID='TC';
+                next_hazard_i=next_hazard_i+1;
+            else
+                fprintf('WARNING: %s %s TC hazard not found, skipped\n',country_ISO3,country_name)
+            end
+            
+            hazard_TS_file=[climada_global.data_dir filesep 'hazards' filesep ...
+                country_ISO3 '_' strrep(country_name,' ','') '_' peril_region '_' 'TS.mat'];
+            if exist(hazard_TS_file,'file')
+                country_risk(country_i).res.hazard(next_hazard_i).hazard_set_file=hazard_TS_file;
+                load(hazard_TS_file); % contains hazard
+                country_risk(country_i).res.hazard(next_hazard_i).EDS=climada_EDS_calc(entity,hazard);
+                country_risk(country_i).res.hazard(next_hazard_i).peril_ID='TS';
+                next_hazard_i=next_hazard_i+1;
+            else
+                fprintf('WARNING: %s %s TS hazard not found, skipped\n',country_ISO3,country_name)
+            end
+            
+        else
+            fprintf('WARNING: %s %s entity not found, skipped\n',country_ISO3,country_name)
+        end
+        
+    end % country_i
 else
     country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID,damagefunctions);
 end

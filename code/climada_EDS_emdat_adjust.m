@@ -77,11 +77,14 @@ if ~isempty(em_data)
         climada2emdat_factor=em_data.DFC.damage./DFC.damage;
         
         DFC_weight_pos=em_data.DFC.return_period>20 & DFC.damage>0; % we look into >20 years
-        if ~isempty(DFC_weight_pos)
+                
+        if ~isempty(DFC_weight_pos) && sum(DFC_weight_pos)>0
+            
             % weight the factor, in order to only have one global
             climada2emdat_factor_weighted=climada2emdat_factor(DFC_weight_pos)*...
                 em_data.DFC.return_period(DFC_weight_pos)'/sum(em_data.DFC.return_period(DFC_weight_pos));
             fprintf('EM-DAT: climada scaling factor %f %s\n',climada2emdat_factor_weighted,em_data_info);
+            
         else
             climada2emdat_factor_weighted=1.0;
             fprintf('EM-DAT: no adjustment (not enough EM-DAT data)\n');

@@ -45,7 +45,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % --------------------------------------
 %
 % to check for climada-conformity of country names
-check_country_names=0; % default=0, if=1, stops after check
+check_country_names=1; % default=0, if=1, stops after check
 %
 % to generate entities
 generate_entities=0; % default=0, if=1, stops after
@@ -181,7 +181,19 @@ if check_country_names
     for country_i=1:length(country_list)
         [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
         fprintf('%s: %s %s\n',country_list{country_i},country_name,country_ISO3);
+        
+        entity_file=[country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name,' ','') '_entity.mat'];
+        if ~exist(entity_file,'file'),fprintf('WARNING: entity missing %s\n',entity_file);end
+        
+        hazard_TC_file=[country_data_dir filesep 'hazards' filesep country_ISO3 '_' strrep(country_name,' ','') '_*TC.mat'];
+        D=dir([country_data_dir filesep 'hazards' filesep country_ISO3 '_' strrep(country_name,' ','') '_*.mat']);
+        for D_i=1:length(D)
+            if ~D(D_i).isdir
+                fprintf(' - %s\n',D(D_i).name);
+            end
+        end % D_i
     end % country_i
+    fprintf('STOP after check_country_names\n')
     return
 end
 
