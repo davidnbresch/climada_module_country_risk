@@ -51,8 +51,8 @@ show_plot=1; % default=1
 % define the peril to treat. If ='', run TC, TS and TR (and also EQ and WS,
 % but this does not take much time, see PARAMETERS section in
 % centroids_generate_hazard_sets)
-peril_ID='TC';peril_region='wpa'; % default='TC' and 'wpa'
-%peril_ID='TC';peril_region='atl'; % default='TC' and 'wpa'
+%peril_ID='TC';peril_region='wpa'; % default='TC' and 'wpa'
+peril_ID='TC';peril_region='atl'; % default='TC' and 'wpa'
 %peril_ID='EQ';peril_region='glb'; % EQ global
 %peril_ID='WS';peril_region='eur'; % WS europe
 %
@@ -115,7 +115,7 @@ switch [peril_region '_' peril_ID]
         country_list={ % short lits for TESTS
             'Hong Kong'
             'Myanmar'
-           'Philippines'
+            'Philippines'
             'Singapore'
             'Taiwan'
             };
@@ -134,7 +134,7 @@ switch [peril_region '_' peril_ID]
         damagefunctions.MDD=damagefunctions.MDD/5;
         damagefunctions.PAA=damagefunctions.PAA/5;
     case 'atl_TC'
-        % the list of reasonable countries to calibrate wpa TC
+        % the list of reasonable countries to calibrate atl TC
         country_list={
             'Anguilla'
             'Antigua and Barbuda'
@@ -174,19 +174,29 @@ switch [peril_region '_' peril_ID]
             'Venezuela'
             };
         
+        country_list={ % atl exposed from selected_countries_all_in_one
+            'Colombia'
+            'Costa Rica'
+            'Dominican Republic'
+            'Mexico'
+            'Panama'
+            'United States'
+            'Uruguay'
+            };
+        
         % short for TESTS
-%         country_list={
-%             'Barbados'
-%             'Cayman Islands'
-%             'Dominican Republic'
-%             %             'El Salvador'
-%             %             'Guatemala'
-%             %             'Jamaica'
-%             %             'Nicaragua'
-%             %             'Puerto Rico'
-%             %             'Saint Lucia'
-%             %             'United States'
-%             };
+        %         country_list={
+        %             'Barbados'
+        %             'Cayman Islands'
+        %             'Dominican Republic'
+        %             %             'El Salvador'
+        %             %             'Guatemala'
+        %             %             'Jamaica'
+        %             %             'Nicaragua'
+        %             %             'Puerto Rico'
+        %             %             'Saint Lucia'
+        %             %             'United States'
+        %             };
         %
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.08; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
@@ -243,7 +253,11 @@ end
 climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)
 
 % calculate damage on admin0 (country) level
-country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID],damagefunctions);
+if country_risk_calc_method==-7
+    country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID],damagefunctions);
+else
+    country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID,damagefunctions);
+end
 
 % next line allows to combine sub-perils, such as wind (TC) and surge (TS)
 % EDC is the maximally combined EDS, i.e. only one fully combined EDS per
@@ -270,7 +284,7 @@ if plot_global_DFC
     % plot the DFCs of all EDSs
     if show_plot,fig_visible='on';else fig_visible='off';end
     DFC_fig = figure('Name','EDC','visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
-
+    
     % plot the aggregate per event (PE) and annual aggregate (AA) damage
     % frequency curve for each basin as well as the total global aggregate
     
