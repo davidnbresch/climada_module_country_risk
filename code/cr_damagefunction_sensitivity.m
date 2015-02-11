@@ -58,6 +58,10 @@ function entity_out=cr_damagefunction_sensitivity(entity,hazard,selection_i,show
 %   show_plot: only save the plot (=0), or show and save the plots (=1,default)
 %   peril_region: the peril region (only used to label the plot, such as
 %       'atl' or 'glb'), Default=''
+%   SPECIAL: if there is a file ../results/target_DFC.xls wth columns
+%       country, perilID, return period and damage, the matching country and
+%       peril DFC will be plotted for reference (i.e. to help calibrate climada
+%       to any given (other model) results (see target_DFC_file in PARAMETERS)
 % OUTPUTS:
 %   entity_out: entity with the damagefunction selection_i refers to
 %       (default for selection_i is 1, i.e. entity_out is the same as the
@@ -100,7 +104,13 @@ if ~exist(save_dir, 'dir'),mkdir(save_dir);end % create if, if not existing
 % return periods the comparison DFC exists for
 % note that max_RP_damage will be collected to scale the plot
 plot_max_RP = 250; % default=250 years
-
+%
+% the file with target damage frequency curves (DFCs), need to have columns
+% country, peril_ID, return period and damage (TIV and GDP are read, if
+% present)
+% the matching country and peril DFC will be plotted for reference (i.e. to
+% help calibrate climada to any given (other model) results
+target_DFC_file=[climada_global.data_dir filesep 'results' filesep 'target_DFC.xls'];
 
 
 % find the ID of the peril we are dealing with (note: only take the first
@@ -262,10 +272,25 @@ if exist(cmp_DFC_file,'file')
     DFC_cmp=climada_DFC_read(cmp_DFC_file);
     if ~isempty(DFC_cmp)
         hold on
-        plot(DFC_cmp.return_period,DFC_cmp.damage,'-k','LineWidth',1);
+        plot(DFC_cmp.return_period,DFC_cmp.damage,'-k','LineWidth',2);
         max_damage = interp1(DFC_cmp.return_period,DFC_cmp.damage,plot_max_RP); % interp to plot_max_RP
         max_RP_damage=max(max_RP_damage,max_damage);
         legend_str{end+1} = 'cmp';
+    end
+end
+
+if exist(target_DFC_file,'file') && isfield(entity.assets,'admin0_name')
+    try
+        target_DFC=climada_spreadsheet_read('no',target_DFC_file,'target_DFC',1);
+        country_pos=strmatch(entity.assets.admin0_name,target_DFC.country_name);
+        peril_pos=strmatch(hazard_peril_ID,target_DFC.peril_ID(country_pos));
+        country_pos=country_pos(peril_pos);
+        if ~isempty(country_pos)
+            plot(target_DFC.return_period(country_pos),target_DFC.damage(country_pos),':k','LineWidth',2)
+            legend_str{end+1} = 'target';
+        end
+    catch
+        fprintf('Warning: troubles reading/processing %s\n',target_DFC_file);
     end
 end
 

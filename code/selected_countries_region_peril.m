@@ -51,8 +51,8 @@ show_plot=1; % default=1
 % define the peril to treat. If ='', run TC, TS and TR (and also EQ and WS,
 % but this does not take much time, see PARAMETERS section in
 % centroids_generate_hazard_sets)
-%peril_ID='TC';peril_region='wpa'; % default='TC' and 'wpa'
-peril_ID='TC';peril_region='atl'; % default='TC' and 'wpa'
+peril_ID='TC';peril_region='wpa'; % default='TC' and 'wpa'
+%peril_ID='TC';peril_region='atl'; % default='TC' and 'wpa'
 %peril_ID='EQ';peril_region='glb'; % EQ global
 %peril_ID='WS';peril_region='eur'; % WS europe
 %
@@ -112,13 +112,13 @@ switch [peril_region '_' peril_ID]
             'Thailand'
             'Vietnam'
             };
-%         country_list={ % short lits for TESTS
-%             'Hong Kong'
-%             'Myanmar'
-%             'Philippines'
-%             'Singapore'
-%             'Taiwan'
-%             };
+        country_list={ % short lits for TESTS
+            'Hong Kong'
+            'Myanmar'
+           'Philippines'
+            'Singapore'
+            'Taiwan'
+            };
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.08; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
         climada_global.global_CAGR=CAGR; % to pass it on the emdat_read
@@ -269,7 +269,7 @@ if plot_global_DFC
     
     % plot the DFCs of all EDSs
     if show_plot,fig_visible='on';else fig_visible='off';end
-    f = figure('visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
+    DFC_fig = figure('Name','EDC','visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
 
     % plot the aggregate per event (PE) and annual aggregate (AA) damage
     % frequency curve for each basin as well as the total global aggregate
@@ -279,7 +279,6 @@ if plot_global_DFC
     AA_damage=[];AA_frequency=[]; % init for annual aggregate
     plot_symboll={'-b','-g','-r','-c','-m','-y'}; % line
     plot_symbold={':b',':g',':r',':c',':m',':y'}; % dotted
-    figure('Name','EDC','Color',[1 1 1]);
     for EDC_i=1:length(EDC)
         % the per event perspective:
         PE_damage=[PE_damage EDC(EDC_i).EDS.damage]; % collect per event damage
@@ -335,7 +334,7 @@ if plot_global_DFC
     axis([0 plot_max_RP 0 YLim(2)]);
     
     if ~exist(fileparts(plot_global_DFC_png_name), 'dir'),mkdir(fileparts(plot_global_DFC_png_name));end
-    if ~isempty(plot_global_DFC_png_name),saveas(gcf,plot_global_DFC_png_name,'png');end
+    if ~isempty(plot_global_DFC_png_name),saveas(DFC_fig,plot_global_DFC_png_name,'png');end
     
 end % plot_global_DFC
 
