@@ -88,7 +88,7 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 
 em_data=[]; % init output
 
-%global climada_global
+global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 %%if climada_global.verbose_mode,fprintf('*** %s ***\n',mfilename);end % show routine name on stdout
@@ -119,8 +119,8 @@ EMDAT_last_year=2013;
 year0=1800; % earlier than min(GDP.year), not the smallest EM-DAT year, but a year really in the past
 % in case there is no GDP for a given country, use simple discounting
 if isempty(CAGR)
-    CAGR=0.02; % compound annual growth rate, decimal, e.g. 0.02 for 2%
-    force_CAGR=0; % since default set)
+    CAGR=climada_global.global_CAGR; % compound annual growth rate, decimal, e.g. 0.02 for 2%
+    force_CAGR=0; % since default set
 else
     force_CAGR=1; % since CAGR specified on input
 end

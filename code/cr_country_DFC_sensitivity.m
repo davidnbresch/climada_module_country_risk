@@ -36,7 +36,11 @@ function cr_country_DFC_sensitivity(country_ISO3,show_plot,probabilistic,damagef
 %       or the historic ones (=0)
 %   damagefunctions: a struct containing the damagefunctions (for one
 %       single peril) to overwrite the entity's damagefunctions with. See
-%       e.g. climada_damagefunctions_read
+%       e.g. climada_damagefunctions_read. Replaces entity.damagefunctiuons 
+%       without any further tests. The user is responsible for not messing
+%       up, i.e. for entity.assets.DamageFunID to point to the right damage
+%       function, damagefunctions.peril_ID to be consistent with e.g. input
+%       parameter peril_ID etc.
 %   peril_ID: 2-digit peril ID, like 'TC','TS','TR','WS','EQ',... 
 %       If not provided, the peril for which the first damagefunction with
 %       DamageFunID =1 exists is used.

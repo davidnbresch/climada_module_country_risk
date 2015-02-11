@@ -1,4 +1,4 @@
-function country_risk=country_risk_calc(country_name,method,force_recalc,check_plots,peril_ID)
+function country_risk=country_risk_calc(country_name,method,force_recalc,check_plots,peril_ID,damagefunctions)
 % climada
 % MODULE:
 %   country_risk
@@ -78,6 +78,12 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       peril_ID can be 'TC','TS','TR','EQ','WS'..., default='' for all
 %       Once generated, one can also specify the peril region within
 %       peril_ID, such as 'atl_TC'.
+%   damagefunctions: if passed, use damagefunctions instead of the one that
+%       comes with the entity (or entities). Replaces entity.damagefunctiuons 
+%       without any further tests. The user is responsible for not messing
+%       up, i.e. for entity.assets.DamageFunID to point to the right damage
+%       function, damagefunctions.peril_ID to be consistent with e.g. input
+%       parameter peril_ID etc.
 % OUTPUTS:
 %   writes a couple files, such as entities and hazard event sets (the
 %       output to stdout lists all names)
@@ -111,11 +117,12 @@ global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
-if ~exist('country_name','var'), country_name = '';end
-if ~exist('method','var'),       method       =  1;end % default=1
-if ~exist('force_recalc','var'), force_recalc =  0;end
-if ~exist('check_plots' ,'var'), check_plots  =  0;end
-if ~exist('peril_ID' ,'var'),    peril_ID     = '';end
+if ~exist('country_name','var'),    country_name =    '';end
+if ~exist('method','var'),          method       =     1;end % default=1
+if ~exist('force_recalc','var'),    force_recalc =     0;end
+if ~exist('check_plots' ,'var'),    check_plots  =     0;end
+if ~exist('peril_ID' ,'var'),       peril_ID     =    '';end
+if ~exist('damagefunctions' ,'var'),damagefunctions = [];end
 
 % check for module GDP_entity, as it otherwise fails anyway
 if length(which('climada_create_GDP_entity'))<2 && method==3
@@ -181,7 +188,7 @@ if length(country_name)>1 % more than one country, process recursively
         single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(single_country_name),country_i,n_countries);
-        country_risk_out(country_i)=country_risk_calc(single_country_name,orig_method,force_recalc,check_plots,peril_ID);
+        country_risk_out(country_i)=country_risk_calc(single_country_name,orig_method,force_recalc,check_plots,peril_ID,damagefunctions);
     end % country_i
     close all
     country_risk=country_risk_out;
@@ -369,18 +376,23 @@ if isfield(country_risk.res,'hazard')
             
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
-             if strfind(hazard.filename,'_wpa_TC')
-                 fprintf(' >> wpa TC detected, adjusted <<\n')
-                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.01;
-%                 %hazard.intensity=hazard.intensity/1.15;
-%                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
-%                 hazard.intensity=hazard.intensity/1.15; % reduce intensity
-%                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.133665;
-%                 % >> EM-DAT: climada scaling factor 0.059897
-%                 % >> with intens/1.15, we get EM-DAT: climada scaling factor 0.133665
-             end
+%              if strfind(hazard.filename,'_wpa_TC')
+%                  fprintf(' >> wpa TC detected, adjusted <<\n')
+%                  entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.01;
+% %                 %hazard.intensity=hazard.intensity/1.15;
+% %                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
+% %                 hazard.intensity=hazard.intensity/1.15; % reduce intensity
+% %                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.133665;
+% %                 % >> EM-DAT: climada scaling factor 0.059897
+% %                 % >> with intens/1.15, we get EM-DAT: climada scaling factor 0.133665
+%              end
 
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
+            
+            if ~isempty(damagefunctions)
+                fprintf(' damagefunctions replaced ');
+                entity.damagefunctions=damagefunctions;
+            end
             
             % find the damagefunctions for the peril under consideration
             if isfield(entity.damagefunctions,'peril_ID') % refine for peril
