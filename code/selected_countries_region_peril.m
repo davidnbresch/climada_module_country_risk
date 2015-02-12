@@ -5,8 +5,8 @@
 % NAME:
 %   selected_countries_region_peril
 % PURPOSE:
-%   Run all countries for a given peril (e.g. TC) and region (e.g. atl) 
-%   in order to e.g. adjust damage functions for this peril and region. 
+%   Run all countries for a given peril (e.g. TC) and region (e.g. atl)
+%   in order to e.g. adjust damage functions for this peril and region.
 %   On first call, you might have to set peril_region='' in order to
 %   generate all hazard event sets.
 %
@@ -71,7 +71,7 @@ country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic se
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 % whether we check for each country
-country_DFC_sensitivity=0; % default=1
+country_DFC_sensitivity=1; % default=1
 %
 % whether we calculate admin1 level (you might not set this =1 for the full
 % country list, i.e. first run all requested countries with
@@ -140,8 +140,7 @@ switch [peril_region '_' peril_ID]
         damagefunctions.PAA=damagefunctions.PAA/5;
     case 'atl_TC'
         country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
-        % the list of reasonable countries to calibrate atl TC
-        country_list={
+        country_list={ % the list of reasonable countries to calibrate atl TC
             'Anguilla'
             'Antigua and Barbuda'
             'Aruba'
@@ -180,47 +179,42 @@ switch [peril_region '_' peril_ID]
             'Venezuela'
             };
         
-%         country_list={ % atl exposed from selected_countries_all_in_one
-%             'Colombia'
-%             'Costa Rica'
-%             'Dominican Republic'
-%             'Mexico'
-%             'Panama'
-%             'United States'
-%             'Uruguay'
-%             };
+        country_list={ % atl exposed from selected_countries_all_in_one
+            'Colombia'
+            'Costa Rica'
+            'Dominican Republic'
+            'Mexico'
+            'Panama'
+            'United States'
+            'Uruguay'
+            };
         
-%         % short for TESTS
-%         country_list={
-%             'Barbados'
-%             'Cayman Islands'
-%             'Dominican Republic'
-%             'El Salvador'
-%             %             'Guatemala'
-%             %             'Jamaica'
-%             %             'Nicaragua'
-%             %             'Puerto Rico'
-%             %             'Saint Lucia'
-%             %             'United States'
-%             };
+        %         % short for TESTS
+        %         country_list={
+        %             'Barbados'
+        %             'El Salvador'
+        %             'Nicaragua'
+        %             'Puerto Rico'
+        %             'United States'
+        %             };
         %
         % the compound annual growth rate to inflate historic EM-DAT damages with
-        CAGR=0.08; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
+        CAGR=0.05; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
         climada_global.global_CAGR=CAGR; % to pass it on the emdat_read
         %
         % define the TEST damagefunctions
-%         damagefunctions.filename=mfilename;
-%         damagefunctions.Intensity=[0 20 30 40 50 60 70 80 100];
-%         damagefunctions.MDD=[0 0 0.0219 0.0359 0.0540 0.1035 0.1804 0.4108 0.4108];
-%         damagefunctions.PAA=[0 0.0050 0.0420 0.1600 0.3985 0.6570 1.0000 1.0000 1.0000];
-%         damagefunctions.DamageFunID=ones(1,length(damagefunctions.Intensity));
-%         damagefunctions.peril_ID=cellstr(repmat(peril_ID,length(damagefunctions.Intensity),1));
+        %         damagefunctions.filename=mfilename;
+        %         damagefunctions.Intensity=[0 20 30 40 50 60 70 80 100];
+        %         damagefunctions.MDD=[0 0 0.0219 0.0359 0.0540 0.1035 0.1804 0.4108 0.4108];
+        %         damagefunctions.PAA=[0 0.0050 0.0420 0.1600 0.3985 0.6570 1.0000 1.0000 1.0000];
+        %         damagefunctions.DamageFunID=ones(1,length(damagefunctions.Intensity));
+        %         damagefunctions.peril_ID=cellstr(repmat(peril_ID,length(damagefunctions.Intensity),1));
         
         % climada_damagefunction_generate(intensity,dmf_min_intens,dmf_exp,dmf_max,dmf_shape,peril_ID,check_plot)
         %damagefunctions=climada_damagefunction_generate([],0,3,1.0,'exp','TC',0);
         %damagefunctions=climada_damagefunction_generate([],10,1,1.0,'s-shape','TC',0);
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(1:5:120,20,1,1.0,'s-shape','TC',0); % 20 instead of 25
-
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(1:5:120,15,1,1.0,'s-shape','TC',0);
+        
     case 'glb_EQ'
         % the list of reasonable countries to calibrate wpa TC
         country_list={
@@ -286,7 +280,7 @@ elseif country_risk_calc_method==-999
         [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
         
         fprintf('******** %s %s *****************\n',country_ISO3,country_name)
-
+        
         country_risk(country_i).res.country_name = country_name;
         country_risk(country_i).res.country_ISO3 = country_ISO3;
         
