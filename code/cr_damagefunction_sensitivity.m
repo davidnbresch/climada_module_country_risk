@@ -206,7 +206,7 @@ end
 % define figure parameters
 msize      = 5;
 color_ = jet(length(EDS)+3);
-color_(1,3)=0 % black
+color_(1,3)=0; % black
 
 marker_ = repmat('o-',[length(EDS)+1,1]);
 marker_(1,:) = '*-';
