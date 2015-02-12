@@ -326,6 +326,16 @@ else
     country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID,damagefunctions);
 end
 
+if ~isempty(damagefunctions) && show_plot
+    % plot damagefunction
+    if show_plot,fig_visible='on';else fig_visible='off';end
+    dmf_fig = figure('Name','damage function','visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
+    climada_damagefunctions_plot(damagefunctions)
+    hold on;title(dmf_info_str)
+    plot_dmf_png_name=strrep(plot_global_DFC_png_name,'aggregate',strrep(strrep(dmf_info_str,'*','°'),' ',''));
+    if ~isempty(plot_global_DFC_png_name),saveas(dmf_fig,plot_dmf_png_name,'png');end
+end % ~isempty(damagefunctions)
+
 % next line allows to combine sub-perils, such as wind (TC) and surge (TS)
 % EDC is the maximally combined EDS, i.e. only one fully combined EDS per
 % hazard and region, i.e. one EDS for all TC Atlantic damages summed up

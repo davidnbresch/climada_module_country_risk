@@ -202,30 +202,34 @@ for entity_i = 1:length(entities)
     fprintf('finished EDS %d\n',entity_i)
 end
 
-% we take EDS(1) (which resulted from the original damagefunction) and
-% adjust it to an EDS that tries to match the EM-DAT damage history
-EDS(end+1) = climada_EDS_emdat_adjust(EDS(1));
-EDS(end).annotation_name = 'damagefun_1_EMDAT_adjusted';
-
 %% plot the DFCs resulting from the different EDSs
 % define figure parameters
 msize      = 5;
-color_ = jet(length(EDS));
+color_ = jet(length(EDS)+3);
+color_(1,3)=0 % black
+
 marker_ = repmat('o-',[length(EDS)+1,1]);
 marker_(1,:) = '*-';
+marker_(2,:) = 'o-';
+marker_(3,:) = '+-';
+marker_(4,:) = 's-';
+marker_(5,:) = 'd-';
+marker_(6,:) = 'v-';
+marker_(7,:) = '<-';
+marker_(8,:) = '>-';
+marker_(9,:) = 'p-';
 
-% order according to size of damage
-damage_                 = arrayfun(@(x)(sum(x.damage)), EDS);
-[~,sort_index] = sort(damage_,'ascend');
-color_ = color_(sort_index,:);
+% % order according to size of damage
+% damage_                 = arrayfun(@(x)(sum(x.damage)), EDS);
+% [~,sort_index] = sort(damage_,'ascend');
+% color_ = color_(sort_index,:);
 
 % plot the DFCs of all EDSs
 if show_plot,fig_visible='on';else fig_visible='off';end
 f = figure('visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
-   
+
 legend_str={}; % init
 max_RP_damage = 0;
-h = zeros(length(EDS)+2,1);
 marker_i=1;
 for EDS_i=1:length(EDS)
     [sorted_damage,exceedence_freq]...
@@ -235,7 +239,7 @@ for EDS_i=1:length(EDS)
     exceedence_freq = exceedence_freq(nonzero_pos);
     return_period   = 1./exceedence_freq;
     
-    h(EDS_i)= plot(return_period,sorted_damage,marker_(marker_i,:),'color',color_(marker_i,:),...
+    plot(return_period,sorted_damage,marker_(marker_i,:),'color',color_(marker_i,:),...
         'LineWidth',1.5,'markersize',msize);hold on;marker_i=marker_i+1;
     
     max_damage = interp1(return_period,sorted_damage,plot_max_RP); % interp to plot_max_RP
@@ -247,17 +251,34 @@ end % EDS_i
 green = [0 204 0]/255;
 em_data = emdat_read('',entity.assets.admin0_name,hazard_peril_ID,1);
 if ~isempty(em_data)
-    h(end-1)=plot(em_data.DFC.return_period,em_data.DFC.damage,'diamond','Color','k', ...
+    
+    % we take EDS(1) (which resulted from the original damagefunction) and
+    % adjust it to an EDS that tries to match the EM-DAT damage history
+    [EDS(end+1),climada2emdat_factor_weighted] = climada_EDS_emdat_adjust(EDS(1));
+    if abs(climada2emdat_factor_weighted-1)>10*eps
+        EDS(end).annotation_name = 'damagefun_1_EMDAT_adjusted';
+        
+        [sorted_damage,exceedence_freq]...
+            = climada_damage_exceedence(EDS(end).damage,EDS(end).frequency);
+        nonzero_pos     = find(exceedence_freq);
+        sorted_damage   = sorted_damage(nonzero_pos);
+        exceedence_freq = exceedence_freq(nonzero_pos);
+        return_period   = 1./exceedence_freq;
+        
+        plot(return_period,sorted_damage,marker_(marker_i,:),'color',color_(marker_i,:),...
+            'LineWidth',1.5,'markersize',msize);marker_i=marker_i+1;
+        
+        if isfield(EDS(end),'annotation_name'),legend_str{end+1}=strrep(EDS(end).annotation_name,'_',' ');end
+    end
+    
+    plot(em_data.DFC.return_period,em_data.DFC.damage,'diamond','Color','k', ...
         'MarkerSize',7,'markerfacecolor',green);
     legend_str{end+1} = em_data.DFC.annotation_name;
-    hold on
-    h(end)=plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'o','Color','k',...
-        'MarkerSize',7,'markerfacecolor',green); hold on
+    plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'o','Color','k',...
+        'MarkerSize',7,'markerfacecolor',green);
     legend_str{end+1} = em_data.DFC_orig.annotation_name;
     max_damage=max(em_data.DFC.damage);
     max_RP_damage=max(max_RP_damage,max_damage);
-else
-    max_em_data_DFC_damage=0;
 end % em_data
 
 % add cmp results in case they exist
