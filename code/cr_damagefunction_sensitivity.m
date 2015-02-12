@@ -210,7 +210,6 @@ EDS(end).annotation_name = 'damagefun_1_EMDAT_adjusted';
 %% plot the DFCs resulting from the different EDSs
 % define figure parameters
 msize      = 5;
-legend_str = {};
 color_ = jet(length(EDS));
 marker_ = repmat('o-',[length(EDS)+1,1]);
 marker_(1,:) = '*-';
