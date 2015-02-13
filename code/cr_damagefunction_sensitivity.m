@@ -254,7 +254,7 @@ if ~isempty(em_data)
     
     % we take EDS(1) (which resulted from the original damagefunction) and
     % adjust it to an EDS that tries to match the EM-DAT damage history
-    [EDS(end+1),climada2emdat_factor_weighted] = climada_EDS_emdat_adjust(EDS(1));
+    [EDS(end+1),climada2emdat_factor_weighted] = cr_EDS_emdat_adjust(EDS(1));
     if abs(climada2emdat_factor_weighted-1)>10*eps
         EDS(end).annotation_name = 'damagefun_1_EMDAT_adjusted';
         

@@ -1,20 +1,20 @@
-function [EDS,climada2emdat_factor_weighted,em_data]=climada_EDS_emdat_adjust(EDS,verbose_mode)
+function [EDS,climada2emdat_factor_weighted,em_data]=cr_EDS_emdat_adjust(EDS,verbose_mode)
 % climada template
 % MODULE:
 %   country_risk
 % NAME:
-%   climada_EDS_emdat_adjust
+%   cr_EDS_emdat_adjust
 % PURPOSE:
 %   Given an event damge set (EDS), adjust results to best match EM-DAT
 %   damage history of a given country for a given peril, see also
 %   emdat_read (the raw damage from EM-DAT is scaled up for growth...)
 %
-%   previous call: climada_EDS_calc
-%   See also: emdat_read
+%   previous call: climada_EDS_calc and country_risk_calc
+%   See also: emdat_read and cr_plot_DFC
 % CALLING SEQUENCE:
-%   [EDS,climada2emdat_factor_weighted]=climada_EDS_emdat_adjust(EDS,verbose_mode)
+%   [EDS,climada2emdat_factor_weighted]=cr_EDS_emdat_adjust(EDS,verbose_mode)
 % EXAMPLE:
-%   EDS=climada_EDS_emdat_adjust(climada_EDS_calc)
+%   EDS=cr_EDS_emdat_adjust(climada_EDS_calc)
 % INPUTS:
 %   EDS: an event damge set (EDS), as calculated by climada_EDS_calc
 %       Only one EDS supported, e.g. use EDS(i) as input if EDS is an array
@@ -125,4 +125,4 @@ else
     fprintf('EDS unadjusted, no EM-DAT information for %s %s\n',country_name,peril_ID)
 end % em_data
 
-end % climada_EDS_emdat_adjust
+end % cr_EDS_emdat_adjust

@@ -413,7 +413,7 @@ end % calculate_admin1
 
 % next line to compare with EM-DAT, needs still a bit of work to compare
 % country_risk structure with EM-DAT data
-%climada_EDS_emdat_adjust % not yet fit for country_risk
+%cr_EDS_emdat_adjust % not yet fit for country_risk
 
 % write a short report to stdout
 fprintf('\n\n');

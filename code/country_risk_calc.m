@@ -35,6 +35,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       % Switzerland, using GDP_entity
 %   country_risk=country_risk_calc; % interactive, select country from dropdown
 %   country_risk=country_risk_calc('ALL',1,0,0) % whole world, no figures
+%   country_risk=country_risk_calc(country_name,-7,0,0,['atl_TC';'atl_TS']) % both TC and TS for atl
 % INPUTS:
 %   country_name: name of the country, like 'Switzerland', or a list of
 %       countries, like {'Switzerland','Germany','France'}. See
@@ -61,14 +62,17 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       =7 (for historic, or -7 to use probabilistic sets): skip entity and
 %       hazard set generation, straight to damage calculations (this allows
 %       to avoid any re-generation of - missing - hazard event sets, the
-%       code just takes what's there)
-%       internally: if method<0, probabilistic=1, =0 else (default)
+%       code just takes what's there). In this case, peril_ID can contain
+%       the peril region, too, i.e. 'atl_TC' or 'glb_EQ' and peril_ID can
+%       be a list of IDs, such as peril_ID=['atl_TC';'atl_TS'].
+%
+%       Internally: if method<0, probabilistic=1, =0 else (default)
 %       =sign(.)*(abs(.)+100): use future entities, e.g. -107 uses
 %       future entity, and probabilistic hazards, but skips entity and
 %       hazard calculation.
-%       If method has two elements, the seconf one triggers
+%       If method has two elements, the second one triggers
 %       EDS_emdat_adjust, i.e. if method(2)=1, we adjust the EDS by
-%       comparison with EM-DAT, see climada_EDS_emdat_adjust
+%       comparison with EM-DAT, see cr_EDS_emdat_adjust
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
@@ -77,7 +81,8 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %   peril_ID: if passed on, run all calculations only for specified peril
 %       peril_ID can be 'TC','TS','TR','EQ','WS'..., default='' for all
 %       Once generated, one can also specify the peril region within
-%       peril_ID, such as 'atl_TC'.
+%       peril_ID, such as 'atl_TC'. If method=+/-7, peril_ID can also
+%       contain a list, e.g. peril_ID=['atl_TC';'atl_TS';'EQ']
 %   damagefunctions: if passed, use damagefunctions instead of the one that
 %       comes with the entity (or entities). Replaces entity.damagefunctiuons 
 %       without any further tests. The user is responsible for not messing
@@ -109,6 +114,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
 % David N. Bresch, david.bresch@gmail.com, 20150121, method=7 added
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km added
+% David N. Bresch, david.bresch@gmail.com, 20150213, peril_ID to contain region and multiple perils enabled (if method=+/-7)
 %-
 
 country_risk = []; % init output
@@ -290,6 +296,11 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
         climada_plot_entity_assets(entity,centroids,country_name_char);
     end % check_plots
     
+    if size(peril_ID,1)>1 % we allow one peril here
+        fprintf('Error: more than one peril_ID only allowed for method=+/-7, aborted\n');
+        return
+    end
+
     % 2) figure which hazards affect the country
     % 3) and generate the hazard event sets
     % =================================
@@ -301,6 +312,9 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
     
 else
     
+    % no hazard set generation, just detecting existing hazard event sets
+    % and then running damage calculations
+    
     % figure the existing hazard set files (same procedure as in
     % country_admin1_risk_calc)
     probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
@@ -308,24 +322,44 @@ else
     hazard_files=dir([hazard_dir filesep country_ISO3 '_' ...
         strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
         
-    % some filtering
-    valid_hazard=1:length(hazard_files);
+    % first, filter probabilistic/historic
+    valid_hazard=1:length(hazard_files); % assume all valid, the restrict
     for hazard_i=1:length(hazard_files)
         if probabilistic && ~isempty(strfind(hazard_files(hazard_i).name,'_hist.mat'))
             % filter, depending on probabilistic
-            valid_hazard(hazard_i)=0;
-        end
-        if ~isempty(peril_ID) && isempty(strfind(hazard_files(hazard_i).name,['_' peril_ID]))
-            % filter, depending on peril_ID
             valid_hazard(hazard_i)=0;
         end
     end % hazard_i
     valid_hazard=valid_hazard(valid_hazard>0);
     hazard_files=hazard_files(valid_hazard);
     
+    % second, filter requested hazards (and possibly regions)
+    valid_hazard=[]; % assume all valid, the restrict
+    
+    if ~isempty(peril_ID)
+        % filter for peril
+        for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
+            one_peril_ID=peril_ID(peril_i,:);
+            for hazard_i=1:length(hazard_files)
+                if ~isempty(strfind(hazard_files(hazard_i).name,['_' one_peril_ID]))
+                    % filter, depending on peril_ID
+                    valid_hazard(end+1)=hazard_i;
+                end
+            end % hazard_i
+        end % peril_i
+    end % ~isempty(peril_ID)
+    
+    if isempty(valid_hazard)
+        fprintf('Error: no hazards found, run with another method than +/-7\n')
+        return
+    else
+        hazard_files=hazard_files(valid_hazard);
+    end
+    
+    % store explicit hazard event set files with path (to use load)
     for hazard_i=1:length(hazard_files)
         country_risk.res.hazard(hazard_i).hazard_set_file=[hazard_dir filesep hazard_files(hazard_i).name];
-    end
+    end % hazard_i
     
 end % method<7, if method>=6, skip entity and hazard generation alltogether
 
@@ -348,6 +382,7 @@ if isfield(country_risk.res,'hazard')
     
     for hazard_i=1:hazard_count
         
+        country_risk.res.hazard(hazard_i).entity_file=entity_file; % store each time
         load(entity_file) % load entity
         
         hazard=[]; % init
@@ -355,7 +390,7 @@ if isfield(country_risk.res,'hazard')
         
         if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
             
-            load(country_risk.res.hazard(hazard_i).hazard_set_file)
+            load(country_risk.res.hazard(hazard_i).hazard_set_file)              
             
             % Note that one would need to re-encode assets to each hazard,
             % unless one knows that all hazard event sets are valid on the
@@ -430,16 +465,7 @@ if isfield(country_risk.res,'hazard')
             end % isfield 'peril_ID'
             
             country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
-            
-%             if EDS_emdat_adjust
-%                 [country_risk.res.hazard(hazard_i).EDS,climada2emdat_factor_weighted]=...
-%                     climada_EDS_emdat_adjust(country_risk.res.hazard(hazard_i).EDS);
-% %                 fprintf(3,'%s,%s,%f,%f,%s,%s,%f\n',entity.assets.admin0_ISO3,...
-% %                     entity.assets.admin0_name,sum(entity.assets.Value),...
-% %                     country_risk.res.hazard(hazard_i).EDS.ED,...
-% %                     hazard.peril_ID,hazard_name,climada2emdat_factor_weighted);
-%             end
-            
+                        
         else
             fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
         end

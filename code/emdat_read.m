@@ -188,7 +188,7 @@ em_data.homeless=em_data.homeless(non_zero_damage);
 em_data.disaster_type=em_data.disaster_type(non_zero_damage);
 em_data.total_affected=em_data.total_affected(non_zero_damage);
 nonzero_datacount=length(em_data.damage);
-if verbose_mode,fprintf('%i entries damage>0 (%i raw entries)\n',nonzero_datacount,orig_datacount);end
+if verbose_mode,fprintf('full EM-DAT: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,orig_datacount);end
 
 EMDAT_first_year=min(em_data.year);
 
@@ -252,6 +252,10 @@ if ~isempty(country_name) && isfield(em_data,'country')
         em_data.damage=em_data.damage(country_pos);
         
         EMDAT_first_year=min(em_data.year); % adjust, as not all countries have date since same year
+        
+        nonzero_datacount=sum(em_data.damage>0);
+        if verbose_mode,fprintf('country selection: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,length(em_data.damage));end
+
     else
         fprintf('Error: country %s not found, aborted\n',char(country_name));
         em_data=[];
@@ -266,15 +270,20 @@ end % country_name
 
 if ~isempty(peril_ID) && isfield(em_data,'disaster_subtype')
     
-    match_pos=strcmp(peril_match_table(:,1),peril_ID);
+    peril_pos=[]; % init
+    for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
+        one_peril_ID=peril_ID(peril_i,:);
+        match_pos=strcmp(peril_match_table(:,1),one_peril_ID);
+        
+        if sum(match_pos)>0
+            disaster_subtype=peril_match_table{match_pos,2};
+        else
+            disaster_subtype=one_peril_ID;
+        end
+        peril_pos=[peril_pos;strmatch(disaster_subtype,em_data.disaster_subtype)];
+        
+    end % peril_i
     
-    if sum(match_pos)>0
-        disaster_subtype=peril_match_table{match_pos,2};
-    else
-        disaster_subtype=peril_ID;
-    end
-    
-    peril_pos=strmatch(disaster_subtype,em_data.disaster_subtype);
     if ~isempty(peril_pos)
         %peril_pos = strcmp(disaster_subtype,em_data.disaster_subtype)==1;
         %if sum(peril_pos)>0
@@ -291,6 +300,9 @@ if ~isempty(peril_ID) && isfield(em_data,'disaster_subtype')
         em_data.total_affected=em_data.total_affected(peril_pos);
         em_data.damage=em_data.damage(peril_pos);
         
+        nonzero_datacount=sum(em_data.damage>0);
+        if verbose_mode,fprintf('peril selection: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,length(em_data.damage));end
+
         % we do NOT adjust EMDAT_first_year, as we assume all perils being
         % reported the first year the country is reported
 

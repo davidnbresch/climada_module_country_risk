@@ -34,6 +34,7 @@
 %       comparison with (indexed) EM-DAT damages
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150207, initial
+% David N. Bresch, david.bresch@gmail.com, 20150213, substantially reduced, will be obsolete soon
 %-
 
 close all % as this one produces (too) many plots
@@ -78,7 +79,6 @@ climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track 
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: FAST for checks, using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-% method=-999: to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
 country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
@@ -358,12 +358,7 @@ end
 %
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)
-%
-% the file with target damage frequency curves (DFCs), need to have columns
-% country, peril_ID, return period and damage (TIV and GDP are read, if present)
-% the matching country and peril DFC will be plotted for reference (i.e. to
-% help calibrate climada to any given (other model) results
-target_DFC_file=[climada_global.data_dir filesep 'results' filesep 'target_DFC.xls'];
+
 
 if ~isempty(damagefunctions) && REPLACE_damagefunctions
     fprintf('replacing %s (DamageFunID=1) damage function in:\n',peril_ID)
@@ -382,61 +377,7 @@ end
 
 % calculate damage on admin0 (country) level
 if country_risk_calc_method==-7
-    
     country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID],damagefunctions);
-    
-elseif country_risk_calc_method==-999
-    
-    clear country_risk % since it's a batch code
-    
-    for country_i=1:length(country_list)
-        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
-        
-        fprintf('******** %s %s *****************\n',country_ISO3,country_name)
-        
-        country_risk(country_i).res.country_name = country_name;
-        country_risk(country_i).res.country_ISO3 = country_ISO3;
-        
-        entity_file=[climada_global.data_dir filesep 'entities' filesep ...
-            country_ISO3 '_' strrep(country_name,' ','') '_entity.mat'];
-        
-        if exist(entity_file,'file')
-            load(entity_file) % contains entity
-            
-            if ~isempty(damagefunctions),entity.damagefunctions=damagefunctions;end
-            
-            next_hazard_i=1;
-            hazard_TC_file=[climada_global.data_dir filesep 'hazards' filesep ...
-                country_ISO3 '_' strrep(country_name,' ','') '_' peril_region '_' 'TC.mat'];
-            if exist(hazard_TC_file,'file')
-                country_risk(country_i).res.hazard(next_hazard_i).hazard_set_file=hazard_TC_file;
-                load(hazard_TC_file); % contains hazard
-                country_risk(country_i).res.hazard(next_hazard_i).EDS=climada_EDS_calc(entity,hazard);
-                country_risk(country_i).res.hazard(next_hazard_i).peril_ID='TC';
-                next_hazard_i=next_hazard_i+1;
-            else
-                fprintf('WARNING: %s %s TC hazard not found, skipped\n',country_ISO3,country_name)
-            end
-            
-            load(entity_file) % contains entity, load again to get original damagefunctions
-            hazard_TS_file=[climada_global.data_dir filesep 'hazards' filesep ...
-                country_ISO3 '_' strrep(country_name,' ','') '_' peril_region '_' 'TS.mat'];
-            if exist(hazard_TS_file,'file')
-                country_risk(country_i).res.hazard(next_hazard_i).hazard_set_file=hazard_TS_file;
-                load(hazard_TS_file); % contains hazard
-                % hazard.peril_ID,unique(entity.damagefunctions.peril_ID) % to check
-                country_risk(country_i).res.hazard(next_hazard_i).EDS=climada_EDS_calc(entity,hazard);
-                country_risk(country_i).res.hazard(next_hazard_i).peril_ID='TS';
-                next_hazard_i=next_hazard_i+1;
-            else
-                fprintf('WARNING: %s %s TS hazard not found, skipped\n',country_ISO3,country_name)
-            end
-            
-        else
-            fprintf('WARNING: %s %s entity not found, skipped\n',country_ISO3,country_name)
-        end
-        
-    end % country_i
 else
     country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID,damagefunctions);
 end
@@ -475,202 +416,9 @@ if ~isempty(damage_report_filename)
 end % generate_damage_report
 
 
-if plot_global_DFC
-    
-    % plot the DFCs of all EDSs
-    if show_plot,fig_visible='on';else fig_visible='off';end
-    DFC_fig = figure('Name','EDC','visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
-    max_RP_damage=0; % init
-    
-    % plot the aggregate per event (PE) and annual aggregate (AA) damage
-    % frequency curve for each basin as well as the total global aggregate
-    
-    PE_damage=[];PE_frequency=[]; % init
-    legend_str={}; % init
-    AA_damage=[];AA_frequency=[]; % init for annual aggregate
-    plot_symboll={'-b','-g','-r','-c','-m','-y'}; % line
-    plot_symbold={':b',':g',':r',':c',':m',':y'}; % dotted
-    for EDC_i=1:length(EDC)
-        % the per event perspective:
-        PE_damage=[PE_damage EDC(EDC_i).EDS.damage]; % collect per event damage
-        PE_frequency=[PE_frequency EDC(EDC_i).EDS.frequency]; % collect per event frequency
-        DFC=climada_EDS2DFC(EDC(EDC_i).EDS);
-        plot(DFC.return_period,DFC.damage,plot_symboll{EDC_i},'LineWidth',2);hold on
-        legend_str{end+1}=strrep(EDC(EDC_i).EDS.comment,'_',' ');
-        
-        max_damage = interp1(DFC.return_period,DFC.damage,plot_max_RP); % interp to plot_max_RP
-        max_RP_damage=max(max_RP_damage,max_damage);
-        
-        % and the annual aggregate perspective
-        YDS=climada_EDS2YDS(EDC(EDC_i).EDS);
-        if ~isempty(YDS)
-            AA_damage=[AA_damage YDS.damage]; % collect AA damage
-            AA_frequency=[AA_frequency YDS.frequency]; % collect AA frequency
-            YFC=climada_EDS2DFC(YDS);
-            plot(YFC.return_period,YFC.damage,plot_symbold{EDC_i},'LineWidth',2);hold on
-            legend_str{end+1}=[strrep(EDC(EDC_i).EDS.comment,'_',' ') ' annual aggregate'];
-            
-            max_damage = interp1(YFC.return_period,YFC.damage,plot_max_RP); % interp to plot_max_RP
-            max_RP_damage=max(max_RP_damage,max_damage);
-        end
-    end % EDC_i
-    
-    % the per event perspective:
-    [sorted_damage,exceedence_freq]=climada_damage_exceedence(PE_damage',PE_frequency);
-    nonzero_pos      = find(exceedence_freq);
-    agg_PE_damage       = sorted_damage(nonzero_pos);
-    exceedence_freq  = exceedence_freq(nonzero_pos);
-    agg_PE_return_period    = 1./exceedence_freq;
-    plot(agg_PE_return_period,agg_PE_damage,'-k','LineWidth',2);
-    legend_str{end+1}='full global aggregate';
-    
-    max_damage = interp1(agg_PE_return_period,agg_PE_damage,plot_max_RP); % interp to plot_max_RP
-    max_RP_damage=max(max_RP_damage,max_damage);
-    
-    if ~isempty(AA_damage)
-        % the AA perspective:
-        [sorted_damage,exceedence_freq]=climada_damage_exceedence(AA_damage',AA_frequency);
-        nonzero_pos      = find(exceedence_freq);
-        agg_AA_damage       = sorted_damage(nonzero_pos);
-        exceedence_freq  = exceedence_freq(nonzero_pos);
-        agg_AA_return_period    = 1./exceedence_freq;
-        plot(agg_AA_return_period,agg_AA_damage,':k','LineWidth',2);
-        legend_str{end+1}='full global annual aggregate';
-        
-        max_damage = interp1(agg_AA_return_period,agg_AA_damage,plot_max_RP); % interp to plot_max_RP
-        max_RP_damage=max(max_RP_damage,max_damage);
-        
-    end
-    
-    em_data=emdat_read('',country_list,peril_ID,1,1,CAGR);
-    if ~isempty(em_data)
-        plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'og'); hold on
-        legend_str{end+1}='EM-DAT';
-        
-        plot(em_data.DFC.return_period,em_data.DFC.damage,'xg'); hold on
-        legend_str{end+1}='EM-DAT indexed';
-        
-        max_RP_damage=max(max_RP_damage,max(em_data.DFC.damage));
-        
-        em_data.YDS.DFC=climada_EDS2DFC(em_data.YDS);
-        plot(em_data.YDS.DFC.return_period,em_data.YDS.DFC.damage,'sg'); hold on
-        legend_str{end+1}=em_data.YDS.DFC.annotation_name;
-        
-        max_RP_damage=max(max_RP_damage,max(em_data.YDS.DFC.damage));
-        
-    end
-    
-    legend(legend_str);title([peril_ID ' ' peril_region ' global aggregate'])
-    
-    % zoom to 0..plot_max_RP years return period
-    axis([0 plot_max_RP 0 max_RP_damage]);
-    
-    aggregate_DFC_plot_name=[country_DFC_plot_dir filesep peril_ID '_' peril_region '_aggregate.png'];
-    if ~exist(country_DFC_plot_dir,'dir'),mkdir(country_DFC_plot_dir);end
-    if ~isempty(aggregate_DFC_plot_name),saveas(DFC_fig,aggregate_DFC_plot_name,'png');end
-    if ~show_plot,delete(DFC_fig);end
-    
-end % plot_global_DFC
+if plot_global_DFC,cr_plot_DFC_aggregate(country_risk,EDC,CAGR,1);end
 
-if country_DFC_plot
-    
-    n_entities=length(country_risk);
-    
-    for entity_i=1:n_entities
-        if show_plot,fig_visible='on';else fig_visible='off';end
-        fprintf('%s (%i)\n',country_risk(entity_i).res.country_name,entity_i);
-        
-        if isfield(country_risk(entity_i).res,'hazard') % country exposed
-            
-            n_hazards=length(country_risk(entity_i).res.hazard);
-            for hazard_i=1:n_hazards
-                if ~isempty(country_risk(entity_i).res.hazard(hazard_i).EDS)
-                    
-                    country_name=country_risk(entity_i).res.country_name;
-                    country_ISO3=country_risk(entity_i).res.country_ISO3;
-                    
-                    peril_ID=country_risk(entity_i).res.hazard(hazard_i).EDS.peril_ID;
-                    DFC=climada_EDS2DFC(country_risk(entity_i).res.hazard(hazard_i).EDS);
-                    
-                    DFC_plot = figure('visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
-                    legend_str={};max_RP_damage=0; % init
-                    
-                    plot(DFC.return_period,DFC.damage,'-b','LineWidth',2);hold on
-                    max_damage   =interp1(DFC.return_period,DFC.damage,plot_max_RP); % interp to plot_max_RP
-                    max_RP_damage=max(max_RP_damage,max_damage);
-                    legend_str{end+1}=country_name;
-                    
-                    % add EM-DAT
-                    em_data=emdat_read('',country_name,peril_ID,1,1);
-                    if ~isempty(em_data)
-                        [adj_EDS,climada2emdat_factor_weighted] = climada_EDS_emdat_adjust(country_risk(entity_i).res.hazard(hazard_i).EDS);
-                        if abs(climada2emdat_factor_weighted-1)>10*eps
-                            adj_DFC=climada_EDS2DFC(adj_EDS);
-                            plot(adj_DFC.return_period,adj_DFC.damage,':b','LineWidth',1);
-                            legend_str{end+1}='EM-DAT adjusted';
-                        end
-                        
-                        plot(em_data.DFC.return_period,em_data.DFC.damage,'dg');
-                        legend_str{end+1} = em_data.DFC.annotation_name;
-                        plot(em_data.DFC.return_period,em_data.DFC_orig.damage,'og');
-                        legend_str{end+1} = em_data.DFC_orig.annotation_name;
-                        max_RP_damage=max(max_RP_damage,max(em_data.DFC.damage));
-                    end % em_data
-                    
-                    % add cmp results in case they exist
-                    cmp_DFC_file=[climada_global.data_dir filesep 'results' filesep 'cmp_results' ...
-                        filesep peril_ID filesep country_ISO3 '_' ...
-                        strrep(country_name,' ','') '_' ...
-                        peril_region '_' peril_ID '_cmp_results.xlsx'];
-                    
-                    if exist(cmp_DFC_file,'file')
-                        fprintf('cmp: %s\n',cmp_DFC_file);
-                        DFC_cmp=climada_DFC_read(cmp_DFC_file);
-                        if ~isempty(DFC_cmp)
-                            hold on
-                            plot(DFC_cmp.return_period,DFC_cmp.damage,'-k','LineWidth',2);
-                            max_damage   =interp1(DFC_cmp.return_period,DFC_cmp.damage,plot_max_RP); % interp to plot_max_RP
-                            max_RP_damage=max(max_RP_damage,max_damage);
-                            legend_str{end+1} = 'cmp';
-                        end
-                    end
-                    
-                    if exist(target_DFC_file,'file') && isfield(entity.assets,'admin0_name')
-                        try
-                            target_DFC=climada_spreadsheet_read('no',target_DFC_file,'target_DFC',1);
-                            country_pos=strmatch(country_name,target_DFC.country_name);
-                            peril_pos=strmatch(peril_ID,target_DFC.peril_ID(country_pos));
-                            country_pos=country_pos(peril_pos);
-                            if ~isempty(country_pos)
-                                plot(target_DFC.return_period(country_pos),target_DFC.damage(country_pos),':k','LineWidth',2)
-                                max_damage   =interp1(target_DFC.return_period(country_pos),target_DFC.damage(country_pos),plot_max_RP); % interp to plot_max_RP
-                                max_RP_damage=max(max_RP_damage,max_damage);
-                                legend_str{end+1} = 'target';
-                            end
-                        catch
-                            fprintf('Warning: troubles reading/processing %s\n',target_DFC_file);
-                        end
-                    end
-                    
-                    axis([0 plot_max_RP 0 max_RP_damage]);
-                    
-                    legend(legend_str,'Location','NorthWest'); % show legend
-                    title([peril_ID ' ' peril_region ' ' country_ISO3 ' ' country_name]);
-                    
-                    country_DFC_plot_name=[country_DFC_plot_dir filesep peril_ID '_' ...
-                        peril_region '_' country_ISO3 '_' strrep(country_name,' ','') '_check.png'];
-                    if ~exist(country_DFC_plot_dir,'dir'),mkdir(country_DFC_plot_dir);end
-                    if ~isempty(country_DFC_plot_name),saveas(DFC_plot,country_DFC_plot_name,'png');end
-                    if ~show_plot,delete(DFC_plot);end
-                    
-                end % ~isempty(EDS)
-            end % hazard_i
-            
-        end % country exposed
-        
-    end % entity_i
-    
-end % country_DFC_plot
+if country_DFC_plot,cr_plot_DFC(country_risk,[],[],CAGR,1);end
 
 if country_DFC_sensitivity
     

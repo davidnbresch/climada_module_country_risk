@@ -1,9 +1,9 @@
-function res=country_hazard_comparison(cmp_folder,cmp_file_regexp,scale_value_flag,reference_RP)
-% country_hazard_comparison
+function res=cr_hazard_comparison(cmp_folder,cmp_file_regexp,scale_value_flag,reference_RP)
+% cr_hazard_comparison
 % MODULE:
 %   module name
 % NAME:
-%   country_hazard_comparison
+%   cr_hazard_comparison
 % PURPOSE:
 %   Model comparison (cmp) for countries and hazards
 %
@@ -13,10 +13,10 @@ function res=country_hazard_comparison(cmp_folder,cmp_file_regexp,scale_value_fl
 %
 %   See e.g. climada_DFC_comparison for further scrutiny
 % CALLING SEQUENCE:
-%   country_hazard_comparison(cmp_folder)
+%   cr_hazard_comparison(cmp_folder)
 % EXAMPLE:
-%   country_hazard_comparison
-%   country_hazard_comparison('','*.xlsx',0); % no scaling
+%   cr_hazard_comparison
+%   cr_hazard_comparison('','*.xlsx',0); % no scaling
 % INPUTS:
 %   cmp_folder: folder with model comparison files, i.e. DFC files with
 %       names III_name_rrr_PP_cmp_results with III ISO3, name country name,
@@ -42,11 +42,12 @@ function res=country_hazard_comparison(cmp_folder,cmp_file_regexp,scale_value_fl
 %       DFC.damage(i): the climada damage for return_period(i)
 %       DFC_cmp.damage(i): the comparison damage for return_period(i)
 %   Plus the DFC plots and writes a small report to
-%       'country_hazard_comparison.csv'
+%       'cr_hazard_comparison.csv'
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150120, initial
 % David N. Bresch, david.bresch@gmail.com, 20150122, scale_value_flag
 % David N. Bresch, david.bresch@gmail.com, 20150126, ED also reported
+% David N. Bresch, david.bresch@gmail.com, 20150126, renamed to cr_hazard_comparison (formerly country_hazard_comparison)
 %-
 
 res=[];next_res_i=1; % init output
@@ -322,4 +323,4 @@ end % file_i
 fclose(fid);
 fprintf('results written to %s\n',report_filename);
 
-end % country_hazard_comparison
+end % cr_hazard_comparison
