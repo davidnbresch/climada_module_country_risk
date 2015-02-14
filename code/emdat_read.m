@@ -257,7 +257,7 @@ if ~isempty(country_name) && isfield(em_data,'country')
         if verbose_mode,fprintf('country selection: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,length(em_data.damage));end
 
     else
-        fprintf('Error: country %s not found, aborted\n',char(country_name));
+        fprintf('EM-DAT, error: country %s not found, aborted\n',char(country_name));
         em_data=[];
         return
     end
@@ -307,7 +307,7 @@ if ~isempty(peril_ID) && isfield(em_data,'disaster_subtype')
         % reported the first year the country is reported
 
     else
-        fprintf('Error: peril %s not found\n',char(peril_ID));
+        fprintf('EM-DAT, error: peril %s not found\n',char(peril_ID));
         em_data=[];
         return
     end
@@ -320,7 +320,7 @@ if exposure_growth
 
     % Check if economic data file is available
     if ~exist(GDP_data_file,'file')
-        fprintf('Error: %s is missing, no exposure growth correction\n',GDP_data_file)
+        fprintf('EM-DAT, warning: %s is missing, no exposure growth correction\n',GDP_data_file)
         fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_GDP_entity">climada GDP_entity repository on Github\n</a>');
     else
         

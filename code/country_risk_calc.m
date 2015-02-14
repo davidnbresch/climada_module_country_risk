@@ -23,7 +23,8 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %   Note further that should there be more than one source for TC tracks,
 %   more than one TC hazard set is generated (see centroids_generate_hazard_sets)
 %
-%   next step: country_risk_report, see also country_admin1_risk_calc
+%   next step: country_risk_report, see also country_admin1_risk_calc and
+%   esepcially country_risk_calibrate, plus cr_DFC_plot and cr_DFC_plot_aggregate
 % CALLING SEQUENCE:
 %   country_risk=country_risk_calc(country_name,method,force_recalc,check_plots,peril_ID)
 % EXAMPLE:
@@ -140,7 +141,7 @@ end
 % PARAMETERS
 %
 % whether we automatically adjust to EM-DAT (where available)
-EDS_emdat_adjust=1;
+EDS_emdat_adjust=0; % default=0, see method(2)
 %
 % the folder all data will be stored to, usually the standard climada
 % data tree. But since the option country_name='ALL' creates so many
@@ -411,17 +412,6 @@ if isfield(country_risk.res,'hazard')
             
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
-%              if strfind(hazard.filename,'_wpa_TC')
-%                  fprintf(' >> wpa TC detected, adjusted <<\n')
-%                  entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.01;
-% %                 %hazard.intensity=hazard.intensity/1.15;
-% %                 entity.damagefunctions.Intensity=entity.damagefunctions.Intensity+30;
-% %                 hazard.intensity=hazard.intensity/1.15; % reduce intensity
-% %                 entity.damagefunctions.MDD=entity.damagefunctions.MDD*0.133665;
-% %                 % >> EM-DAT: climada scaling factor 0.059897
-% %                 % >> with intens/1.15, we get EM-DAT: climada scaling factor 0.133665
-%              end
-
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
             
             if ~isempty(damagefunctions)
@@ -465,7 +455,12 @@ if isfield(country_risk.res,'hazard')
             end % isfield 'peril_ID'
             
             country_risk.res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
-                        
+            
+            if EDS_emdat_adjust
+                country_risk.res.hazard(hazard_i).EDS=...
+                    cr_EDS_emdat_adjust(country_risk.res.hazard(hazard_i).EDS,1);
+            end
+            
         else
             fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
         end

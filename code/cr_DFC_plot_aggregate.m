@@ -1,9 +1,9 @@
-function cr_plot_DFC_aggregate(country_risk,EDC,CAGR,show_plot)
+function cr_DFC_plot_aggregate(country_risk,EDC,CAGR,show_plot)
 % climada template
 % MODULE:
 %   country_risk
 % NAME:
-%   cr_plot_DFC_aggregate
+%   cr_DFC_plot_aggregate
 % PURPOSE:
 %   Plot the combined global damage frequency curve (DFC) and the annual
 %   aggregate DFC 
@@ -13,25 +13,28 @@ function cr_plot_DFC_aggregate(country_risk,EDC,CAGR,show_plot)
 %   comparison with EM-DAT might be misleading - as it should anyway be
 %   taken with a pinch of salt...)
 %
-%   Previous call: country_risk_EDS_combine
-%   See also: cr_plot_DFC (country instead of aggrgate results)
+%   Previous call: country_risk_calc or country_risk_EDS_combine
+%   See also: cr_DFC_plot (country instead of aggrgate results)
 % CALLING SEQUENCE:
-%   cr_plot_DFC_aggregate(country_risk,EDC,CAGR,show_plot)
+%   cr_DFC_plot_aggregate(country_risk,EDC,CAGR,show_plot)
 % EXAMPLE:
 %   % let's assume country_risk_calc has been run for this list with
 %   % method=-3 (create hazard event sets) already, then:
 %   country_list={'Colombia','Costa Rica','Dominican Republic'};
 %   country_risk=country_risk_calc(country_list,-7,0,0,['atl_TC';'atl_TS']); % calc EDS
 %   [country_risk,EDC]=country_risk_EDS_combine(country_risk); % combine TC and TS and calculate EDC
-%   cr_plot_DFC_aggregate(country_risk,EDC)
+%   cr_DFC_plot_aggregate(country_risk,EDC)
 % INPUTS:
-%   country_risk: the output of country_risk_EDS_combine, see there
-%       note that country_risk_EDS_combine is just called after
+%   country_risk: the output of country_risk_calc or country_risk_EDS_combine.
+%       Note that country_risk_EDS_combine is just called after
 %       country_risk_calc to combine sub-peril EDSs and to produce the EDC,
 %       the maximally combined EDS (i.e. one global EDS per peril and
-%       region)
-%   EDC: the output of country_risk_EDS_combine, see there
+%       region). If you do not provide the EDC (2nd parameter),
+%       cr_DFC_plot_aggregate does in fact call country_risk_EDS_combine
+%       itself.
 % OPTIONAL INPUT PARAMETERS:
+%   EDC: the output of country_risk_EDS_combine, see there. If empty, the
+%       code runs country_risk_EDS_combine to obtain it.
 %   CAGR: the compound annual growth rate to inflate historic EM-DAT
 %       damages with, if empty, the default value is used (climada_global.global_CAGR)
 %   show_plot: =1 (default) show the plot, 0= just create and save the plot
@@ -45,7 +48,7 @@ global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 if ~exist('country_risk','var'),return;end
-if ~exist('EDC','var'),return;end
+if ~exist('EDC','var'),EDC=[];end
 if ~exist('CAGR','var'),CAGR=[];end
 if ~exist('show_plot','var'),show_plot=1;end
 
@@ -63,6 +66,11 @@ DFC_plot_dir=[climada_global.data_dir filesep 'results' filesep 'cr_results'];
 plot_max_RP=250;
 %
 if isempty(CAGR),CAGR=climada_global.global_CAGR;end % default CAGR
+
+if isempty(EDC)
+    fprintf('calling country_risk_EDS_combine...\n');
+    [country_risk,EDC]=country_risk_EDS_combine(country_risk);
+end
 
 % plot the aggregate per event (PE) and annual aggregate (AA) damage
 % frequency curve for each basin as well as the total global aggregate
@@ -200,4 +208,4 @@ if ~isempty(DFC_plot_name)
 end
 if ~show_plot,delete(DFC_fig);end
 
-end % cr_plot_DFC_aggregate
+end % cr_DFC_plot_aggregate

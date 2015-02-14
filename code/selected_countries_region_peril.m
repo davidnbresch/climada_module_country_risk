@@ -52,9 +52,6 @@ dmf_info_str=''; % init
 % whether we show the figures (=0 to produce and save figure without showing it)
 show_plot=1; % default=1
 %
-% whether we are actually REPLACEing damagefunctions in entities, rather
-% than just temporarily using them (code Stops after this)
-REPLACE_damagefunctions=0; % default=0
 damagefunctions=[]; % init, see below
 %
 % set parameters to get started (if called without setting any parameters)
@@ -111,54 +108,53 @@ plot_max_RP=250; % the maxium RP we show (to zoom in a bit)
 switch [peril_region '_' peril_ID]
     
     case 'atl_TC'
-        country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
-        %         country_list={ % the list of reasonable countries to calibrate atl TC
-        %             'Anguilla'
-        %             'Antigua and Barbuda'
-        %             'Aruba'
-        %             'Bahamas'
-        %             'Barbados'
-        %             'Belize'
-        %             'Bermuda'
-        %             'British Virgin Islands'
-        %             'Cayman Islands'
-        %%             'Colombia'
-        %%             'Costa Rica'
-        %             'Cuba'
-        %             'Dominica'
-        %%             'Dominican Republic'
-        %             'El Salvador'
-        %             'Grenada'
-        %             'Guatemala'
-        %             'Guyana'
-        %             'Haiti'
-        %             'Honduras'
-        %             'Jamaica'
-        %%             'Mexico'
-        %             'Nicaragua'
-        %%             'Panama'
-        %             'Puerto Rico'
-        %             'Saint Kitts and Nevis'
-        %             'Saint Lucia'
-        %             %'Saint Martin' % NOT supported in climada_create_GDP_entity
-        %             'Saint Pierre and Miquelon'
-        %             'Saint Vincent and the Grenadines'
-        %             'Sao Tome and Principe'
-        %             'Trinidad and Tobago'
-        %             'Turks and Caicos Islands'
-        %             'US Virgin Islands'
-        %%             'United States'
-        %             'Venezuela'
-        %             };
-        
-        country_list={ % atl exposed from selected_countries_all_in_one
+        country_list={ % the list of reasonable countries to calibrate atl TC
+            'Anguilla'
+            'Antigua and Barbuda'
+            'Aruba'
+            'Bahamas'
+            'Barbados'
+            'Belize'
+            'Bermuda'
+            'British Virgin Islands'
+            'Cayman Islands'
             'Colombia'
             'Costa Rica'
+            'Cuba'
+            'Dominica'
             'Dominican Republic'
+            'El Salvador'
+            'Grenada'
+            'Guatemala'
+            'Guyana'
+            'Haiti'
+            'Honduras'
+            'Jamaica'
             'Mexico'
+            'Nicaragua'
             'Panama'
+            'Puerto Rico'
+            'Saint Kitts and Nevis'
+            'Saint Lucia'
+            %'Saint Martin' % NOT supported in climada_create_GDP_entity
+            'Saint Pierre and Miquelon'
+            'Saint Vincent and the Grenadines'
+            'Sao Tome and Principe'
+            'Trinidad and Tobago'
+            'Turks and Caicos Islands'
+            'US Virgin Islands'
             'United States'
+            'Venezuela'
             };
+        
+%         country_list={ % atl exposed from selected_countries_all_in_one
+%             'Colombia'
+%             'Costa Rica'
+%             'Dominican Republic'
+%             'Mexico'
+%             'Panama'
+%             'United States'
+%             };
         
         % the compound annual growth rate to inflate historic EM-DAT damages with
         CAGR=0.05; % 8% growth in wpa-exposed countries (for sure more than the global average 2%)
@@ -169,7 +165,6 @@ switch [peril_region '_' peril_ID]
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(1:5:120,20,1,0.9,'s-shape','TC',0);
         
     case 'wpa_TC'
-        country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
         % the list of reasonable countries to calibrate wpa TC
         country_list={
             'Cambodia'
@@ -228,9 +223,7 @@ switch [peril_region '_' peril_ID]
         
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(1:5:120,15,1,1.0,'s-shape','TC',0);
         
-    case 'she_TC'
-        country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
-        
+    case 'she_TC'        
         country_list={ % TC she exposed from selected_countries_all_in_one
             'Australia'
             'Indonesia'
@@ -245,7 +238,6 @@ switch [peril_region '_' peril_ID]
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(1:5:120,20,1,1.0,'s-shape','TC',0); % 15 to 25
         
     case 'nio_TC'
-        country_risk_calc_method=-999; % to force combination of TC and TS into TC (not calling country_risk_calc, all done in code below)
         
         country_list={ % nio exposed from selected_countries_all_in_one
             'Bangladesh'
@@ -359,25 +351,10 @@ end
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off (especially without Xwindows)
 
-
-if ~isempty(damagefunctions) && REPLACE_damagefunctions
-    fprintf('replacing %s (DamageFunID=1) damage function in:\n',peril_ID)
-    for country_i=1:length(country_list)
-        [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
-        fprintf('- %s %s\n',country_ISO3,country_name)
-        entity_file=[climada_global.data_dir filesep 'entities' filesep ...
-            country_ISO3 '_' strrep(country_name,' ','') '_entity.mat'];
-        load(entity_file)
-        entity=climada_damagefunctions_replace(entity,damagefunctions);
-        save(entity_file,'entity');
-    end % country_i
-    fprintf('STOP after replacing damage functions (set damagefunctions=[])\n')
-    return
-end
-
 % calculate damage on admin0 (country) level
 if country_risk_calc_method==-7
-    country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID],damagefunctions);
+    %country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,[peril_region  '_' peril_ID],damagefunctions);
+    country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,['atl_TC';'atl_TS'],damagefunctions);
 else
     country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID,damagefunctions);
 end
@@ -416,9 +393,9 @@ if ~isempty(damage_report_filename)
 end % generate_damage_report
 
 
-if plot_global_DFC,cr_plot_DFC_aggregate(country_risk,EDC,CAGR,1);end
+if plot_global_DFC,cr_DFC_plot_aggregate(country_risk,EDC,CAGR,1);end
 
-if country_DFC_plot,cr_plot_DFC(country_risk,[],[],CAGR,1);end
+if country_DFC_plot,cr_DFC_plot(country_risk,[],[],CAGR,1);end
 
 if country_DFC_sensitivity
     

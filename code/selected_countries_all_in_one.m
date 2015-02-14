@@ -220,6 +220,9 @@ if generate_entities
             climada_entity_value_GDP_adjust(entity_future_file); % assets based on GDP
         end
     end % country_i
+    
+    ok=country_risk_calibrate('ALL'); % calibrate ALL countries
+
     return
 end % generate_entities
 
@@ -244,9 +247,6 @@ end % add_distance2coast
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
 country_risk=country_risk_EDS_combine(country_risk); % combine TC and TS
 
-% adjust country Value
-%cr_entity_value_adjust % Melanie's code
-
 if calculate_admin1
     % calculate damage on admin1 (state/province) level
     probabilistic=0;if country_risk_calc_method<0,probabilistic=1;end
@@ -254,11 +254,9 @@ if calculate_admin1
     country_risk1=country_risk_EDS_combine(country_risk1); % combine TC and TS
 end
 
-% annual aggregate where appropriate - NOT IMPLEMENTED YET
+% annual aggregate (as we're not so much interested in per
+% event/occurrence) in this context
 country_risk=country_risk_EDS2YDS(country_risk);
-
-% calibrate property damage - NOT IMPLEMENTED YET
-% see climada_DFC_compare (and call it for country_risk structure)
 
 if generate_property_damage_report
     if calculate_admin1

@@ -1,9 +1,9 @@
-function cr_plot_DFC(country_risk,country_i,hazard_i,CAGR,show_plot)
+function cr_DFC_plot(country_risk,country_i,hazard_i,CAGR,show_plot)
 % climada template
 % MODULE:
 %   country_risk
 % NAME:
-%   cr_plot_DFC
+%   cr_DFC_plot
 % PURPOSE:
 %   Plot the country damage frequency curves (DFC)
 %
@@ -13,17 +13,17 @@ function cr_plot_DFC(country_risk,country_i,hazard_i,CAGR,show_plot)
 %   taken with a pinch of salt...)
 %
 %   Previous call: country_risk_calc or country_risk_EDS_combine
-%   See also: cr_plot_DFC_aggregate (aggregate results for peril regions)
+%   See also: cr_DFC_plot_aggregate (aggregate results for peril regions)
 % CALLING SEQUENCE:
-%   cr_plot_DFC(country_risk,country_i,hazard_i,CAGR,show_plot)
+%   cr_DFC_plot(country_risk,country_i,hazard_i,CAGR,show_plot)
 % EXAMPLE:
 %   % let's assume country_risk_calc has been run for this list with
 %   % method=-3 (create hazard event sets) already, then:
 %   country_list={'Colombia','Costa Rica','Dominican Republic'};
 %   country_risk=country_risk_calc(country_list,-7,0,0,['atl_TC';'atl_TS']); % calc EDS
 %   [country_risk,EDC]=country_risk_EDS_combine(country_risk); % combine TC and TS and calculate EDC
-%   cr_plot_DFC(country_risk)
-%   cr_plot_DFC(country_risk,1,2,[],1) % 1st country, 2nd hazard only
+%   cr_DFC_plot(country_risk)
+%   cr_DFC_plot(country_risk,1,2,[],1) % 1st country, 2nd hazard only
 % INPUTS:
 %   country_risk: the output of country_risk_EDS_combine, see there
 %       note that country_risk_EDS_combine is just called after
@@ -65,6 +65,7 @@ DFC_plot_dir=[climada_global.data_dir filesep 'results' filesep 'cr_results'];
 plot_max_RP=250;
 %
 if isempty(CAGR),CAGR=climada_global.global_CAGR;end % default CAGR
+%
 % the file with target damage frequency curves (DFCs), need to have columns
 % country, peril_ID, return period and damage (TIV and GDP are read, if present)
 % the matching country and peril DFC will be plotted for reference (i.e. to
@@ -212,4 +213,4 @@ for entity_i=1:n_entities
     
 end % entity_i
 
-end % cr_plot_DFC
+end % cr_DFC_plot
