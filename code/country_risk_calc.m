@@ -334,10 +334,10 @@ else
     valid_hazard=valid_hazard(valid_hazard>0);
     hazard_files=hazard_files(valid_hazard);
     
-    % second, filter requested hazards (and possibly regions)
-    valid_hazard=[]; % assume all valid, the restrict
     
     if ~isempty(peril_ID)
+        % second, filter requested hazards (and possibly regions)
+        valid_hazard=[]; % only pick the needed ones
         % filter for peril
         for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
             one_peril_ID=peril_ID(peril_i,:);
@@ -348,14 +348,16 @@ else
                 end
             end % hazard_i
         end % peril_i
+        
+        if isempty(valid_hazard)
+            fprintf('Error: no hazards found, run with another method than +/-7\n')
+            return
+        else
+            hazard_files=hazard_files(valid_hazard);
+        end
+        
     end % ~isempty(peril_ID)
     
-    if isempty(valid_hazard)
-        fprintf('Error: no hazards found, run with another method than +/-7\n')
-        return
-    else
-        hazard_files=hazard_files(valid_hazard);
-    end
     
     % store explicit hazard event set files with path (to use load)
     for hazard_i=1:length(hazard_files)

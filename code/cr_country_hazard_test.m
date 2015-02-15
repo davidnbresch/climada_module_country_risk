@@ -94,24 +94,44 @@ if show_plot<0,close all;show_plot=abs(show_plot);end
 %
 if isempty(CAGR),CAGR=climada_global.global_CAGR;end % default CAGR
 
+entity_future=[]; % not used, just to allow code clocks to be copied from country_risk_calibrate
+dmf_info_str='';
+
 % load entity and hazard
 load(country_risk(country_i).res.hazard(hazard_i).entity_file); % entity
 load(country_risk(country_i).res.hazard(hazard_i).hazard_set_file); % hazard
 
-% *********************************************************
-% ****** here edit the damage function ********************
+country_name_char=country_risk(country_i).res.country_name;
 
-if strcmp(country_risk(country_i).res.hazard(hazard_i).peril_ID,'TC')
-    [damagefunctions,dmf_info_str]=climada_damagefunction_generate(1:5:120,20,1,0.9,'s-shape','TC',0);
-    fprintf('%s TC: %s\n',country_risk(country_i).res.country_name,dmf_info_str);
-    entity=climada_damagefunctions_replace(entity,damagefunctions);
-end
+% *********************************************************
+% ****** edit the damage function below *******************
+
+% you can usually copy/paste such a code block once ok to country_risk_calibrate
+
+%if strcmp(country_risk(country_i).res.hazard(hazard_i).peril_ID,'TS')
+
+[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
+fprintf('%s TS atl: %s\n',country_name_char,dmf_info_str);
+entity=climada_damagefunctions_replace(entity,damagefunctions);
+% 
+% [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,30,1,1,'s-shape','TC',0);
+% fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
+% entity=climada_damagefunctions_replace(entity,damagefunctions);
+
+[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,25,1,0.4,'s-shape','TC',0);
+fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
+entity=climada_damagefunctions_replace(entity,damagefunctions);
+     
+%climada_damagefunctions_plot(entity) % plot damagefunctions
+
+%end
 
 % ****** end edit the damage function  ********************
 % *********************************************************
 
 % re-calculate the damages
 country_risk(country_i).res.hazard(hazard_i).EDS=climada_EDS_calc(entity,hazard);
+%country_risk(country_i).res.hazard(hazard_i).EDS.ED
 
 % plot the result
 if show_plot,cr_DFC_plot(country_risk,country_i,hazard_i,CAGR,1);end

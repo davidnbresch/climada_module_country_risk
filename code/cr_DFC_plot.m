@@ -125,6 +125,7 @@ for entity_i=1:n_entities
                     fprintf('\n*** %s %s (%i) %s %s (%i) ***\n',...
                         char(country_ISO3),char(country_name),entity_i,char(peril_ID),char(peril_region),hazard_ii);
                     
+                    Value=country_risk(entity_i).res.hazard(hazard_ii).EDS.Value;
                     DFC=climada_EDS2DFC(country_risk(entity_i).res.hazard(hazard_ii).EDS);
                     
                     DFC_plot = figure('Name','DFC','visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
@@ -136,7 +137,7 @@ for entity_i=1:n_entities
                     legend_str{end+1}=country_name;
                     
                     % add EM-DAT
-                    em_data=emdat_read('',country_name,peril_ID,1,0); % last parameter =1 for verbose
+                    em_data=emdat_read('',country_name,peril_ID,1,0,CAGR); % last parameter =1 for verbose
                     if ~isempty(em_data)
                         [adj_EDS,climada2emdat_factor_weighted] = cr_EDS_emdat_adjust(country_risk(entity_i).res.hazard(hazard_ii).EDS);
                         if abs(climada2emdat_factor_weighted-1)>10*eps
@@ -163,6 +164,8 @@ for entity_i=1:n_entities
                         DFC_cmp=climada_DFC_read(cmp_DFC_file);
                         if ~isempty(DFC_cmp)
                             hold on
+                            fprintf('cmp value:%2.2g (climada value %2.2g)\n',DFC_cmp.value,Value);
+                            DFC_cmp.damage=DFC_cmp.damage/DFC_cmp.value*Value; % scale
                             plot(DFC_cmp.return_period,DFC_cmp.damage,'-k','LineWidth',2);
                             max_damage   =interp1(DFC_cmp.return_period,DFC_cmp.damage,plot_max_RP); % interp to plot_max_RP
                             max_RP_damage=max(max_RP_damage,max_damage);
@@ -177,6 +180,9 @@ for entity_i=1:n_entities
                         peril_pos=strmatch(peril_ID,target_DFC.peril_ID(country_pos));
                         country_pos=country_pos(peril_pos);
                         if ~isempty(country_pos)
+                            target_Value=target_DFC.value(country_pos(1));
+                            fprintf('target value:%2.2g (climada value %2.2g)\n',target_Value,Value);
+                            target_DFC.damage(country_pos)=target_DFC.damage(country_pos)/target_Value*Value; % scale
                             plot(target_DFC.return_period(country_pos),target_DFC.damage(country_pos),':k','LineWidth',2)
                             max_damage   =interp1(target_DFC.return_period(country_pos),target_DFC.damage(country_pos),plot_max_RP); % interp to plot_max_RP
                             max_RP_damage=max(max_RP_damage,max_damage);

@@ -23,6 +23,8 @@
 % David N. Bresch, david.bresch@gmail.com, 20150105
 % David N. Bresch, david.bresch@gmail.com, 20150116, almost complete
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
+% David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
+% David N. Bresch, david.bresch@gmail.com, 20150215, country calibration added at the bottom (all commented out, see there)
 %-
 
 global climada_global
@@ -45,7 +47,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % --------------------------------------
 %
 % to check for climada-conformity of country names
-check_country_names=1; % default=0, if=1, stops after check
+check_country_names=0; % default=0, if=1, stops after check
 %
 % to generate entities
 generate_entities=0; % default=0, if=1, stops after
@@ -221,8 +223,8 @@ if generate_entities
         end
     end % country_i
     
-    ok=country_risk_calibrate('ALL'); % calibrate ALL countries
-
+    ok=country_risk_calibrate(country_list); % calibrate countries
+    
     return
 end % generate_entities
 
@@ -242,6 +244,9 @@ if add_distance2coast
     end % country_i
     return
 end % add_distance2coast
+
+% FORCE calibration (since it might not have run yet)
+ok=country_risk_calibrate(country_list); % calibrate countries
 
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
@@ -272,3 +277,169 @@ country_risk_economic_loss=cr_economic_loss_calc(country_risk);
 if generate_economic_loss_report
     country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
 end
+
+
+
+
+
+
+
+
+% below the section which plots all country/peril damage frequency curves
+% (DFCs) and we noted the calibration comments  
+
+% ----------------------------------------------------------------
+% all commented out, i.e. uncomment and copy/past sections to command
+% window
+
+% % TC/TS atl
+% % ---------
+% % USA looks perfect, good match EM-DAT and cmp
+% % Panama ok, EM-DAT would indicate higher (but return period with 2 damages?)
+% % Mexico also very good (at high req good match with EM-DAT an cmp), steep
+% %   increase >200yr, hence 250yr climada damage too high, but 100 yr fine
+% % Dominican Republic: climada TC originally too high, adjusted to get close to
+% %   EM-DAT, climada TS far too high adjusted down to get close to EM-DAT
+% % Costa Rica: unchanged, looks pretty steep, but range of EM-DAT indicates
+% %   that we're too cheap for say 20yr, but might be about ok for 100+ years)
+% % Colombia looked like Dominican Republic, hence same adjustment, now good
+% %   fit with EM-DAT
+% % annual aggregate looks really good, almost too got match with EM-DAT
+% country_list={ % atl exposed from selected_countries_all_in_one
+%     'Colombia'
+%     'Costa Rica'
+%     'Dominican Republic'
+%     'Mexico'
+%     'Panama'
+%     'United States'
+%     };
+% peril_ID=['atl_TC';'atl_TS'];
+% country_risk_calibrate(country_list); % to be on the safe side
+% country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
+% cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.05,1)
+% cr_DFC_plot_aggregate(country_risk,[],0.05,1)
+% 
+% % TC/TS nio
+% % ---------
+% % Pakistan: climada very low, but left as is (TC not a big threat there)
+% % India: climada much lower than EM-DAT, but substatially higher than cmp, left as is
+% % Bangladesh: climada much lower than EM-DAT, left as is for the time being
+% %   annual aggregate combined looks reasonable, a bit ower than EM-DAT
+% % Myanmar hard to compare, not adjusted
+% country_list={'Bangladesh','India','Pakistan','Myanmar'}; % nio exposed from selected_countries_all_in_one
+% peril_ID=['nio_TC';'nio_TS'];
+% country_risk_calibrate(country_list); % to be on the safe side
+% country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
+% cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.07,1)
+% cr_DFC_plot_aggregate(country_risk,[],0.07,1)
+% 
+% % TC/TS wpa
+% % ---------
+% % Vietnam looks ok, good match with EM-DAT
+% % Thailand ok, might be too low, good match with EM-DAT unindexed, kept for the time being
+% % Taiwan was completly off (and EM-DAT is at least an order of magnitude
+% %   lower than cmp. clmada adjusted to match cmp for 250 yr (still far above EM-DAT)
+% % Korea adjusted to be cloase to EM-DAT
+% % Singapore not adjusted (no EM-DAT)
+% % Philippines adjusted to match EM-DAT (and getting in the cmp range, too)
+% % Myanmar moved to nio
+% % Laos no further adjustment, only 2 EM-DAT points, range of 200yr event
+% %   covered by mac EM-DAT
+% % Japan TS adjusted to be in EM-DAT range (upper bound at 5% CAGR, only one point), TC also adjusted, but shape not
+% %   really nicee. Does compare well with cmp for 100 yr, 250 yr rather high
+% %   end
+% % Indonesia no adjustment, no EM-DAT
+% % China: 12% CAGR, TC tuned to upper bound of EM-DAT (as in China, the
+% %   asset base grew at least as much as GDP), compares very well with cmp
+% country_list={ % wpa exposed from selected_countries_all_in_one
+%     'Cambodia'
+%     'China'
+%     'Indonesia'
+%     'Japan'
+%     'Laos'
+%     'Philippines'
+%     'Singapore'
+%     'Korea'
+%     'Taiwan'
+%     'Thailand'
+%     'Vietnam'
+%     };
+% peril_ID=['wpa_TC';'wpa_TS'];
+% country_risk_calibrate(country_list); % to be on the safe side
+% country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
+% cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.085,1) % 8.5% (0.085) CAGR for the region
+% cr_DFC_plot_aggregate(country_risk,[],0.085,1) % 8.5% (0.085) CAGR for the region
+% 
+% % TC/TS she
+% % ---------
+% % Australia TS matches well, TS massively adjusted (was far too high)
+% %   combined ow matchinf EM-DAT (upper end) and cmp (very well)
+% % Indonesia TC and TS manually adjusted (no EM-DAT) to be correct order of
+% %   magnitude
+% % New Zealand same as Indonesia, but not much TC/TS exposed
+% country_list={ % TC she exposed from selected_countries_all_in_one
+%     'Australia'
+%     'Indonesia'
+%     'New Zealand'
+%     };
+% peril_ID=['she_TC';'she_TS'];
+% country_risk_calibrate(country_list); % to be on the safe side
+% country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
+% cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.05,1) % 5% (0.05) CAGR for the region
+% cr_DFC_plot_aggregate(country_risk,[],0.05,1) % 5% (0.05) CAGR for the region
+% 
+% % EQ glb
+% % ------
+% 
+% country_list={ % EQ glb exposed from selected_countries_all_in_one
+%     'Algeria'
+%     'Australia'
+%     'Austria'
+%     'Bangladesh'
+%     'Brazil'
+%     'Canada'
+%     'Chile'
+%     'China'
+%     'Colombia'
+%     'Costa Rica'
+%     'Dominican Republic'
+%     'Ecuador'
+%     'France'
+%     'Germany'
+%     'Greece'
+%     'Hungary'
+%     'India'
+%     'Indonesia'
+%     'Israel'
+%     'Italy'
+%     'Japan'
+%     'Kenya'
+%     'Laos'
+%     'Mexico'
+%     'Morocco'
+%     'Myanmar'
+%     'Netherlands'
+%     'New Zealand'
+%     'Pakistan'
+%     'Panama'
+%     'Peru'
+%     'Philippines'
+%     'Portugal'
+%     'Slovenia'
+%     'South Africa'
+%     %'Switzerland' % no hazard set at the moment
+%     'Korea'
+%     'Spain'
+%     'Taiwan'
+%     'Thailand'
+%     'Turkey'
+%     'United Kingdom'
+%     'United States'
+%     'Vietnam'
+%     };
+% peril_ID='glb_EQ';
+% 
+% country_risk_calibrate(country_list); % to be on the safe side
+% country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
+% cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.05,1) % 5% CAGR globally
+% cr_DFC_plot_aggregate(country_risk,[],0.05,1) % % 5% CAGR globally
