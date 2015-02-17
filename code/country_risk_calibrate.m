@@ -31,6 +31,7 @@ function ok=country_risk_calibrate(country_name)
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150214, initial
+% David N. Bresch, david.bresch@gmail.com, 20150217, Philippines and Taiwan re-adjusted
 %-
 
 ok=[]; % init output
@@ -137,6 +138,13 @@ switch country_name_char
             'Venezuela'
             }
         
+        % Panama ok, EM-DAT would indicate higher (but return period with 2 damages?)
+        % Mexico also very good (at high RP good match with EM-DAT), steep
+        %   increase >200yr, hence 250yr climada damage too high, but 100 yr fine
+        % Costa Rica: unchanged, looks pretty steep, but range of EM-DAT indicates
+        %   that we're too cheap for say 20yr, but might be about ok for 100+ years)
+        % annual aggregate full TC atl looks really good, almost too good a match with EM-DAT ;-)
+
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1.0,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -144,6 +152,8 @@ switch country_name_char
         
     case {'United States'} % TC/TS atl
         
+        % USA looks good, good match EM-DAT
+
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
         fprintf('%s TS atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -156,6 +166,10 @@ switch country_name_char
         
     case {'Dominican Republic','Colombia'} % TC/TS atl
         
+        % Dominican Republic: climada TC originally too high, adjusted to get close to
+        %   EM-DAT, climada TS far too high adjusted down to get close to EM-DAT
+        % Colombia looked like Dominican Republic, hence same adjustment, now good fit with EM-DAT
+
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,20,1,0.45,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -182,6 +196,13 @@ switch country_name_char
             'Vietnam'
             }
         
+        % Vietnam looks ok, good match with EM-DAT
+        % Thailand ok, might be too low, good match with EM-DAT unindexed, kept for the time being
+        % Singapore not adjusted (no EM-DAT)
+        % Laos no further adjustment, only 2 EM-DAT points, range of >200yr
+        %   damge to be in the range of max(EM-DAT)
+        % Indonesia no adjustment, no EM-DAT
+
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1.0,'s-shape','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -189,6 +210,8 @@ switch country_name_char
         
     case {'China'} % TC/TS
         
+        % China: TC tuned to upper bound of EM-DAT (12% CAGR, in China, the asset base grew more than GDP)
+
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,30,3,0.6,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -201,6 +224,8 @@ switch country_name_char
         
     case {'Japan'} % TC/TS
         
+         % Japan TS adjusted to be in EM-DAT range (upper bound at 5% CAGR, only one point)
+         %  TC also adjusted, but shape not really nice. 
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,45,4,0.5,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -213,30 +238,38 @@ switch country_name_char
         
     case {'Philippines'} % TC/TS
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,35,2,0.75,'exp','TC',0);
+        % Philippines adjusted to match EM-DAT
+
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,33,3,0.75,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
     case {'Taiwan'} % TC/TS
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
-        fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
+        % Taiwan was completly off. EM-DAT looks very low, except for
+        %   largest damage - in the far past, hence inflation might
+        %   overcompensate. Thus adjusted to match EM-DAT in between
+
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,35,3,0.6,'exp','TC',0);
+        fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,35,3,0.45,'s-shape','TC',0);
-        fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
+        fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
     case {'Korea'} % TC
         
+        % Korea adjusted to be close to EM-DAT
+
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,35,2,0.5,'s-shape','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -248,15 +281,23 @@ switch country_name_char
             'Myanmar' % moved from wpa
             }
         
+        % Pakistan: climada very low, but left as is (TC not a big threat there)
+        % India: climada for high RP much lower than EM-DAT, but loos like reasonable an extrap for <100yr, thus left as is
+        % Bangladesh: climada much lower than EM-DAT, left as is for the time being
+        %   annual aggregate combined looks reasonable, a bit ower than EM-DAT
+        % Myanmar hard to compare, not adjusted either
+        % TC nio basin aggregate low for high RP, but looks reasonable an extrap for <100yr
+        
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,2,1.0,'s-shape','TC',0); % 15 to 20
         fprintf('%s TC nio: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-    case {'Australia' % TS she
-            'New Zealand'
-            }
+    case {'Australia'} % TS she
         
+        % Australia TS matches well, TS massively adjusted (was far too high)
+        %   combined ow matchinf EM-DAT (upper end)
+
         % TS, an example of an explicit function
         damagefunctions.Intensity=[0 0.5 1 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5 7 7.5 8 10 16]';
         damagefunctions.MDD=[0 0.002 0.004 0.01 0.02 0.04 0.06 0.08 0.1 0.12 0.13 0.135 0.14 0.142 0.144 0.145 0.145 0.145 0.145]';
@@ -266,15 +307,31 @@ switch country_name_char
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-    case {'Indonesia'} % TC/TS she
+    case {'New Zealand'} % TS she
+        
+        % New Zealand not much TC/TS exposed, no EM-DAT, just a generic curve
+        
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
+        fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
+        entity=climada_damagefunctions_replace(entity,damagefunctions);
+        if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
+    case {'Indonesia'} % TC/TS she
+        
+        % Indonesia TC and TS manually adjusted (no EM-DAT) to be correct order of magnitude
+
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+        fprintf('%s TS she: %s\n',country_name_char,dmf_info_str);
+        entity=climada_damagefunctions_replace(entity,damagefunctions);
+        if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+        
         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,30,1,1,'s-shape','TC',0);
-        fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
+        fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         

@@ -27,7 +27,7 @@ function country_risk=cr_country_hazard_test(country_risk,country_i,hazard_i,CAG
 %     Note that especially the comparison with EM-DAT makes only sense for
 %     either larger countries or a group of smaller ones - otherwise it
 %     might be too much due to chance whether a country got hit in the past
-%     years or not.   
+%     years or not.
 %   - Now, call cr_country_hazard_test to test different damagefunction
 %     settings (or modifications) for one country and peril, e.g.
 %     country_risk=cr_country_hazard_test(country_risk,2,1) % 'Costa Rica','TC'
@@ -43,17 +43,17 @@ function country_risk=cr_country_hazard_test(country_risk,country_i,hazard_i,CAG
 %   How to use: make your copy of the present code (name it e.g.
 %   cr_country_hazard_mytest) and experiment with different damage function
 %   settings for a given country and region (group of countries). In
-%   special cases, you might also consider adjusting hazard event sets. 
+%   special cases, you might also consider adjusting hazard event sets.
 %
-%   Next step: put your final adjustments in country_risk_calibrate 
+%   Next step: put your final adjustments in country_risk_calibrate
 % CALLING SEQUENCE:
 %   country_risk=cr_country_hazard_test(country_risk,country_i,hazard_i,CAGR,show_plot)
 % EXAMPLE:
 %   country_risk=cr_country_hazard_test(country_risk,2,1) % 2nd country, 1st haazrd
 % INPUTS:
 %   country_risk: the output of country_risk_calc (NOT of
-%       country_risk_EDS_combine, as this would result in empty EDSs for 
-%       e.g. TS). 
+%       country_risk_EDS_combine, as this would result in empty EDSs for
+%       e.g. TS).
 %   country_i: the country index (as shown when first run) to only show one
 %       country (usefule in the country damagefunction calibration process)
 %       Default=1 (hence the user will usually specify)
@@ -110,18 +110,31 @@ country_name_char=country_risk(country_i).res.country_name;
 
 %if strcmp(country_risk(country_i).res.hazard(hazard_i).peril_ID,'TS')
 
-[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
-fprintf('%s TS atl: %s\n',country_name_char,dmf_info_str);
-entity=climada_damagefunctions_replace(entity,damagefunctions);
-% 
-% [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,30,1,1,'s-shape','TC',0);
-% fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
-% entity=climada_damagefunctions_replace(entity,damagefunctions);
+% New Zealand
 
-[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,25,1,0.4,'s-shape','TC',0);
-fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
+% [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
+% fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
+% entity=climada_damagefunctions_replace(entity,damagefunctions);
+% if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+% 
+% [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+% fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
+% entity=climada_damagefunctions_replace(entity,damagefunctions);
+% if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+
+% New Zealand not much TC/TS exposed, no EM-DAT, just a generic curve
+
+[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
+fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
 entity=climada_damagefunctions_replace(entity,damagefunctions);
-     
+if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+
+[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
+entity=climada_damagefunctions_replace(entity,damagefunctions);
+if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+
+
 %climada_damagefunctions_plot(entity) % plot damagefunctions
 
 %end
