@@ -259,6 +259,14 @@ if calculate_admin1
     country_risk1=country_risk_EDS_combine(country_risk1); % combine TC and TS
 end
 
+% calibrate once more (if applicable)
+if exist('cr_EDS_adjust_all','file')
+    country_risk=cr_EDS_adjust_all(country_risk);
+    if calculate_admin1
+        country_risk1=cr_EDS_adjust_all(country_risk1);
+    end
+end
+
 % annual aggregate (as we're not so much interested in per
 % event/occurrence) in this context
 country_risk=country_risk_EDS2YDS(country_risk);

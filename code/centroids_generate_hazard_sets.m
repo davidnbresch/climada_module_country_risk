@@ -169,8 +169,11 @@ end
 
 if isfield(centroids,'assets') % centroids contains in fact an entity
     entity=centroids; centroids=[]; % silly switch, but fastest
-    centroids.lat =entity.assets.lat;
+    centroids.lat=entity.assets.lat;
     centroids.lon=entity.assets.lon;
+    centroids.centroid_ID=1:length(entity.assets.lon);
+    if isfield(entity.assets,'distance2coast_km'),centroids.distance2coast_km=entity.assets.distance2coast_km;end
+    if isfield(entity.assets,'elevation_m'),centroids.elevation_m=entity.assets.elevation_m;end
     if isfield(entity.assets,'country_name'),centroids.country_name=entity.assets.country_name;end
     if isfield(entity.assets,'admin0_name'),centroids.admin0_name=entity.assets.admin0_name;end
     if isfield(entity.assets,'admin0_ISO3'),centroids.admin0_ISO3=entity.assets.admin0_ISO3;end
