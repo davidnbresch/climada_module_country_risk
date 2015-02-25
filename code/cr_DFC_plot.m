@@ -128,7 +128,7 @@ for entity_i=1:n_entities
                     Value=country_risk(entity_i).res.hazard(hazard_ii).EDS.Value;
                     DFC=climada_EDS2DFC(country_risk(entity_i).res.hazard(hazard_ii).EDS);
                     
-                    DFC_plot = figure('Name','DFC','visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
+                    DFC_plot = figure('Name',['DFC ' char(country_ISO3) ' ' char(country_name) ' ' peril_ID ' ' peril_region],'visible',fig_visible,'Color',[1 1 1],'Position',[430 20 920 650]);
                     legend_str={};max_RP_damage=0; % init
                     
                     plot(DFC.return_period,DFC.damage,'-b','LineWidth',2);hold on

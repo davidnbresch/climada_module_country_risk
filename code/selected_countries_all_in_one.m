@@ -25,6 +25,7 @@
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 % David N. Bresch, david.bresch@gmail.com, 20150215, country calibration added at the bottom (all commented out, see there)
+% David N. Bresch, david.bresch@gmail.com, 20150225, figure name added
 %-
 
 global climada_global
