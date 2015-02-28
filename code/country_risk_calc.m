@@ -392,7 +392,7 @@ if isfield(country_risk.res,'hazard')
         [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
         
         if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
-            
+                        
             load(country_risk.res.hazard(hazard_i).hazard_set_file)              
             
             % Note that one would need to re-encode assets to each hazard,
@@ -411,7 +411,7 @@ if isfield(country_risk.res,'hazard')
         end
         
         if ~isempty(hazard)
-            
+                        
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
