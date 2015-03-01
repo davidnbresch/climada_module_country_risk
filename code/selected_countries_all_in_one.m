@@ -287,10 +287,10 @@ if generate_economic_loss_report
     country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
 end
 
-
-
-
-
+% consider to plot the DFCs, hence use (note that we've alread run the
+% annual aggregate above)
+%cr_DFC_plot(country_risk)
+%cr_DFC_plot_aggregate(country_risk)
 
 
 
