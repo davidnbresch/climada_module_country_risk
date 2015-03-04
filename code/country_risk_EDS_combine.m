@@ -117,7 +117,7 @@ if nargout>1 % EDC requested
                             [~,fP]=fileparts(EDS2add.hazard.filename);
                             peril_ID_pos=strfind(fP,EDS2add.peril_ID);
                             if ~isempty(peril_ID_pos)
-                                EDC(next_EDS).EDS.comment=fP(peril_ID_pos(1)-4:peril_ID_pos(1)+1);
+                                EDC(next_EDS).EDS.comment=fP(peril_ID_pos(end)-4:peril_ID_pos(end)+1);
                             else
                                 EDC(next_EDS).EDS.comment=fP;
                             end
