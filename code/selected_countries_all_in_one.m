@@ -134,13 +134,16 @@ country_list={
     'Vietnam'
     };
 %
-% TEST list (only a few)
-% ----
-% country_list={
-%     'Philippines'
-%     'Mexico'
-%     'Italy'
-%     };
+% country subset
+country_list={
+    'Japan'
+    'New Zealand'
+    'Belgium'
+    'Taiwan'
+    'Mexico'
+    'Italy'
+    'Philippines'
+    };
 %
 % LOCAL TEST
 % country_list={
@@ -262,6 +265,7 @@ end
 
 % calibrate once more (if applicable)
 if exist('cr_EDS_adjust_all','file')
+    fprintf('adjusting EDSs\n')
     country_risk=cr_EDS_adjust_all(country_risk);
     if calculate_admin1
         country_risk1=cr_EDS_adjust_all(country_risk1);
