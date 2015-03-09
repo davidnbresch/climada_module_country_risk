@@ -74,6 +74,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150118, tc_track nodes file with track number
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km in TC added
 % David N. Bresch, david.bresch@gmail.com, 20150128, tc_track handling simplified, climada_tc_track_nodes
+% David N. Bresch, david.bresch@gmail.com, 20150309, VQ (volcano) added
 %-
 
 centroids_hazard_info = []; % init output
@@ -95,8 +96,9 @@ if ~exist('peril_ID','var'),      peril_ID  = ''; end
 % switches to select which hazards to calculate, default is all =1
 calculate_TC=1; % whether we calculate TC
 calculate_TS=1; % whether we calculate TS (needs TC)
-calculate_TR=1; % whether we calculate TR
+calculate_TR=1; % whether we calculate TR (needs TC)
 calculate_EQ=1; % whether we calculate EQ
+calculate_VQ=0; % whether we calculate VQ
 calculate_WS=1; % whether we calculate WS
 %
 % the folder all data will be stored to, usually the standard climada
@@ -131,6 +133,7 @@ if ~isempty(peril_ID)
     calculate_TS=0;
     calculate_TR=0;
     calculate_EQ=0;
+    calculate_VQ=0;
     calculate_WS=0;
     switch peril_ID
         case 'TC'
@@ -143,6 +146,8 @@ if ~isempty(peril_ID)
             calculate_TC=1;% needs TC
         case 'EQ'
             calculate_EQ=1;
+        case 'VQ'
+            calculate_VQ=1;
         case 'WS'
             calculate_WS=1;
         otherwise
@@ -347,6 +352,39 @@ if calculate_EQ
     
 end % calculate_EQ
 
+if calculate_VQ
+    
+    % VQ: figure whether the particular country is exposed
+    % ----------------------------------------------------
+    
+    if length(which('vq_volcano_list_read'))<2
+        fprintf('Volcano/Earthquake (EQ) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n');
+    else
+        % test VQ exposure
+        [vq_data,volcano_list_file_mat]=vq_volcano_list_read;
+        
+        % check for track nodes within centroids_rect
+        in_seismic_poly = inpolygon(vq_data.lon,vq_data.lat,centroids_edges_x,centroids_edges_y);
+        
+        if check_plots
+            climada_plot_world_borders; hold on;
+            plot(vq_data.lon,vq_data.lat,'.r','MarkerSize',3);
+            plot(vq_data.lon(in_seismic_poly),vq_data.lat(in_seismic_poly),'xg','MarkerSize',4);
+            plot(centroids_edges_x,centroids_edges_y,'-g')
+        else
+            close all
+        end
+        
+        if sum(in_seismic_poly)>0
+            hazard_count = hazard_count+1;
+            centroids_hazard_info.res.hazard(hazard_count).peril_ID = 'VQ';
+            centroids_hazard_info.res.hazard(hazard_count).data_file = volcano_list_file_mat; % for information, not needed
+            fprintf('* hazard VQ detected\n');
+        end
+    end
+    
+end % calculate_VQ
+
 if calculate_WS
     
     % WS: figure whether the particular country is exposed to European winter storms
@@ -418,8 +456,8 @@ for hazard_i=1:hazard_count
             % climada_tc_hazard_set picks up from last file if it exists
             % already
             delete(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
-        end 
-         
+        end
+        
         
         if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
             
@@ -481,7 +519,7 @@ for hazard_i=1:hazard_count
                 % much faster that way (see climada_tc_windfield)
                 centroids.distance2coast_km=climada_distance2coast_km(centroids.lon,centroids.lat);
             end
-                        
+            
             hazard = climada_tc_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
             fprintf('TC: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
             
@@ -623,6 +661,54 @@ for hazard_i=1:hazard_count
             load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
         end
     end % peril_ID,'EQ'
+    
+    
+    if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'VQ')
+        
+        hazard_name='glb'; % one could in theory run more than one 'region', as we do with TC
+        
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            [local_data_dir filesep 'hazards' filesep country_name_char '_' deblank(hazard_name) '_VQ' probabilistic_str '.mat'];
+        
+        centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=...
+            strrep(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'__','_');
+        
+        if ~exist(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,'file') || force_recalc
+            
+            fprintf('*** hazard generation for VQ%s in %s\n',probabilistic_str,country_name_char);
+            
+            if exist('vq_global_hazard_set','file') % the function exists
+                
+                if exist(centroids_hazard_info.res.hazard(hazard_i).data_file,'file')
+                    load(centroids_hazard_info.res.hazard(hazard_i).data_file); % contains vq_data
+                else
+                    [vq_data,volcano_list_file_mat]=vq_volcano_list_read;
+                    centroids_hazard_info.res.hazard(hazard_i).data_file=volcano_list_file_mat;
+                end
+                
+                if probabilistic
+                    [fP,fN,fE]=fileparts(centroids_hazard_info.res.hazard(hazard_i).data_file);
+                    vq_data_prob_file=[fP filesep fN '_prob' fE];
+                    if exist(vq_data_prob_file,'file')
+                        load(vq_data_prob_file); % contains eq_data
+                    else
+                        vq_data=vq_global_probabilistic(vq_data,9);
+                        save(vq_data_prob_file,'vq_data');
+                    end
+                    centroids_hazard_info.res.hazard(hazard_i).data_file=vq_data_prob_file;
+                end
+                hazard=vq_global_hazard_set(vq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
+                if ~isempty(hazard)
+                    fprintf('VQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+                end
+            else
+                fprintf('Volcano/Earthquake module not found. Please download from github and install.\nhttps://github.com/davidnbresch/climada_module_eq_global\n');
+                centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
+            end
+        else
+            load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
+        end
+    end % peril_ID,'VQ'
     
     
     if strcmp(centroids_hazard_info.res.hazard(hazard_i).peril_ID,'WS')
