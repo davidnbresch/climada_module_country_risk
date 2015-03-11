@@ -5,8 +5,9 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % NAME:
 %   centroids_generate_hazard_sets
 % PURPOSE:
-%   run all (available) perils for a given set of centroids. Generate earthquake (EQ),
-%   tropical cyclone (TC), torrential rain (TR) and storm surge (TS) hazard event sets
+%   run all (available) perils for a given set of centroids. Generate
+%   earthquake (EQ), volcano (VQ), tropical cyclone (TC), torrential rain
+%   (TR) and storm surge (TS) hazard event sets 
 %   1) figure which hazards affect the centroids
 %   2) create the hazard event sets, uses
 %      - climada_tc_hazard_set (wind)
