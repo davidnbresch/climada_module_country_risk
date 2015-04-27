@@ -135,15 +135,15 @@ country_list={
     };
 %
 % country subset
-% country_list={
-%     'Japan'
-%     'New Zealand'
-%     'Belgium'
-%     'Taiwan'
-%     'Mexico'
-%     'Italy'
-%     'Philippines'
-%     };
+country_list={
+    'Japan'
+    'New Zealand'
+    'Belgium'
+    'Taiwan'
+    'Mexico'
+    'Italy'
+    'Philippines'
+    };
 %
 % LOCAL TEST
 % country_list={
