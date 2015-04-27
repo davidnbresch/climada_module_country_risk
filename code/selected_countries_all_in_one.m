@@ -135,15 +135,15 @@ country_list={
     };
 %
 % country subset
-country_list={
-    'Japan'
-    'New Zealand'
-    'Belgium'
-    'Taiwan'
-    'Mexico'
-    'Italy'
-    'Philippines'
-    };
+% country_list={
+%     'Japan'
+%     'New Zealand'
+%     'Belgium'
+%     'Taiwan'
+%     'Mexico'
+%     'Italy'
+%     'Philippines'
+%     };
 %
 % LOCAL TEST
 % country_list={
@@ -284,12 +284,13 @@ if generate_property_damage_report
     end
 end
 
-% calculate economic loss (first on country basis)
-country_risk_economic_loss=cr_economic_loss_calc(country_risk);
-
-if generate_economic_loss_report
-    country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
-end
+% economic loss switched off 20150427 after decision taken 20140413
+% % calculate economic loss (first on country basis)
+% country_risk_economic_loss=cr_economic_loss_calc(country_risk);
+% 
+% if generate_economic_loss_report
+%     country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
+% end
 
 % consider to plot the DFCs, hence use (note that we've alread run the
 % annual aggregate above)
