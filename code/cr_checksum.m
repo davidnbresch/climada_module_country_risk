@@ -1,7 +1,7 @@
 function cr_checksum(country_name,peril_ID,report_fid)
 % climada template
 % MODULE:
-%   module name
+%   country_risk
 % NAME:
 %   cr_checksum
 % PURPOSE:
@@ -9,7 +9,6 @@ function cr_checksum(country_name,peril_ID,report_fid)
 %   and hazard sets
 %
 %   See also country_risk_calc
-%
 % CALLING SEQUENCE:
 %   cr_checksum(country_name,peril_ID)
 % EXAMPLE:
@@ -18,7 +17,9 @@ function cr_checksum(country_name,peril_ID,report_fid)
 %   country_list={'Japan','New Zealand','Belgium','Taiwan','Mexico','Italy','Philippines'};
 %   cr_checksum(country_list)
 % INPUTS:
-%   country_name: a single country name or a list of countries
+%   country_name: a single country name (output to stdout) or a list of
+%       countries (output to file ../results/cr_checksum.csv). If ='ALL',
+%       run for all countries.
 %       > promted for if not given
 % OPTIONAL INPUT PARAMETERS:
 %   peril_ID: the peril_ID we check for
@@ -47,11 +48,17 @@ if ~exist('report_fid','var'),report_fid = -1;end % 1 for stdout, neg to write h
 % the folder with the country data, usually the standard one
 country_data_dir = climada_global.data_dir; % default
 %
+% name of the file the checksum results are written (only created if >1
+% country_name is passed)
+report_filename=[country_data_dir filesep 'results' filesep 'cr_checksum.csv'];
+%
 % whether we check for probabilistic (=1, default) or historic (=0) hazard sets
 probabilistic=1; % default=1
 
 header_str='admin0(country),ISO3,centroids_checksum,entity_checksum,entity_future_checksum,hazard_name,hazard_checksum,dmf_name,dmf_checksum\n';
 format_str='%s,%s,%f,%f,%f,%s,%f,%s,%f\n';
+header_str=strrep(header_str,',',climada_global.csv_delimiter);
+format_str=strrep(format_str,',',climada_global.csv_delimiter);
 
 if isempty(country_name) % prompt for country (one or many) as list dialog
     country_name = climada_country_name('Multiple');
@@ -63,21 +70,23 @@ if isempty(country_name),return; end % Cancel pressed
 
 if ~iscell(country_name),country_name={country_name};end % check that country_name is a cell
 
-if report_fid<0
-    report_fid=abs(report_fid);
-    fprintf(report_fid,header_str);
-end
-
 if length(country_name)>1 % more than one country, process recursively
     n_countries=length(country_name);
     
-    %report_fid=fopen(report_filename,'w');
-    
+    report_fid=fopen(report_filename,'w');
+    fprintf(report_fid,header_str);
+
     for country_i = 1:n_countries
         single_country_name = country_name(country_i);
-        cr_checksum(single_country_name,peril_ID,1);
+        cr_checksum(single_country_name,peril_ID,report_fid);
     end % country_i
+    
+    fclose(report_fid);
+    fprintf('results written to %s\n',report_filename);
     return
+elseif report_fid<0
+    report_fid=abs(report_fid);
+    fprintf(report_fid,header_str);
 end
 
 % from here on, only one country
@@ -151,7 +160,7 @@ if ~isempty(peril_ID)
     end % peril_i
     
     if isempty(valid_hazard)
-        fprintf(format_str,country_name_char,country_ISO3,...
+        fprintf(report_fid,format_str,country_name_char,country_ISO3,...
             centroids_checksum,entity_checksum,entity_future_checksum,'',NaN,'',NaN);
         return
     else
@@ -173,7 +182,7 @@ for hazard_i=1:length(hazard_files)
     end
     
     % re-load entity to check for damage function
-    damagefun_checksum=NaN;
+    damagefun_checksum=NaN;unique_ID='';
     if exist(entity_file,'file')
         load(entity_file); % contains entity
         
@@ -206,7 +215,7 @@ for hazard_i=1:length(hazard_files)
         
     end
     
-    fprintf(format_str,country_name_char,country_ISO3,...
+    fprintf(report_fid,format_str,country_name_char,country_ISO3,...
         centroids_checksum,entity_checksum,entity_future_checksum,...
         hazard_name,hazard_checksum,unique_ID,damagefun_checksum);
     
