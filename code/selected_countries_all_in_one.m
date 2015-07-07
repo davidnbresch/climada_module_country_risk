@@ -26,6 +26,7 @@
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 % David N. Bresch, david.bresch@gmail.com, 20150215, country calibration added at the bottom (all commented out, see there)
 % David N. Bresch, david.bresch@gmail.com, 20150225, figure name added
+% David N. Bresch, david.bresch@gmail.com, 20150702, country list edited
 %-
 
 global climada_global
@@ -73,7 +74,7 @@ country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic se
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 %
 country_list={
-    'Algeria'
+    %'Algeria' % removed 20150702
     'Australia'
     'Austria'
     'Belgium'
@@ -101,10 +102,10 @@ country_list={
     'Italy'
     'Japan'
     'Kenya'
-    'Laos'
+    %'Laos' % removed 20150702
     'Mexico'
     'Morocco'
-    'Myanmar'
+    % 'Myanmar' % removed 20150702
     'Netherlands'
     'New Zealand'
     'Nigeria'
@@ -126,24 +127,25 @@ country_list={
     'Switzerland'
     'Taiwan'
     'Thailand'
-    'Tunisia'
+    %'Tunisia' % removed 20150702
     'Turkey'
     'United Kingdom'
     'United States'
     'Uruguay'
     'Vietnam'
+    'Hong Kong' % added 20150702
     };
 %
-% country subset
-country_list={
-    'Japan'
-    'New Zealand'
-    'Belgium'
-    'Taiwan'
-    'Mexico'
-    'Italy'
-    'Philippines'
-    };
+% % country subset
+% country_list={
+%     'Japan'
+%     'New Zealand'
+%     'Belgium'
+%     'Taiwan'
+%     'Mexico'
+%     'Italy'
+%     'Philippines'
+%     };
 %
 % LOCAL TEST
 % country_list={
