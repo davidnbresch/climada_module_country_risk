@@ -58,6 +58,7 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 % David N. Bresch, david.bresch@gmail.com, 20150110, country naming as in country_risk_calc
 % David N. Bresch, david.bresch@gmail.com, 20150112, hazard extension '_hist' for historic, '' for probabilistic
 % David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
+% David N. Bresch, david.bresch@gmail.com, 20150714, find admin1 also based on ISO3
 %-
 
 country_risk = []; % init output (call it still country_risk, for easy use in country_risk_report
@@ -172,13 +173,23 @@ else
     return
 end
 
-% find the countries' admin1s
+% find the countries' admin1s (using country name)
 admin1_pos=[];
 for shape_i=1:n_shapes
     if strcmp(country_name_char,shapes(shape_i).admin)
+        shapes(shape_i).admin
         admin1_pos=[admin1_pos shape_i]; % we do not know the number of admin1s a-priori
     end
 end % shape_i
+
+% find the countries' admin1s (using country ISO3)
+if isempty(admin1_pos)
+    for shape_i=1:n_shapes
+        if strcmp(country_ISO3,shapes(shape_i).adm0_a3)
+            admin1_pos=[admin1_pos shape_i]; % we do not know the number of admin1s a-priori
+        end
+    end % shape_i
+end
 
 next_EDS=1;
 Value_checksum=0;

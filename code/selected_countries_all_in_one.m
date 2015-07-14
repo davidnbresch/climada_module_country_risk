@@ -26,7 +26,7 @@
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 % David N. Bresch, david.bresch@gmail.com, 20150215, country calibration added at the bottom (all commented out, see there)
 % David N. Bresch, david.bresch@gmail.com, 20150225, figure name added
-% David N. Bresch, david.bresch@gmail.com, 20150702, country list edited
+% David N. Bresch, david.bresch@gmail.com, 20150714, country list updated
 %-
 
 global climada_global
@@ -135,6 +135,7 @@ country_list={
     'Vietnam'
     'Hong Kong' % added 20150702
     };
+
 %
 % % country subset
 % country_list={
