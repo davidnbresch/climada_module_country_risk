@@ -34,6 +34,8 @@ function country_risk_report(country_risk,print_format,report_filename,plot_DFC)
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141209, initial
 % David N. Bresch, david.bresch@gmail.com, 20141211, header added to Excel report
+% David N. Bresch, david.bresch@gmail.com, 20150715, bug fix for empty EDS (e.g. if combine EDS is called prior to report)
+% David N. Bresch, david.bresch@gmail.com, 20150715, empty EDS not reported any more
 %-
 
 global climada_global
@@ -138,17 +140,24 @@ for entity_i=1:n_entities
                             country_risk(entity_i).res.hazard(hazard_i).EDS.Value;
                     end % RP_i
                 end % ~isempty(DFC_return_periods)
-                
+                next_res=next_res+1;
+
             else
-                ED(next_res)          =0;
-                res(next_res).ED      =0;
-                res(next_res).EDoL    =0;
-                res(next_res).Value   =0; % possible to improve
-                res(next_res).peril_ID=country_risk(entity_i).res.hazard(hazard_i).peril_ID;
-                res(next_res).annotation_name='EMPTY';
-                res(next_res).admin1_name='';
+%                 % do not write empty results any more (since 20150715)
+%                 ED(next_res)          =0;
+%                 res(next_res).ED      =0;
+%                 res(next_res).EDoL    =0;
+%                 res(next_res).Value   =0;
+%                 try
+%                     % backward compatibility
+%                     res(next_res).peril_ID=country_risk(entity_i).res.hazard(hazard_i).peril_ID;
+%                 catch
+%                     res(next_res).peril_ID='';
+%                 end
+%                 res(next_res).annotation_name='EMPTY';
+%                 res(next_res).admin1_name='';
+%                 next_res=next_res+1;
             end % ~isempty(EDS)
-            next_res=next_res+1;
             
         end % hazard_i
         
