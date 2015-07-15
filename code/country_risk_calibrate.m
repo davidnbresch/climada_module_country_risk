@@ -32,6 +32,7 @@ function ok=country_risk_calibrate(country_name)
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150214, initial
 % David N. Bresch, david.bresch@gmail.com, 20150217, Philippines and Taiwan re-adjusted
+% David N. Bresch, david.bresch@gmail.com, 20150715, HKG added
 %-
 
 ok=[]; % init output
@@ -182,7 +183,7 @@ switch country_name_char
         
     case {'Cambodia' % TC wpa
             %'China' - see special case below
-            'Hong Kong'
+            %'Hong Kong' - see special case below
             %'Indonesia' - moved to she, since it stretches further South than North
             %'Japan' - see special case below
             %'Korea' - see special case below
@@ -208,7 +209,7 @@ switch country_name_char
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-    case {'China'} % TC/TS
+    case {'China','Hong Kong'} % TC/TS, HKG added 20150715
         
         % China: TC tuned to upper bound of EM-DAT (12% CAGR, in China, the asset base grew more than GDP)
 

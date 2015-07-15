@@ -177,7 +177,6 @@ end
 admin1_pos=[];
 for shape_i=1:n_shapes
     if strcmp(country_name_char,shapes(shape_i).admin)
-        shapes(shape_i).admin
         admin1_pos=[admin1_pos shape_i]; % we do not know the number of admin1s a-priori
     end
 end % shape_i
