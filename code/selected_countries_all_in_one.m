@@ -26,7 +26,6 @@
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 % David N. Bresch, david.bresch@gmail.com, 20150215, country calibration added at the bottom (all commented out, see there)
 % David N. Bresch, david.bresch@gmail.com, 20150225, figure name added
-% David N. Bresch, david.bresch@gmail.com, 20150714, country list updated
 %-
 
 global climada_global
@@ -135,6 +134,12 @@ country_list={
     'Vietnam'
     'Hong Kong' % added 20150702
     };
+
+% country_list={
+%     'United States'
+%     'Australia'
+%     %'India'
+%     };calculate_admin1=1;
 
 %
 % % country subset
@@ -257,6 +262,9 @@ ok=country_risk_calibrate(country_list); % calibrate countries
 
 % calculate damage on admin0 (country) level
 country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0);
+
+fprintf('*** all country risk calculations done\n\n')
+
 country_risk=country_risk_EDS_combine(country_risk); % combine TC and TS
 
 if calculate_admin1
