@@ -1,4 +1,4 @@
-function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_plots,admin1_save_entity)
+function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_plots,peril_ID,admin1_save_entity)
 % climada country admin1 risk calc
 % MODULE:
 %   country_risk
@@ -7,11 +7,12 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 % PURPOSE:
 %   Run the all (available) perils for one country's admin1 level
 %
-%   Obtain the admin1 boundaries (from www.naturalearthdata.com, see
+%   Obtains the admin1 boundaries (from www.naturalearthdata.com, see
 %   PARAMETERS in code) and carve out the respective centroids (set Value
-%   at all others to zero). Run the risk calculation for each admin1 for
+%   at all others to zero). Runs the risk calculation for each admin1 for
 %   all hazards. In case one would like to skip hazards, just (temporarily)
-%   remove the respective {country_name}_*.mat hazard event sets.
+%   remove the respective {country_ISO3}_{country_name}_*.mat hazard event
+%   sets or see parameter peril_ID. 
 %
 %   ONLY makes sense if country_risk_calc has been run for the respective
 %   country (we keep it like this, as automatic mode might trigger lots of
@@ -26,10 +27,10 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 %
 %   next step: country_risk_report (same format as country_risk_calc)
 % CALLING SEQUENCE:
-%   country_risk=country_admin1_risk_calc(country_name,probabilistic,check_plots)
+%   country_risk=country_admin1_risk_calc(country_name,probabilistic,check_plots,peril_ID,admin1_save_entity)
 % EXAMPLE:
 %   country_risk=country_admin1_risk_calc; % interactive, select country from dropdown
-%   country_risk=country_admin1_risk_calc('ALL',0,0,0) % whole world, no figures
+%   country_risk=country_admin1_risk_calc('ALL') % whole world, no figures
 %   country_risk=country_admin1_risk_calc({'Germany','Switzerland'}) % just two countries
 % INPUTS:
 %   country_name: name of the country, like 'Switzerland', or a list of
@@ -40,18 +41,25 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 %       > prompted for via dropdown list if empty (allows for single or
 %       multiple country selection)
 % OPTIONAL INPUT PARAMETERS:
-%   probabilistic: Just to keep the same parameters as in country_risk_calc.
-%       Has no effect, since hazard event sets are generated in
-%       country_risk_calc, not in country_admin1_risk_calc
+%   probabilistic: Whether we use historic (=0) or probabilistic (=1,
+%       default) hazard event sets. Obviously depends on what hazard event sets
+%       have been generated in country_risk_calc
 %   check_plots: if =1, show figures to check hazards etc.
 %       If =0, skip figures (default)
 %       If =100, plot only, skip calculations
 %       If country_name is set to 'ALL', be careful to set check_plots=1
-%   admin1_save_entity: =1 to save all the admin1 entities as single entity
-%       files, =0 to omit this (default)
+%   peril_ID: if passed on, run all calculations only for specified peril
+%       Same behaviour as in country_risk_calc, namely:
+%       peril_ID can be 'TC','TS','TR','EQ','WS'..., default='' for all
+%       One can also specify the peril region within peril_ID, such as
+%       'atl_TC' and peril_ID can also contain a list, e.g. peril_ID=['atl_TC';'atl_TS';'EQ'] 
+%   admin1_save_entity: =1 to save each admin1 entity as single entity file
+%       Entity file named {country_ISO3}_{country_name}_{admin1_name}_entity.mat
+%       =0 to omit this (default)
 % OUTPUTS:
-%   country_risk(1): a structure with some risk information
-%       see country_risk_report to create a readable report to stdout
+%   country_risk(1): a structure with some risk information, same structure
+%       as from country_risk_calc, see country_risk_report to create a
+%       readable report to stdout or file
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20141126, initial
 % David N. Bresch, david.bresch@gmail.com, 20141212, compatible with new admin0.mat instead of world_50m.gen
@@ -59,17 +67,20 @@ function country_risk=country_admin1_risk_calc(country_name,probabilistic,check_
 % David N. Bresch, david.bresch@gmail.com, 20150112, hazard extension '_hist' for historic, '' for probabilistic
 % David N. Bresch, david.bresch@gmail.com, 20150112, climada_hazard2octave
 % David N. Bresch, david.bresch@gmail.com, 20150714, find admin1 also based on ISO3
+% David N. Bresch, david.bresch@gmail.com, 20150803, peril_ID added and admin1_save_entity debugged
+% David N. Bresch, david.bresch@gmail.com, 20150803, probabilistic=1 as defaut
 %-
 
-country_risk = []; % init output (call it still country_risk, for easy use in country_risk_report
+country_risk = []; % init output, call it still country_risk, for easy use in country_risk_report
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
 if ~exist('country_name','var'), country_name = '';end
-if ~exist('probabilistic','var'), probabilistic = 0;end
+if ~exist('probabilistic','var'), probabilistic = 1;end
 if ~exist('check_plots' ,'var'), check_plots  = 0;end
+if ~exist('peril_ID' ,'var'), peril_ID  = '';end
 if ~exist('admin1_save_entity' ,'var'), admin1_save_entity  = 0;end
 
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
@@ -130,7 +141,8 @@ if length(country_name)>1 % more than one country, process recursively
         single_country_name = country_name(country_i);
         fprintf('\nprocessing %s (%i of %i) ************************ \n',...
             char(single_country_name),country_i,n_countries);
-        country_risk_out(country_i)=country_admin1_risk_calc(single_country_name,probabilistic,check_plots);
+        country_risk_out(country_i)=country_admin1_risk_calc(...
+            single_country_name,probabilistic,check_plots,peril_ID,admin1_save_entity);
     end % country_i
     close all
     country_risk=country_risk_out;
@@ -218,7 +230,30 @@ if n_admin1>0
     end % hazard_i
     valid_hazard=valid_hazard(valid_hazard>0);
     hazard_files=hazard_files(valid_hazard);
-                        
+            
+     if ~isempty(peril_ID)
+        % second, filter requested hazards (and possibly regions)
+        valid_hazard=[]; % only pick the needed ones
+        % filter for peril
+        for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
+            one_peril_ID=peril_ID(peril_i,:);
+            for hazard_i=1:length(hazard_files)
+                if ~isempty(strfind(hazard_files(hazard_i).name,['_' one_peril_ID]))
+                    % filter, depending on peril_ID
+                    valid_hazard(end+1)=hazard_i;
+                end
+            end % hazard_i
+        end % peril_i
+        
+        if isempty(valid_hazard)
+            fprintf('Error: no hazards found, try without specifying peril_ID (and check probabilistic)\n')
+            return
+        else
+            hazard_files=hazard_files(valid_hazard);
+        end
+        
+    end % ~isempty(peril_ID)
+    
     for admin1_i=1:n_admin1 % loop over all admin1
         shape_i=admin1_pos(admin1_i);
         
@@ -258,7 +293,8 @@ if n_admin1>0
                 end
                 
                 if admin1_save_entity
-                    admin1_entity_filename=[entity_filename '_' strrep(shapes(shape_i).name,' ','')];
+                    [fP,fN,fE]=fileparts(entity_filename);
+                    admin1_entity_filename=[fP filesep strrep(fN,'_entity','') '_' strrep(shapes(shape_i).name,' ','') '_entity' fE];
                     fprintf('saving %s\n',admin1_entity_filename);
                     save(admin1_entity_filename,'entity');
                 end
