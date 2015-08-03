@@ -111,29 +111,31 @@ country_name_char=country_risk(country_i).res.country_name;
 %if strcmp(country_risk(country_i).res.hazard(hazard_i).peril_ID,'TS')
 
 % New Zealand
-
 % [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
 % fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
 % entity=climada_damagefunctions_replace(entity,damagefunctions);
 % if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
-% 
 % [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
 % fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
 % entity=climada_damagefunctions_replace(entity,damagefunctions);
 % if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
 
 % New Zealand not much TC/TS exposed, no EM-DAT, just a generic curve
+% [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
+% fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
+% entity=climada_damagefunctions_replace(entity,damagefunctions);
+% if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+% [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+% fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
+% entity=climada_damagefunctions_replace(entity,damagefunctions);
+% if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
 
-[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
-fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
+% EQ USA
+%[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','EQ',1);
+[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:13,3,1,1,'s-shape','EQ',1);
+fprintf('%s EQ glb: %s\n',country_name_char,dmf_info_str);
 entity=climada_damagefunctions_replace(entity,damagefunctions);
 if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
-
-[damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
-fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
-entity=climada_damagefunctions_replace(entity,damagefunctions);
-if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
-
 
 %climada_damagefunctions_plot(entity) % plot damagefunctions
 

@@ -33,6 +33,7 @@ function ok=country_risk_calibrate(country_name)
 % David N. Bresch, david.bresch@gmail.com, 20150214, initial
 % David N. Bresch, david.bresch@gmail.com, 20150217, Philippines and Taiwan re-adjusted
 % David N. Bresch, david.bresch@gmail.com, 20150715, HKG added
+% David N. Bresch, david.bresch@gmail.com, 20150803, USA EQ added
 %-
 
 ok=[]; % init output
@@ -165,6 +166,19 @@ switch country_name_char
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
+        % USA EM-DAT looks ok, if we precribe a reasonable growth rate, i.e. from
+        % www.tradingeconomics.com/united-states/gdp-growth-annual, we
+        % obtain an average CAGR of about 5% and we add 1.25% for growth in
+        % complexity, i.e. more damageability (complex infrastructure,
+        % supply chains...), hence get a full CAGR of 6.25%
+        % to illustrate, run:
+        %   country_risk=country_risk_calc('United States',-3,0,0,'EQ')
+        %   cr_DFC_plot(country_risk,1,1,0.065)
+        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:13,3,1,1,'s-shape','EQ',0);
+        fprintf('%s EQ glb: %s\n',country_name_char,dmf_info_str);
+        entity=climada_damagefunctions_replace(entity,damagefunctions);
+        if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
+      
     case {'Dominican Republic','Colombia'} % TC/TS atl
         
         % Dominican Republic: climada TC originally too high, adjusted to get close to
