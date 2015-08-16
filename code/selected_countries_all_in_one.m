@@ -26,6 +26,8 @@
 % David N. Bresch, david.bresch@gmail.com, 20150121, GDP adjust added
 % David N. Bresch, david.bresch@gmail.com, 20150215, country calibration added at the bottom (all commented out, see there)
 % David N. Bresch, david.bresch@gmail.com, 20150225, figure name added
+% David N. Bresch, david.bresch@gmail.com, 20150815, latest country list and report only for 250yr event
+% David N. Bresch, david.bresch@gmail.com, 20150815, WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS switched off for now
 %-
 
 global climada_global
@@ -71,21 +73,80 @@ country_data_dir=climada_global.data_dir;
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
 country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
-%
-country_list={
-    %'Algeria' % removed 20150702
+
+% country_list={
+%     %'Algeria' % removed 20150702
+%     'Australia'
+%     'Austria'
+%     'Belgium'
+%     'Bangladesh'
+%     'Brazil'
+%     'Canada'
+%     'Cambodia'
+%     'Chile'
+%     'China'
+%     'Colombia'
+%     'Costa Rica'
+%     'Czech Republic'
+%     'Denmark'
+%     'Dominican Republic'
+%     'Ecuador'
+%     'Finland'
+%     'France'
+%     'Germany'
+%     'Greece'
+%     'Hungary'
+%     'India'
+%     'Indonesia'
+%     'Ireland'
+%     'Israel'
+%     'Italy'
+%     'Japan'
+%     'Kenya'
+%     %'Laos' % removed 20150702
+%     'Mexico'
+%     'Morocco'
+%     % 'Myanmar' % removed 20150702
+%     'Netherlands'
+%     'New Zealand'
+%     'Nigeria'
+%     'Norway'
+%     'Pakistan'
+%     'Panama'
+%     'Peru'
+%     'Philippines'
+%     'Poland'
+%     'Portugal'
+%     'Singapore'
+%     'Slovakia'
+%     'Slovenia'
+%     'South Africa'
+%     'Korea'
+%     'Spain'
+%     'Sri Lanka'
+%     'Sweden'
+%     'Switzerland'
+%     'Taiwan'
+%     'Thailand'
+%     %'Tunisia' % removed 20150702
+%     'Turkey'
+%     'United Kingdom'
+%     'United States'
+%     'Uruguay'
+%     'Vietnam'
+%     'Hong Kong' % added 20150702
+%     };
+
+country_list={ % final, as per 20150812
     'Australia'
     'Austria'
-    'Belgium'
     'Bangladesh'
-    'Brazil'
+    'Belgium'
     'Canada'
-    'Cambodia'
     'Chile'
     'China'
     'Colombia'
     'Costa Rica'
-    'Czech Republic'
     'Denmark'
     'Dominican Republic'
     'Ecuador'
@@ -93,99 +154,41 @@ country_list={
     'France'
     'Germany'
     'Greece'
-    'Hungary'
+    'Hong Kong'
     'India'
     'Indonesia'
     'Ireland'
     'Israel'
     'Italy'
     'Japan'
-    'Kenya'
-    %'Laos' % removed 20150702
+    'Korea'
     'Mexico'
     'Morocco'
-    % 'Myanmar' % removed 20150702
     'Netherlands'
     'New Zealand'
-    'Nigeria'
     'Norway'
     'Pakistan'
     'Panama'
     'Peru'
     'Philippines'
-    'Poland'
     'Portugal'
-    'Singapore'
-    'Slovakia'
-    'Slovenia'
     'South Africa'
-    'Korea'
-    'Spain'
     'Sri Lanka'
     'Sweden'
     'Switzerland'
     'Taiwan'
     'Thailand'
-    %'Tunisia' % removed 20150702
     'Turkey'
     'United Kingdom'
     'United States'
-    'Uruguay'
     'Vietnam'
-    'Hong Kong' % added 20150702
     };
 
-% country_list={
+% country_list={ % for the few we treat as admin1, too
 %     'United States'
 %     'Australia'
-%     %'India'
 %     };calculate_admin1=1;
 
-%
-% % country subset
-% country_list={
-%     'Japan'
-%     'New Zealand'
-%     'Belgium'
-%     'Taiwan'
-%     'Mexico'
-%     'Italy'
-%     'Philippines'
-%     };
-%
-% LOCAL TEST
-% country_list={
-%     'Aruba'
-%     'Australia'
-%     'Bangladesh'
-%     'Bermuda'
-%     'Switzerland'
-%     'Chile'
-%     'China'
-%     'Cuba'
-%     'Germany'
-%     'Dominican Republic'
-%     'Algeria'
-%     'Greece'
-%     'Indonesia'
-%     'India'
-%     'Israel'
-%     'Italy'
-%     'Japan'
-%     'Mexico'
-%     'Philippines'
-%     'Singapore'
-%     'El Salvador'
-%     'Taiwan'
-%     'Vietnam'
-%     };
-% LOCAL TEST
-% country_list={
-%     'Greece'
-%     'Taiwan'
-%     'Vietnam'
-%     };
-%
 % more technical parameters
 climada_global.waitbar=0; % switch waitbar off
 
@@ -274,24 +277,29 @@ if calculate_admin1
     country_risk1=country_risk_EDS_combine(country_risk1); % combine TC and TS
 end
 
-% calibrate once more (if applicable)
-if exist('cr_EDS_adjust_all','file')
-    fprintf('adjusting EDSs\n')
-    country_risk=cr_EDS_adjust_all(country_risk);
-    if calculate_admin1
-        country_risk1=cr_EDS_adjust_all(country_risk1);
-    end
-end
+fprintf('\n!!! WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS skipped!!!\n\n');
 
-% annual aggregate (as we're not so much interested in per
-% event/occurrence) in this context
-country_risk=country_risk_EDS2YDS(country_risk);
+% FOR CHECK RUNS SWITCHED OFF
+% calibrate once more (if applicable)
+%
+% if exist('cr_EDS_adjust_all','file')
+%     fprintf('adjusting EDSs\n')
+%     country_risk=cr_EDS_adjust_all(country_risk);
+%     if calculate_admin1
+%         country_risk1=cr_EDS_adjust_all(country_risk1);
+%     end
+% end
+
+% FOR CHECK RUNS SWITCHED OFF
+% annual aggregate (as we're not so much interested in per event/occurrence) in this context
+%
+% country_risk=country_risk_EDS2YDS(country_risk);
 
 if generate_property_damage_report
     if calculate_admin1
-        country_risk_report([country_risk country_risk1],1,property_damage_report_filename);
+        country_risk_report([country_risk country_risk1],1,property_damage_report_filename,-250); % only 250yr RP
     else
-        country_risk_report(country_risk,1,property_damage_report_filename);
+        country_risk_report(country_risk,1,property_damage_report_filename,-250); % only 250yr RP
     end
 end
 

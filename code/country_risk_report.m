@@ -1,4 +1,4 @@
-function country_risk_report(country_risk,print_format,report_filename,plot_DFC)
+function country_risk_report(country_risk,print_format,report_filename,DFC_return_periods,plot_DFC)
 % climada
 % MODULE:
 %   country_risk
@@ -11,13 +11,14 @@ function country_risk_report(country_risk,print_format,report_filename,plot_DFC)
 %   previous call: country_risk_calc and/or country_admin1_risk_calc
 %   see also: country_risk_report_raw for a raw report (to stdout)
 % CALLING SEQUENCE:
-%   country_risk_report(country_risk,print_format,report_filename,plot_DFC)
+%   country_risk_report(country_risk,print_format,report_filename,DFC_return_periods,plot_DFC)
 % EXAMPLE:
 %   country_risk_report(country_risk_calc('Barbados')); % all in one
 %
 %   country_risk0=country_risk_calc('Switzerland'); % country, admin0 level
 %   country_risk1=country_admin1_risk_calc('Switzerland'); % admin1 level
 %   country_risk_report([country_risk0 country_risk1]) % report all
+%   country_risk_report(country_risk,1,'',-250) % only 250yr RP
 % INPUTS:
 %   country_risk: a structure with the results from country_risk_calc
 % OPTIONAL INPUT PARAMETERS:
@@ -27,6 +28,16 @@ function country_risk_report(country_risk,print_format,report_filename,plot_DFC)
 %       =0, call country_risk_report_raw (one line with ED per country)
 %   report_filename: the filename of the Excel file the report is written
 %       to. Prompted for if not given (if Cancel pressed, write to stdout only)
+%   DFC_return_periods: damage frequency curve return periods, define the
+%       return periods we report damage for set =[] to report expected damage
+%       (ED) only (note that the ED will be denoted as return period=0 in the
+%       report). Default: DFC_return_periods=[100 250];
+%       If you set DFC_return_periods to a negative valiue, ONLY that
+%       return peirod will be reported (no ED, expected damage). Useful if
+%       e.g. only 100yr damage is of interest (and hence sorting
+%       descedingly by 100yr return period works, if print_format=2
+%       Note: DFC_return_periods are not passed on in the old version
+%       (print_format=0)
 %   plot_DFC: if =1, plot damage frequency curves (DFC) of all EDSs (!) in
 %       country_risk, =0 not (default)
 %       if =2, plot logarithmic scale both axes
@@ -36,6 +47,7 @@ function country_risk_report(country_risk,print_format,report_filename,plot_DFC)
 % David N. Bresch, david.bresch@gmail.com, 20141211, header added to Excel report
 % David N. Bresch, david.bresch@gmail.com, 20150715, bug fix for empty EDS (e.g. if combine EDS is called prior to report)
 % David N. Bresch, david.bresch@gmail.com, 20150715, empty EDS not reported any more
+% David N. Bresch, david.bresch@gmail.com, 20150815, option to only report one single RP (no ED)
 %-
 
 global climada_global
@@ -47,16 +59,11 @@ if ~climada_init_vars,return;end % init/import global variables
 if ~exist('country_risk','var'),return;end
 if ~exist('print_format','var'),print_format=1;end
 if ~exist('report_filename','var'),report_filename='';end
+if ~exist('DFC_return_periods','var'),DFC_return_periods=[100 250];end
 if ~exist('plot_DFC','var'),plot_DFC=0;end
 
 % PARAMETERS
 %
-% define the return periods we report damage for
-% set =[] to report expected damage (ED) only
-% (note that the ED will be denoted as return period=0 in the report)
-DFC_return_periods=[100 250]; % [100 250]
-%
-%climada_global.csv_delimiter=','; % to locally adjust delimiter (not recommended ;-)
 
 if print_format==0 % backward compatibility
     country_risk_report_raw(country_risk,0,plot_DFC);
@@ -84,7 +91,15 @@ format_str='%s;%s;%s;%s;%g;%s;%i;%g;%f\n';
 header_str=strrep(header_str,';',climada_global.csv_delimiter);
 format_str=strrep(format_str,';',climada_global.csv_delimiter);
 
-if ~isempty(DFC_return_periods),DFC_exceedence_freq = 1./DFC_return_periods;end
+only_return_period=0;
+if ~isempty(DFC_return_periods)
+    if sum(DFC_return_periods)<0
+        % switch to one single return period
+        only_return_period=1;
+        DFC_return_periods=abs(DFC_return_periods);
+    end
+    DFC_exceedence_freq = 1./DFC_return_periods;
+end
 
 % collect results
 
@@ -131,15 +146,22 @@ for entity_i=1:n_entities
                     RP_damage       = interp1(exceedence_freq,sorted_damage,DFC_exceedence_freq);
                     
                     for RP_i=1:length(RP_damage)
-                        res(next_res+1)=res(next_res); % copy
-                        ED(next_res+1)=ED(next_res); % copy
-                        next_res=next_res+1;
+                        if ~only_return_period
+                            res(next_res+1)=res(next_res); % copy
+                            ED(next_res+1)=ED(next_res); % copy
+                            next_res=next_res+1;
+                        else
+                            % just damage(s) for return period(s), overwrite ED
+                            ED(next_res)=RP_damage(RP_i);
+                        end
                         res(next_res).return_period=DFC_return_periods(RP_i);
                         res(next_res).damage=RP_damage(RP_i);
                         res(next_res).damage_oL=RP_damage(RP_i)/...
                             country_risk(entity_i).res.hazard(hazard_i).EDS.Value;
                     end % RP_i
+                    
                 end % ~isempty(DFC_return_periods)
+ 
                 next_res=next_res+1;
 
             else
