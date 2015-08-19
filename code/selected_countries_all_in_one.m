@@ -28,6 +28,7 @@
 % David N. Bresch, david.bresch@gmail.com, 20150225, figure name added
 % David N. Bresch, david.bresch@gmail.com, 20150815, latest country list and report only for 250yr event
 % David N. Bresch, david.bresch@gmail.com, 20150815, WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS switched off for now
+% David N. Bresch, david.bresch@gmail.com, 20150819, centroids in their own dir
 %-
 
 global climada_global
@@ -221,7 +222,7 @@ if generate_entities
         country_name_char = char(country_name); % as to create filenames etc., needs to be char
         
         % define easy to read filenames
-        centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+        centroids_file     = [country_data_dir filesep 'centroids' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
         entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
         entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
         
@@ -249,7 +250,7 @@ if add_distance2coast
         country_name_char = char(country_name); % as to create filenames etc., needs to be char
         
         % define easy to read filenames
-        centroids_file    = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+        centroids_file    = [country_data_dir filesep 'centroids' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
         load(centroids_file)
         if ~isfield(centroids,'distance2coast_km')
             fprintf('%s %s: adding distance2coast_km\n',country_ISO3,country_name_char);

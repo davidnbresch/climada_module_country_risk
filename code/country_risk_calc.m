@@ -116,6 +116,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20150121, method=7 added
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km added
 % David N. Bresch, david.bresch@gmail.com, 20150213, peril_ID to contain region and multiple perils enabled (if method=+/-7)
+% David N. Bresch, david.bresch@gmail.com, 20150819, centroids in their own folder
 %-
 
 country_risk = []; % init output
@@ -175,7 +176,7 @@ if method>100,method=method-100;use_future_entity=1;end % indicates to use entit
 
 % some folder checks (to be on the safe side)
 if ~exist(country_data_dir,'dir'),mkdir(fileparts(country_data_dir),'data');end
-if ~exist([country_data_dir filesep 'system'],'dir'),mkdir(country_data_dir,'system');end
+if ~exist([country_data_dir filesep 'centroids'],'dir'),mkdir(country_data_dir,'centroids');end
 if ~exist([country_data_dir filesep 'entities'],'dir'),mkdir(country_data_dir,'entities');end
 if ~exist([country_data_dir filesep 'hazards'],'dir'),mkdir(country_data_dir,'hazards');end
 
@@ -222,7 +223,7 @@ country_risk.res.country_ISO3 = country_ISO3;
 if isempty(country_name_char),return;end % invalid country name
 
 % define easy to read filenames
-centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+centroids_file     = [country_data_dir filesep 'centroids' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
 entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
 entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
 
@@ -245,7 +246,7 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
             save(centroids_file,'centroids');
             save(entity_file,'entity');
             climada_entity_value_GDP_adjust(entity_file); % adjust GDP
-            entity = entity_future; %replace with entity future
+            entity = entity_future; % replace with entity future
             save(entity_future_file,'entity');
             climada_entity_value_GDP_adjust(entity_future_file); % adjust GDP
             if strcmp(country_ISO3,'USA'),LOCAL_USA_UnitedStates_entity_treatment;end
@@ -489,7 +490,7 @@ function LOCAL_USA_UnitedStates_entity_treatment
 % special treatent for USA (restrict to contiguous US excl. Alaska)
 global climada_global
 fprintf('USA UnitedStates, restricting to contiguous US\n');
-centroids_file    =[climada_global.data_dir filesep 'system'   filesep 'USA_UnitedStates_centroids.mat'];
+centroids_file    =[climada_global.data_dir filesep 'centroids' filesep 'USA_UnitedStates_centroids.mat'];
 entity_file       =[climada_global.data_dir filesep 'entities' filesep 'USA_UnitedStates_entity.mat'];
 entity_future_file=[climada_global.data_dir filesep 'entities' filesep 'USA_UnitedStates_entity_future.mat'];
 
@@ -527,7 +528,7 @@ function LOCAL_NZL_NewZealand_entity_treatment
 global climada_global
 
 fprintf('NZL_ NewZealand, resolving date line issue\n');
-centroids_file    =[climada_global.data_dir filesep 'system'   filesep 'NZL_NewZealand_centroids.mat'];
+centroids_file    =[climada_global.data_dir filesep 'centroids' filesep 'NZL_NewZealand_centroids.mat'];
 entity_file       =[climada_global.data_dir filesep 'entities' filesep 'NZL_NewZealand_entity.mat'];
 entity_future_file=[climada_global.data_dir filesep 'entities' filesep 'NZL_NewZealand_entity_future.mat'];
 

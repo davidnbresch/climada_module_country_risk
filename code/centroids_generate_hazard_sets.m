@@ -76,6 +76,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km in TC added
 % David N. Bresch, david.bresch@gmail.com, 20150128, tc_track handling simplified, climada_tc_track_nodes
 % David N. Bresch, david.bresch@gmail.com, 20150309, VQ (volcano) added
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 
 centroids_hazard_info = []; % init output
@@ -124,7 +125,7 @@ WS_Europe_country_hazard_set=1; % default=1 (mainly for speedup)
 
 % some folder checks (to be on the safe side)
 if ~exist(local_data_dir,'dir'),mkdir(fileparts(local_data_dir),'data');end
-if ~exist([local_data_dir filesep 'system'],'dir'),mkdir(local_data_dir,'system');end
+if ~exist([local_data_dir filesep 'centroids'],'dir'),mkdir(local_data_dir,'centroids');end
 if ~exist([local_data_dir filesep 'entities'],'dir'),mkdir(local_data_dir,'entities');end
 if ~exist([local_data_dir filesep 'hazards'],'dir'),mkdir(local_data_dir,'hazards');end
 
@@ -161,7 +162,7 @@ end % ~isempty(peril_ID)
 % prompt for centroids if not given
 
 if isempty(centroids) % local GUI
-    centroids_file=[climada_global.data_dir filesep 'system' filesep '*.mat'];
+    centroids_file=[climada_global.centroids_dir filesep '*.mat'];
     [filename, pathname] = uigetfile(centroids_file, 'Select centroids (or an entity):');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
