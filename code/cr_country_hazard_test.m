@@ -72,6 +72,7 @@ function country_risk=cr_country_hazard_test(country_risk,country_i,hazard_i,CAG
 %       and hazard_i updated
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150213, initial
+% David N. Bresch, david.bresch@gmail.com, 20150906, no change, as the user anyway needs to edit lines....
 %-
 
 global climada_global
