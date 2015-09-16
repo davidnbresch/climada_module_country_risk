@@ -134,7 +134,7 @@ if ~exist('damagefunctions' ,'var'),damagefunctions = [];end
 
 % check for module GDP_entity, as it otherwise fails anyway
 if length(which('climada_create_GDP_entity'))<2 && method==3
-    fprintf('ERROR: GDP_entity module not found. Pleaseforce_recalc download from github and install. \nhttps://github.com/davidnbresch/climada_module_GDP_entity\n');
+    fprintf('ERROR: GDP_entity module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_GDP_entity\n');
     fprintf('> consider option force_recalc<0, e.g. country_risk=country_risk_calc(...,1,...)\n');
     return
 end

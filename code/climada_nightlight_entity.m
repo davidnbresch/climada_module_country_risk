@@ -45,7 +45,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 %   Programmer's remark: see fetch_mapserver_ngdc_noaa_gov_gcv4 at the
 %   bottom of the code, which could in theory fetch the tile from www
 %
-%   See also climada_create_GDP_entity
+%   See also climada_create_GDP_entity and climada_hybrid_entity
 % CALLING SEQUENCE:
 %   entity=climada_nightlight_entity(admin0_name,admin1_name,selections,check_plot,scale_Value,img_filename,save_entity)
 % EXAMPLE:
@@ -735,7 +735,7 @@ end
 if select_admin0 && restrict_Values_to_country % only one country
     entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
     entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
-    fprintf('Note: GDP %g, Poupulation %i (from shapefile)\n',entity.assets.GDP_EST,entity.assets.population_EST)
+    fprintf('Note: GDP %g, Population %i (from shapefile)\n',entity.assets.GDP_EST,entity.assets.population_EST)
 
     % Scale up asset values based on a country's estimated total asset value
     climada_entity_value_GDP_adjust(entity_save_file);
