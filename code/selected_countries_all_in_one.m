@@ -54,7 +54,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 check_country_names=0; % default=0, if=1, stops after check
 %
 % to generate entities
-generate_entities=0; % default=0, if=1, stops after
+generate_entities=1; % default=0, if=1, stops after
 add_distance2coast=0; % default=0, if=1, stops after
 %
 % whether we calculate admin1 level
@@ -185,6 +185,51 @@ country_list={ % final, as per 20150812
     'Vietnam'
     };
 
+country_list={ % additional, as per 20150927
+    'Angola'
+    'Argentina'
+    'Aruba'
+    'Azerbaijan'
+    'Barbados'
+    'Belize'
+    'Bermuda'
+    'Venezuela'
+    'Bolivia'
+    'Bosnia and Herzegovina'
+    'Botswana'
+    'Bulgaria'
+    'Bahamas'
+    'Cook Islands'
+    'Croatia'
+    'El Salvador'
+    'Ethiopia'
+    'Georgia'
+    'Ghana'
+    'Turks and Caicos Islands'
+    'Guatemala'
+    'Honduras'
+    'Jamaica'
+    'Kazakhstan'
+    'Kenya'
+    'Macedonia'
+    'Malaysia'
+    'Mozambique'
+    'Nigeria'
+    'Paraguay'
+    'Fiji'
+    'Romania'
+    'Rwanda'
+    'Senegal'
+    'Serbia'
+    'Slovakia'
+    'Slovenia'
+    'Spain'
+    'Trinidad and Tobago'
+    'Uganda'
+    'Uruguay'
+    'Zambia'
+    };
+
 % country_list={ % for the few we treat as admin1, too
 %     'United States'
 %     'Australia'
@@ -307,7 +352,7 @@ end
 % economic loss switched off 20150427 after decision taken 20140413
 % % calculate economic loss (first on country basis)
 % country_risk_economic_loss=cr_economic_loss_calc(country_risk);
-% 
+%
 % if generate_economic_loss_report
 %     country_risk_report(country_risk_economic_loss,1,economic_loss_report_filename);
 % end
@@ -320,7 +365,7 @@ end
 
 
 % below the section which plots all country/peril damage frequency curves
-% (DFCs) and we noted the calibration comments  
+% (DFCs) and we noted the calibration comments
 
 % ----------------------------------------------------------------
 % all commented out, i.e. uncomment and copy/past sections to command
@@ -352,7 +397,7 @@ end
 % country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
 % cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.05,1)
 % cr_DFC_plot_aggregate(country_risk,[],0.05,1)
-% 
+%
 % % TC/TS nio
 % % ---------
 % % Pakistan: climada very low, but left as is (TC not a big threat there)
@@ -366,7 +411,7 @@ end
 % country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
 % cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.07,1)
 % cr_DFC_plot_aggregate(country_risk,[],0.07,1)
-% 
+%
 % % TC/TS wpa
 % % ---------
 % % Vietnam looks ok, good match with EM-DAT
@@ -403,7 +448,7 @@ end
 % country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
 % cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.085,1) % 8.5% (0.085) CAGR for the region
 % cr_DFC_plot_aggregate(country_risk,[],0.085,1) % 8.5% (0.085) CAGR for the region
-% 
+%
 % % TC/TS she
 % % ---------
 % % Australia TS matches well, TS massively adjusted (was far too high)
@@ -421,10 +466,10 @@ end
 % country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
 % cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.05,1) % 5% (0.05) CAGR for the region
 % cr_DFC_plot_aggregate(country_risk,[],0.05,1) % 5% (0.05) CAGR for the region
-% 
+%
 % % EQ glb
 % % ------
-% 
+%
 % country_list={ % EQ glb exposed from selected_countries_all_in_one
 %     'Algeria'
 %     'Australia'
@@ -472,7 +517,7 @@ end
 %     'Vietnam'
 %     };
 % peril_ID='glb_EQ';
-% 
+%
 % country_risk_calibrate(country_list); % to be on the safe side
 % country_risk=country_risk_calc(country_list,-7,0,0,peril_ID); % calc EDS
 % cr_DFC_plot(country_risk_EDS_combine(country_risk),[],[],0.05,1) % 5% CAGR globally
