@@ -54,7 +54,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 check_country_names=0; % default=0, if=1, stops after check
 %
 % to generate entities
-generate_entities=1; % default=0, if=1, stops after
+generate_entities=0; % default=0, if=1, stops after
 add_distance2coast=0; % default=0, if=1, stops after
 %
 % whether we calculate admin1 level
@@ -73,6 +73,7 @@ country_data_dir=climada_global.data_dir;
 % method=3: using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
 country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
 country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
 
 % country_list={
