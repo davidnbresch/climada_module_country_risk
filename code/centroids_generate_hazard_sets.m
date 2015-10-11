@@ -75,8 +75,9 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150118, tc_track nodes file with track number
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km in TC added
 % David N. Bresch, david.bresch@gmail.com, 20150128, tc_track handling simplified, climada_tc_track_nodes
-% David N. Bresch, david.bresch@gmail.com, 20150309, VQ (volcano) added
+% David N. Bresch, david.bresch@gmail.com, 20150309, VQ (volcano) added, but switched off as default
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
+% David N. Bresch, david.bresch@gmail.com, 20151010, TR switched on as default
 %-
 
 centroids_hazard_info = []; % init output
@@ -98,7 +99,7 @@ if ~exist('peril_ID','var'),      peril_ID  = ''; end
 % switches to select which hazards to calculate, default is all =1
 calculate_TC=1; % whether we calculate TC
 calculate_TS=1; % whether we calculate TS (needs TC)
-calculate_TR=0; % whether we calculate TR (needs TC)
+calculate_TR=1; % whether we calculate TR (needs TC)
 calculate_EQ=1; % whether we calculate EQ
 calculate_VQ=0; % whether we calculate VQ
 calculate_WS=1; % whether we calculate WS
