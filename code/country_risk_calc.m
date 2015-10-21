@@ -117,6 +117,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20150123, distance2coast_km added
 % David N. Bresch, david.bresch@gmail.com, 20150213, peril_ID to contain region and multiple perils enabled (if method=+/-7)
 % David N. Bresch, david.bresch@gmail.com, 20150819, centroids in their own folder
+% Lea Mueller, muellele@gmail.com, 20151021, add climate change option (method=-8) (use hazard TWN_TAIWAN_wpa_TC_cc_2050.mat instead of TWN_TAIWAN_wpa_TC.mat)
 %-
 
 country_risk = []; % init output
@@ -164,11 +165,13 @@ country_data_dir = climada_global.data_dir; % default
 force_re_encoding=0; % default=0
 %
 probabilistic=0; % default
+climate_change=0; % default
 
 % process method (it has complex meaning ;-)
 orig_method=method;
 %
 if size(method)>1,EDS_emdat_adjust=method(2);method=method(1);end
+if method == -8, climate_change = 1; end
 if method<0,probabilistic=1;method=abs(method);end
 use_future_entity=0; % we use entity today by default
 if method>100,method=method-100;use_future_entity=1;end % indicates to use entity_future
@@ -311,7 +314,7 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
     fprintf('--> calling centroids_generate_hazard_sets...\n');
     country_risk=centroids_generate_hazard_sets(centroids,probabilistic,force_recalc,check_plots,peril_ID);
     fprintf('<-- back from calling centroids_generate_hazard_sets\n');
-    
+        
 else
     
     % no hazard set generation, just detecting existing hazard event sets
@@ -320,16 +323,36 @@ else
     % figure the existing hazard set files (same procedure as in
     % country_admin1_risk_calc)
     probabilistic_str='_hist';if probabilistic,probabilistic_str='';end
-    hazard_dir=[country_data_dir filesep 'hazards'];
-    hazard_files=dir([hazard_dir filesep country_ISO3 '_' ...
-        strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
-        
-    % first, filter probabilistic/historic
+    climate_change_str = ''; if climate_change, climate_change_str = '_cc_2050'; end
+    hazard_dir = [country_data_dir filesep 'hazards'];
+    hazard_files = dir([hazard_dir filesep '*.mat']);
+    % find ISO3 code
+    is_valid = ~cellfun('isempty', strfind({hazard_files.name},[country_ISO3 '_' strrep(country_name_char,' ','')]));
+    hazard_files = hazard_files(is_valid);
+    % find historical hazards only
+    if ~isempty(probabilistic_str)
+        is_valid = ~cellfun('isempty', strfind({hazard_files.name},probabilistic_str));
+        hazard_files = hazard_files(is_valid);
+    end
+    % find climate change hazards only -- Lea, 20151020
+    if ~isempty(climate_change_str)
+        is_valid = ~cellfun('isempty', strfind({hazard_files.name},climate_change_str));
+        hazard_files = hazard_files(is_valid);
+    end
+    % -- Lea, 20151020, keep for backward comptability
+    %hazard_files=dir([hazard_dir filesep country_ISO3 '_' ...
+    %    strrep(country_name_char,' ','') '*' probabilistic_str '.mat']);
+    
+    % first, filter probabilistic/historic and climate change
     valid_hazard=1:length(hazard_files); % assume all valid, the restrict
     for hazard_i=1:length(hazard_files)
         if probabilistic && ~isempty(strfind(hazard_files(hazard_i).name,'_hist.mat'))
             % filter, depending on probabilistic
-            valid_hazard(hazard_i)=0;
+            valid_hazard(hazard_i)=0;  
+        end
+        if ~climate_change && ~isempty(strfind(hazard_files(hazard_i).name,'_cc_2050.mat'))
+            % filter, depending on climate change
+            valid_hazard(hazard_i)=0;  
         end
     end % hazard_i
     valid_hazard=valid_hazard(valid_hazard>0);

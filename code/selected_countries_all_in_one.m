@@ -29,6 +29,8 @@
 % David N. Bresch, david.bresch@gmail.com, 20150815, latest country list and report only for 250yr event
 % David N. Bresch, david.bresch@gmail.com, 20150815, WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS switched off for now
 % David N. Bresch, david.bresch@gmail.com, 20150819, centroids in their own dir
+% Lea Mueller, muellele@gmail.com, 20151021, add climate change calculations (country_risk_calc_method=-8)
+% Lea Mueller, muellele@gmail.com, 20151021, use country_list for phase1+phase2
 %-
 
 global climada_global
@@ -65,6 +67,7 @@ generate_economic_loss_report=1; % default=1, the final economic loss report
 %
 property_damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'property_damage_report.xls'];
 economic_loss_report_filename  =[climada_global.data_dir filesep 'results' filesep 'economic_loss_report.xls'];
+property_damage_report_cc_filename=[climada_global.data_dir filesep 'results' filesep 'property_damage_report_cc_2050.xls'];
 %
 country_data_dir=climada_global.data_dir;
 %
@@ -72,9 +75,18 @@ country_data_dir=climada_global.data_dir;
 % method=-3: default, using GDP_entity and probabilistic sets, see country_risk_calc
 % method=3: using GDP_entity and historic sets, see country_risk_calc
 % method=-7: skip entity and hazard generation, probabilistic sets, see country_risk_calc
-country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
-country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
-country_risk_calc_force_recalc=0; % default=0, see country_risk_calc
+country_risk_calc_method = -8; % as -7 but additionally calculate climate change damage
+%country_risk_calc_method=-7; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+% country_risk_calc_method=-3; % default=-3, using GDP_entity and probabilistic sets, see country_risk_calc
+country_risk_calc_force_recalc = 0; % default=0, see country_risk_calc
+cc_hazard_force_recalc = 0; % default=0
+
+climate_change = 0;
+if country_risk_calc_method==-8
+    country_risk_calc_method = -7; % first calculate today's damage
+    climate_change = 1; % calculate additional climate change section
+    country_risk_calc_method_cc = -8;    
+end
 
 % country_list={
 %     %'Algeria' % removed 20150702
@@ -231,6 +243,73 @@ country_list={ % additional, as per 20150927
     'Zambia'
     };
 
+
+country_list={ % phase1+phase2, (phase 1 as of 20150812, phase 2 as per 20151012)
+    'Australia'
+    'Austria'
+    'Bangladesh'
+    'Belgium'
+    'Canada'
+    'Chile'
+    'China'
+    'Colombia'
+    'Costa Rica'
+    'Denmark'
+    'Dominican Republic'
+    'Ecuador'
+    'Finland'
+    'France'
+    'Germany'
+    'Greece'
+    'Hong Kong'
+    'India'
+    'Indonesia'
+    'Ireland'
+    'Israel'
+    'Italy'
+    'Japan'
+    'Korea'
+    'Mexico'
+    'Morocco'
+    'Netherlands'
+    'New Zealand'
+    'Norway'
+    'Pakistan'
+    'Panama'
+    'Peru'
+    'Philippines'
+    'Portugal'
+    'South Africa'
+    'Sri Lanka'
+    'Sweden'
+    'Switzerland'
+    'Taiwan'
+    'Thailand'
+    'Turkey'
+    'United Kingdom'
+    'United States'
+    'Vietnam'
+    'Aruba' % phase 2
+    'Barbados'
+    'Bermuda'
+    'Venezuela'
+    'Bahamas'
+    'Cook Islands'
+    'Guatemala'
+    'Honduras'
+    'Jamaica'
+    'Mozambique'
+    'Fiji'
+    'Trinidad and Tobago'
+    };
+
+% country_list={ % additional, phase 2
+% %     'Aruba'
+% %     'Guatemala'
+% %     'Trinidad and Tobago'
+%     'Colombia'
+%     };
+
 % country_list={ % for the few we treat as admin1, too
 %     'United States'
 %     'Australia'
@@ -324,18 +403,18 @@ if calculate_admin1
     country_risk1=country_risk_EDS_combine(country_risk1); % combine TC and TS
 end
 
-fprintf('\n!!! WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS skipped!!!\n\n');
+% fprintf('\n!!! WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS skipped!!!\n\n');
 
 % FOR CHECK RUNS SWITCHED OFF
 % calibrate once more (if applicable)
 %
-% if exist('cr_EDS_adjust_all','file')
-%     fprintf('adjusting EDSs\n')
-%     country_risk=cr_EDS_adjust_all(country_risk);
-%     if calculate_admin1
-%         country_risk1=cr_EDS_adjust_all(country_risk1);
-%     end
-% end
+if exist('cr_EDS_adjust_all','file')
+    fprintf('adjusting EDSs\n')
+    country_risk=cr_EDS_adjust_all(country_risk);
+    if calculate_admin1
+        country_risk1=cr_EDS_adjust_all(country_risk1);
+    end
+end
 
 % FOR CHECK RUNS SWITCHED OFF
 % annual aggregate (as we're not so much interested in per event/occurrence) in this context
@@ -362,6 +441,54 @@ end
 % annual aggregate above)
 %cr_DFC_plot(country_risk)
 %cr_DFC_plot_aggregate(country_risk)
+
+
+%% climate change 2050
+
+if climate_change
+
+    % calculate climate change hazards for selected countries and hazards (TC and TS)
+    ok = cr_hazard_clim_scen(country_list,'',cc_hazard_force_recalc);
+
+    % % calculate climate change scenarios for all countries and hazards (TC and TS)
+    % ok = cr_hazard_clim_scen('ALL','',cc_hazard_force_recalc);
+    % % calculate climate change scenarios for new countries and hazards (TC and TS)
+    % country_list ={ % additional, as per 20151012
+    %             'Aruba'; 'Barbados'; 'Bermuda'; 'Venezuela'; 'Bahamas'; 'Cook Islands';
+    %             'Guatemala'; 'Honduras'; 'Jamaica'; 'Mozambique'; 'Fiji'; 'Trinidad and Tobago'};
+    % ok = cr_hazard_clim_scen(country_list,'',cc_hazard_force_recalc);
+
+    % calculate damage on admin0 (country) level
+    country_risk_cc = country_risk_calc(country_list,country_risk_calc_method_cc,country_risk_calc_force_recalc,0);
+
+    fprintf('*** all country risk calculations for climate change 2050 done\n\n')
+
+    country_risk_cc = country_risk_EDS_combine(country_risk_cc); % combine TC and TS
+
+    % fprintf('\n!!! WARNING: cr_EDS_adjust_all and country_risk_EDS2YDS skipped!!!\n\n');
+
+    % FOR CHECK RUNS SWITCHED OFF
+    % calibrate once more (if applicable)
+    if exist('cr_EDS_adjust_all','file')
+        fprintf('adjusting EDSs\n')
+        country_risk_cc = cr_EDS_adjust_all(country_risk_cc);
+        %if calculate_admin1
+        %    country_risk1_cc = cr_EDS_adjust_all(country_risk1_cc);
+        %end
+    end
+
+
+    if generate_property_damage_report
+        if calculate_admin1
+            country_risk_report([country_risk_cc country_risk1],1,property_damage_report_cc_filename,-250); % only 250yr RP
+        else
+            country_risk_report(country_risk_cc,1,property_damage_report_cc_filename,-250); % only 250yr RP
+        end
+    end
+    
+end %climate_change
+
+
 
 
 
