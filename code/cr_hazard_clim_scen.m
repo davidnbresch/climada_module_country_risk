@@ -32,9 +32,8 @@ function ok = cr_hazard_clim_scen(country_name,peril_ID,force_recalc)
 %   command window in the hazard directoy.
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20151020, initial
+% Lea Mueller, muellele@gmail.com, 20151022, bugfix mixed up intensity and frequency screw
 %-
-
-country_risk = []; % init output
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
@@ -126,12 +125,13 @@ end
 % ------
 basin = {'atl' 'wpa' 'she' 'nio'};
 
-TC_frequency_screw = [5 4 1 1]/100 +1.;
-TC_intensity_screw = [0 0 0 0 0]/100 +1.;
+TC_frequency_screw = [0 0 0 0 0]/100 +1.;
+TC_intensity_screw = [5 4 1 1]/100 +1.;
 
 TS_frequency_screw = [0 0 0 0]/100 +1.;
 TS_intensity_screw = [0 0 0 0]/100 +1.;
 TS_intensity_shift = [0.4 0.35 0.3 0.25]; % sea level rise in m until 2050, RCP 8.5
+% TS_intensity_shift = [0 0 0 0]+0.0; % sea level rise in m until 2050, RCP 8.5
 
 
 % loop over perils
@@ -152,7 +152,7 @@ for p_i = 1:numel(peril_ID)
 
                 % only create and save modified hazard if it not does not yet
                 % exist
-                if ~exist([hazard_dir filesep hazard_save_file],'file') | force_recalc
+                if ~exist([hazard_dir filesep hazard_save_file],'file') || force_recalc
                     switch peril_ID{p_i}
                         case 'TC'
                             frequency_screw = TC_frequency_screw(b_i);
