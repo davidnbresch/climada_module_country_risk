@@ -33,6 +33,7 @@ function ok = cr_hazard_clim_scen(country_name,peril_ID,force_recalc)
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20151020, initial
 % Lea Mueller, muellele@gmail.com, 20151022, bugfix mixed up intensity and frequency screw
+% Lea Mueller, muellele@gmail.com, 20151023, add basin epa
 %-
 
 global climada_global
@@ -123,14 +124,14 @@ end
 % ------
 % - climate change scenario numbers for RCP8.5, 2050
 % ------
-basin = {'atl' 'wpa' 'she' 'nio'};
+basin = {'atl' 'epa' 'wpa' 'she' 'nio'};
 
-TC_frequency_screw = [0 0 0 0 0]/100 +1.;
-TC_intensity_screw = [5 4 1 1]/100 +1.;
+TC_frequency_screw = [0 0   0   0 0]/100 +1.;
+TC_intensity_screw = [5 3.5 3.5 1 1]/100 +1.;
 
-TS_frequency_screw = [0 0 0 0]/100 +1.;
-TS_intensity_screw = [0 0 0 0]/100 +1.;
-TS_intensity_shift = [0.4 0.35 0.3 0.25]; % sea level rise in m until 2050, RCP 8.5
+TS_frequency_screw = [0   0   0    0    0   ]/100 +1.;
+TS_intensity_screw = [0   0   0    0    0   ]/100 +1.;
+TS_intensity_shift = [0.4 0.3 0.35 0.35 0.25]; % sea level rise in m until 2050, RCP 8.5
 % TS_intensity_shift = [0 0 0 0]+0.0; % sea level rise in m until 2050, RCP 8.5
 
 
