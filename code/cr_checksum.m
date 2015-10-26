@@ -99,7 +99,7 @@ else
     country_name_char=country_name_char_chk;
 end
 
-centroids_file     = [country_data_dir filesep 'system'   filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
+centroids_file     = [climada_global.centroids_dir filesep country_ISO3 '_' strrep(country_name_char,' ','') '_centroids.mat'];
 entity_file        = [climada_global.data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
 entity_future_file = [climada_global.data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
 
