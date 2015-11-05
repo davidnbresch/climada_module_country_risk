@@ -1,4 +1,4 @@
-function country_risk_waterfall(country_name,annual_eco_growth)
+function [entity, entity_future, DFC, DFC_eco, DFC_cc] = country_risk_waterfall(country_name,annual_eco_growth)
 % country_risk_waterfall(country_name,annual_eco_growth)
 % MODULE:
 %   country risk
@@ -25,8 +25,14 @@ function country_risk_waterfall(country_name,annual_eco_growth)
 %   annual_eco_growth: annual economic growth, e.g. 0.04 for 4% growth for 
 %       a developing country, and 0.01 for a developed country 
 % OUTPUTS:
+%   entity: entity structure with today's values
+%   entity_future: entity structure with future values
+%   DFC: damage frequency curve with 250 year damage for today's values
+%   DFC_eco: 250 year damage for economic growth
+%   DFC_cc: 250 year damage for economic growth and climate change
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20151029, initial
+% Lea Mueller, muellele@gmail.com, 20151105, call climada_entity_scaleup_factor for future entity and add output variables
 %-
 
 global climada_global
@@ -46,6 +52,7 @@ return_period = 250;
 climada_global.Value_unit = 'USD';
 % climada_global.future_reference_year = 2050;
 % timespan = 35;
+climada_global.present_reference_year = 2015;
 timespan = climada_global.future_reference_year - climada_global.present_reference_year;
 
 % set country_name
@@ -112,8 +119,10 @@ entity_file = [climada_global.data_dir filesep 'entities' filesep country_ISO3 '
 entity = climada_entity_load(entity_file);
 
 %create future entity 
-entity_future = entity;
-entity_future.assets.Value = entity.assets.Value*(1+annual_eco_growth)^timespan;
+% entity_future = entity;
+% entity_future.assets.Value = entity.assets.Value*(1+annual_eco_growth)^timespan;
+% entity_future.assets.Cover = entity.assets.Cover*(1+annual_eco_growth)^timespan;
+entity_future = climada_entity_scaleup_factor(entity,(1+annual_eco_growth)^timespan);
 
 % calculate damage today and damage with economic development
 % loop over hazard files, normally one for TC and one for TS
@@ -154,6 +163,12 @@ end
 % adjust EDS
 EDS_cc = cr_EDS_adjust(EDS_cc);
 
+
+% calculate 250 yr return period damage
+return_period = 250;
+DFC = climada_EDS2DFC(EDS, return_period);
+DFC_eco = climada_EDS2DFC(EDS_eco, return_period);
+DFC_cc = climada_EDS2DFC(EDS_cc, return_period);
 
 % create figures
 
