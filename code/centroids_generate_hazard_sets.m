@@ -78,6 +78,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150309, VQ (volcano) added, but switched off as default
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 % David N. Bresch, david.bresch@gmail.com, 20151010, TR switched on as default
+% David N. Bresch, david.bresch@gmail.com, 20151224, hazard module names renamed
 %-
 
 centroids_hazard_info = []; % init output
@@ -327,7 +328,9 @@ if calculate_EQ
     % ----------------------------------------------------
     
     if length(which('eq_isc_gem_read'))<2
-        cprintf([1,0.5,0],'Earthquake (EQ) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n\n');
+        fprintf(['Earthquake (EQ) module not found. Please download ' ...
+            '<a href="https://github.com/davidnbresch/climada_module_earthquake_volcano">'...
+            'climada_module_earthquake_volcano</a> from Github.\n'])
     else
         % test EQ exposure
         %eq_data=eq_centennial_read; % until 20141203
@@ -361,7 +364,9 @@ if calculate_VQ
     % ----------------------------------------------------
     
     if length(which('vq_volcano_list_read'))<2
-        fprintf('Volcano/Earthquake (EQ) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_eq_global\n');
+         fprintf(['Volcano/Earthquake (EQ/VQ) module not found. Please download ' ...
+            '<a href="https://github.com/davidnbresch/climada_module_earthquake_volcano">'...
+            'climada_module_earthquake_volcano</a> from Github.\n'])
     else
         % test VQ exposure
         [vq_data,volcano_list_file_mat]=vq_volcano_list_read;
@@ -394,7 +399,9 @@ if calculate_WS
     % ------------------------------------------------------------------------------
     
     if length(which('winterstorm_TEST'))<2
-        cprintf([1,0.5,0],'European winterstorm (WS) module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_ws_europe\n\n');
+        fprintf(['European winterstorm (WS) module not found. Please download ' ...
+            '<a href="https://github.com/davidnbresch/climada_module_storm_europe">'...
+            'climada_module_storm_europe</a> from Github.\n'])
     else
         % test WS exposure
         WS_module_data_dir=[fileparts(fileparts(which('winterstorm_TEST'))) filesep 'data'];
@@ -563,7 +570,9 @@ for hazard_i=1:hazard_count
                         fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
                     end
                 else
-                    cprintf([1,0.5,0],'Coastal surge module not found. Please download from github and install. \nhttps://github.com/davidnbresch/climada_module_tc_surge\n\n');
+                    fprintf(['Storm surge (TS) module not found. Please download ' ...
+                        '<a href="https://github.com/davidnbresch/climada_module_tropical_cyclone">'...
+                        'climada_module_tropical_cyclone</a> from Github.\n'])
                     centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
                 end
                 
@@ -608,7 +617,9 @@ for hazard_i=1:hazard_count
                 hazard = climada_tr_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 fprintf('TR: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
             else
-                fprintf('Torrential rain module not found. Please download from github:\nhttps://github.com/davidnbresch/climada_module_tc_rain\n'); % a kind of easy check
+                fprintf(['Torrential rain (TR) module not found. Please download ' ...
+                    '<a href="https://github.com/davidnbresch/climada_module_tropical_cyclone">'...
+                    'climada_module_tropical_cyclone</a> from Github.\n'])
                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file=[];
             end
         else
@@ -657,7 +668,9 @@ for hazard_i=1:hazard_count
                     fprintf('EQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
                 end
             else
-                fprintf('Earthquake module not found. Please download from github and install.\nhttps://github.com/davidnbresch/climada_module_eq_global\n');
+                fprintf(['Earthquake (EQ) module not found. Please download ' ...
+                    '<a href="https://github.com/davidnbresch/climada_module_earthquake_volcano">'...
+                    'climada_module_earthquake_volcano</a> from Github.\n'])
                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
             end
         else
@@ -705,7 +718,9 @@ for hazard_i=1:hazard_count
                     fprintf('VQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
                 end
             else
-                fprintf('Volcano/Earthquake module not found. Please download from github and install.\nhttps://github.com/davidnbresch/climada_module_eq_global\n');
+                fprintf(['Volcano/Earthquake (VQ/EQ) module not found. Please download ' ...
+                    '<a href="https://github.com/davidnbresch/climada_module_earthquake_volcano">'...
+                    'climada_module_earthquake_volcano</a> from Github.\n'])
                 centroids_hazard_info.res.hazard(hazard_i).hazard_set_file = [];
             end
         else

@@ -719,7 +719,7 @@ if add_elevation_m
     % add elevation
     if ~exist('etopo_get','file')
         % safety to inform the user in case he misses the ETOPO module
-        fprintf('Note: no elevation added (no etopo_get function found)\n Please download from github and install the climada etopo module\n https://github.com/davidnbresch/climada_module_etopo\n');
+        fprintf('Note: no elevation added (no etopo_get function found)\n Please download from github and install the climada elevation_models module\n https://github.com/davidnbresch/climada_module_elevation_models\n');
     else
         fprintf('adding elevation [m] (might take some time) ...\n');
         entity.assets.elevation_m=etopo_elevation_m(entity.assets.lon,entity.assets.lat,check_plot);
