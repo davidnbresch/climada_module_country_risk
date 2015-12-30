@@ -99,7 +99,7 @@ if ~exist(economic_data_file,'file')
         'Choose the database containing the economic indicators:');
     if isequal(filename,0) || isequal(pathname,0)
         fprintf('No database selected, consider downloading the country_risk module again\n');
-        fprintf('> See https://github.com/davidnbresch/climada_module_country_risk\n');
+        fprintf('See <a href="https://github.com/davidnbresch/climada_module_country_risk">climada_module_country_risk</a>\n')
         return; % cancel
     else
         economic_data_file=fullfile(pathname,filename);
