@@ -1,0 +1,244 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>climada_create_GDP_entity</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2014-02-07"><meta name="DC.source" content="climada_create_GDP_entity.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">set the parameters according to your needs</a></li><li><a href="#4">create entity_100 (all values add up to 100 within the specified country) and create the centroids on the required resolution</a></li><li><a href="#5">scale up entity_100 to match GDP of year_start</a></li><li><a href="#6">scale up entity_100 to match GDP of year_forecast</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [centroids, entity, entity_forecast] = climada_create_GDP_entity(country_name, polygon)
+</pre><p>create a portfolio for a specific country, consisting of   - <b>centroids</b> (mat)   - base entity (assets sum up to 100 for a given country, mat and   xls-file), intermediary step only, entity_base is not an output   - <b>entity</b> (based on GDP today (e.g. 2014) and future GDP projection (e.g. 2030) NAME:   climada_create_GDP_entity_all PURPOSE:   create centroids and entity for a specific country, distribute assets   and value according to night light intensities and scale up to match   GDP today and a future scenario CALLING SEQUENCE:   [centroids entity entity_forecast] = climada_create_GDP_entity(country_name, polygon) EXAMPLE:   [centroids entity entity_forecast] = climada_create_GDP_entity   [centroids entity entity_forecast] = climada_create_GDP_entity('Mexico') INPUTS: none OUTPUTS:   centroids      : a structure with fields centroid_ID, Latitude, Longitude,                    onLand, country_name, comment for each centroid   entity         : a structure with fields assets, damagefunctions, measures,                    discount. Assets values are based on night light                    intensity and scaled up to todays GDP (e.g. 2014)   entity_forecast: entity strucure with values scaled to a future GDP                    scenario MODIFICATION HISTORY: Lea Mueller, <a href="mailto:muellele@gmail.com">muellele@gmail.com</a>, 20140206</p><pre class="codeinput"><span class="comment">%-</span>
+
+<span class="keyword">if</span> ~exist(<span class="string">'country_name'</span>, <span class="string">'var'</span>), country_name = []  ; <span class="keyword">end</span>
+</pre><h2>set the parameters according to your needs<a name="3"></a></h2><pre class="codeinput">asset_resolution_km      = 10;
+year_start               = 2014;
+year_forecast            = 2030;
+
+check_figure             = 1;
+check_printplot          = 0;
+check_for_groups         = 0;
+hollowout                = 0;
+
+save_on_entity_centroids = 1;
+night_light              = <span class="string">''</span>;
+pp                       = <span class="string">''</span>;
+borders                  = <span class="string">''</span>;
+border_mask              = <span class="string">''</span>;
+GDP                      = <span class="string">''</span>;
+</pre><h2>create entity_100 (all values add up to 100 within the specified country) and create the centroids on the required resolution<a name="4"></a></h2><pre class="codeinput">[centroids_ori, entity_base] = climada_create_centroids_entity_base(country_name, asset_resolution_km, hollowout,<span class="keyword">...</span>
+                                                        check_for_groups,night_light, pp, borders, border_mask, <span class="keyword">...</span>
+                                                        check_figure, save_on_entity_centroids);
+</pre><pre class="codeoutput">0) 	 a) Load world borders including regions
+0)	 b) Load border masks... done
+	 *** Mexico on roughly 10 km  ***
+		 saved 1 mat-file in folder \\CHRB1065.CORP.GWPNET.COM\homes\X\S3BXXW\Documents\lea\climada_test_environment\climada_additional\GDP_entity\data\night_light_2010_10km.mat 
+	 Transform night lights to values (nonlinearly or linearly)
+	 y =  0.0000*x^0 + -0.0817*x^1 + 0.0172*x^2
+		 Distribute values according to night lights within Mexico on a 10 km resolution
+1) Downscale distributed values to ~10km ...  		 Requested resolution (9 km) corresonds already to input matrix (9.26 km)
+(exactly ~9km) done
+2) Create centroids for Mexico on a ~9 km resolution
+	 a) Create buffer of ~50km
+	 b) Select entire country (hollowout is set to 0) 
+		 Requested resolution (9 km) corresonds already to input matrix (9.26 km)
+		 --&gt; 36681 centroids (8692 on land and within buffer, 2891 outside)
+	 d) Save centroids in 
+		 \\CHRB1065.CORP.GWPNET.COM\homes\X\S3BXXW\Documents\lea\climada_test_environment\climada\data\system\centroids_Mexico_9km_
+3) Create base entity
+	 a) Read from excel, entity without assets (damagefunctions, measures, discount) ...
+	    WARN: no damagefunctions data read, Attempt to reference field of non-structure array.
+entity saved as mat-file in \\CHRB1065.CORP.GWPNET.COM\homes\X\S3BXXW\Documents\lea\climada_test_environment\climada_additional\GDP_entity\data\entity_global_without_assets.mat
+	 b) Take assets from distributed values matrix
+	 c) Encode assets to centroids
+	 d) Save entity_base in
+		 \\CHRB1065.CORP.GWPNET.COM\homes\X\S3BXXW\Documents\lea\climada_test_environment\climada\data\entities\entity_Mexico_base_-0817x1_0172x2_9km_
+	 e)Save entity as excel-file
+		 - Assets sheet
+		 - Damagefunctions sheet
+		 - Measures sheet
+		 - Discount sheet
+		 Save entity as xls file
+		 \\CHRB1065.CORP.GWPNET.COM\homes\X\S3BXXW\Documents\lea\climada_test_environment\climada\data\entities\entity_Mexico_base_-0817x1_0172x2_9km_.xls
+</pre><img vspace="5" hspace="5" src="climada_create_GDP_entity_01.png" alt=""> <img vspace="5" hspace="5" src="climada_create_GDP_entity_02.png" alt=""> <h2>scale up entity_100 to match GDP of year_start<a name="5"></a></h2><pre class="codeinput">entity          = climada_entity_GDP(entity_base, GDP, year_start   , centroids_ori, borders, check_figure, check_printplot);
+</pre><pre class="codeoutput">Step 1: Base entity to GDP 2010 (latest year of available GDP  information)
+		 Read GDP and save as mat-file
+		 Assets are all encoded to valid centroids.
+		 GDP for Mexico in 2010 is 1.036e+12 USD (current) 
+		 Entity assets covers 100.0% of Mexico, i.e. GDP for entire Mexico in 2010 is 1.036e+12 USD
+
+Step 2: Entity based on GDP 2010 to entity based on GDP 2014
+		 Assets are all encoded to valid centroids.
+		 25098 centroids are within Mexico
+		 Entity assets "entity scaled with factor 10358708802.424" scaled from 2010 to 2014 with average scale up factor 1.16
+		 Entity assets sum is 1.201e+12 USD 
+</pre><img vspace="5" hspace="5" src="climada_create_GDP_entity_03.png" alt=""> <img vspace="5" hspace="5" src="climada_create_GDP_entity_04.png" alt=""> <h2>scale up entity_100 to match GDP of year_forecast<a name="6"></a></h2><pre class="codeinput">entity_forecast = climada_entity_GDP(entity_base, GDP, year_forecast, centroids_ori, borders, check_figure, check_printplot);
+
+
+<span class="keyword">if</span> ~exist(<span class="string">'polygon'</span>, <span class="string">'var'</span>), polygon = []  ; <span class="keyword">end</span>
+<span class="keyword">if</span> ~isempty(polygon)
+    <span class="keyword">if</span> numel(polygon) == 1, polygon = []; <span class="keyword">end</span>
+    [centroids, entity]          = climada_cut_out_GDP_entity(entity,centroids_ori,polygon);
+    [c,         entity_forecast] = climada_cut_out_GDP_entity(entity_forecast,centroids,polygon);
+<span class="keyword">else</span>
+    centroids = centroids_ori;
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Step 1: Base entity to GDP 2010 (latest year of available GDP  information)
+		 GDP per country loaded
+		 Worldbank/IMF GDP data, from year 1960 to 2010
+		 Assets are all encoded to valid centroids.
+		 GDP for Mexico in 2010 is 1.036e+12 USD (current) 
+		 Entity assets covers 100.0% of Mexico, i.e. GDP for entire Mexico in 2010 is 1.036e+12 USD
+
+Step 2: Entity based on GDP 2010 to entity based on GDP 2030
+		 Assets are all encoded to valid centroids.
+		 25098 centroids are within Mexico
+		 Entity assets "entity scaled with factor 10358708802.424" scaled from 2010 to 2030 with average scale up factor 1.55
+		 Entity assets sum is 1.61e+12 USD 
+
+ans = 
+
+     centroid_ID: [1x36681 double]
+       Longitude: [1x36681 double]
+        Latitude: [1x36681 double]
+          onLand: [1x36681 double]
+    country_name: {1x36681 cell}
+         comment: [1x71 char]
+
+</pre><img vspace="5" hspace="5" src="climada_create_GDP_entity_05.png" alt=""> <img vspace="5" hspace="5" src="climada_create_GDP_entity_06.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [centroids, entity, entity_forecast] = climada_create_GDP_entity(country_name, polygon)
+
+%%
+% create a portfolio for a specific country, consisting of
+%   - *centroids* (mat)
+%   - base entity (assets sum up to 100 for a given country, mat and
+%   xls-file), intermediary step only, entity_base is not an output
+%   - *entity* (based on GDP today (e.g. 2014) and future GDP projection (e.g. 2030)
+% NAME:
+%   climada_create_GDP_entity_all
+% PURPOSE:
+%   create centroids and entity for a specific country, distribute assets
+%   and value according to night light intensities and scale up to match 
+%   GDP today and a future scenario
+% CALLING SEQUENCE:
+%   [centroids entity entity_forecast] = climada_create_GDP_entity(country_name, polygon)
+% EXAMPLE:
+%   [centroids entity entity_forecast] = climada_create_GDP_entity
+%   [centroids entity entity_forecast] = climada_create_GDP_entity('Mexico')
+% INPUTS:
+% none
+% OUTPUTS:
+%   centroids      : a structure with fields centroid_ID, Latitude, Longitude,
+%                    onLand, country_name, comment for each centroid
+%   entity         : a structure with fields assets, damagefunctions, measures,
+%                    discount. Assets values are based on night light 
+%                    intensity and scaled up to todays GDP (e.g. 2014)
+%   entity_forecast: entity strucure with values scaled to a future GDP
+%                    scenario
+% MODIFICATION HISTORY:
+% Lea Mueller, muellele@gmail.com, 20140206
+%-
+
+if ~exist('country_name', 'var'), country_name = []  ; end
+
+%% set the parameters according to your needs
+asset_resolution_km      = 10;
+year_start               = 2014;
+year_forecast            = 2030;
+
+check_figure             = 1;
+check_printplot          = 0;
+check_for_groups         = 0;
+hollowout                = 0;
+
+save_on_entity_centroids = 1;
+night_light              = ''; 
+pp                       = ''; 
+borders                  = ''; 
+border_mask              = '';
+GDP                      = '';
+
+
+%% create entity_100 (all values add up to 100 within the specified country) and create the centroids on the required resolution
+[centroids_ori, entity_base] = climada_create_centroids_entity_base(country_name, asset_resolution_km, hollowout,...
+                                                        check_for_groups,night_light, pp, borders, border_mask, ... 
+                                                        check_figure, save_on_entity_centroids);
+%% scale up entity_100 to match GDP of year_start                                                 
+entity          = climada_entity_GDP(entity_base, GDP, year_start   , centroids_ori, borders, check_figure, check_printplot);   
+
+%% scale up entity_100 to match GDP of year_forecast
+entity_forecast = climada_entity_GDP(entity_base, GDP, year_forecast, centroids_ori, borders, check_figure, check_printplot);   
+
+
+if ~exist('polygon', 'var'), polygon = []  ; end
+if ~isempty(polygon)
+    if numel(polygon) == 1, polygon = []; end
+    [centroids, entity]          = climada_cut_out_GDP_entity(entity,centroids_ori,polygon);
+    [c,         entity_forecast] = climada_cut_out_GDP_entity(entity_forecast,centroids,polygon);
+else
+    centroids = centroids_ori;
+end
+
+
+
+##### SOURCE END #####
+--></body></html>

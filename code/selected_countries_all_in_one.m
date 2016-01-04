@@ -303,6 +303,20 @@ country_list={ % phase1+phase2, (phase 1 as of 20150812, phase 2 as per 20151012
     'Trinidad and Tobago'
     };
 
+country_list={ % phase1+phase2, error test
+    'Costa Rica'
+    'Panama'
+    'Barbados'
+    'Bahamas'
+    };
+
+    
+% country_list={ % check, 20151023
+%     'Australia'
+%     'Mexico'
+%     'Fiji'
+%     };
+
 % country_list={ % additional, phase 2
 % %     'Aruba'
 % %     'Guatemala'
