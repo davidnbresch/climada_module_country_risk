@@ -2,6 +2,7 @@ climada_module_country_risk
 ===========================
 
 **Purpose**
+
 This module runs all (available) perils for one country or for a list of countries. First, it allows generating the country assets (10 or 1 km resolution, based on night light intensity), second to generate the hazard event sets and second to run all damage calculations. The core function is ***country_risk_calc***, which does it all in one go. Read the [country risk manual](docs/climada_module_country_risk.pdf).
  
 This module contains the former GDP entity module. GDP entity creates an asset base and centroids for a specific country for today and a selected future year, based on today's GDP and a future extrapolated GDP. The country assets are created with the main function ***climada_create_GDP_entity***. Read the [GDP entity manual](docs/climada_module_GDP_entity.pdf).
