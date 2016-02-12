@@ -26,6 +26,8 @@ function climada_entity_save_xls(entity, entity_xls_file,dam_funct_overwrite,mea
 % Gilles Stassen 20141211 - add overwrite options for non-asset sheets
 % Gilles Stassen 20150106 - generalise condition on entity.assets.(fields)
 % David N. Bresch, david.bresch@gmail.com, 20150804, old assets.Longitude replaced by assets.lon
+% Lea Mueller, muellele@gmail.com, 20160212, set dam_funct_overwrite, measures_overwrite, discount_overwrite to 1 (default)
+% Lea Mueller, muellele@gmail.com, 20160212, check excel limit only for .xls version
 %-
 
 global climada_global
@@ -34,22 +36,13 @@ if ~climada_init_vars,return;end % init/import global variables
 % poor man's version to check arguments
 if ~exist('entity'         , 'var'), return;end
 if ~exist('entity_xls_file', 'var'), entity_xls_file = [];end
-if ~exist('dam_funct_overwrite', 'var'), dam_funct_overwrite = 0;end % default to overwrite entire file
-if ~exist('measures_overwrite', 'var'), measures_overwrite = 0;end % default to overwrite entire file
+if ~exist('dam_funct_overwrite', 'var'), dam_funct_overwrite = 1;end % default to overwrite entire file
+if ~exist('measures_overwrite', 'var'), measures_overwrite = 1;end % default to overwrite entire file
 if ~exist('discount_overwrite', 'var'), discount_overwrite = 1;end % default to overwrite entire file
 warning off MATLAB:xlswrite:AddSheet
 
 % prompt for entity_file if not given
-if isempty(entity) % local GUI
-    entity = climada_entity_load;
-end
-
-% check if number of assets smaller than excel limit
-xls_row_limit = 65536;
-if length(entity.assets.lon)>xls_row_limit
-    fprintf('\t\t The number of assets in the entity structure (%d) exceed the number of rows in excel(%d)\n',length(entity.assets.lon),xls_row_limit)
-    return
-end
+entity = climada_entity_load(entity);
 
 % prompt for entity_file if not given
 if isempty(entity_xls_file) % local GUI
@@ -62,82 +55,102 @@ if isempty(entity_xls_file) % local GUI
     end
 end
 
+% check if number of assets smaller than excel limit
+[pathstr,name,ext] = fileparts(entity_xls_file);
+if strcmp(ext,'.xls')
+    xls_row_limit = 65536;
+    if isfield(entity,'assets')
+        if length(entity.assets.lon)>xls_row_limit 
+            fprintf('\t\t ERROR: The number of assets in the entity structure (%d) exceed the number of rows in excel (.xls). (%d)\n \t\t Try .xlsx format.\n',length(entity.assets.lon),xls_row_limit)
+            return
+        end
+    end
+end
+
 fprintf('Save entity as excel-file\n')
 
 %% assets sheet
-fprintf('\t\t - Assets sheet\n')
-fields_2 =  fieldnames(entity.assets);
-counter  = 0;
-matr     = cell(length(entity.assets.lon)+1,5);
-for row_i = 1:length(fields_2)
-    if isnumeric(entity.assets.(fields_2{row_i})) && numel(entity.assets.(fields_2{row_i})) > 1
-        counter         = counter+1;
-        matr{1,counter} = fields_2{row_i};
-        matr(2:end,counter) = num2cell(entity.assets.(fields_2{row_i})');
-    end
-end
-xlswrite(entity_xls_file, matr, 'assets')
-
-%% vulnerability sheet
-if dam_funct_overwrite == 1;
-    fprintf('\t\t - Damagefunctions sheet\n')
-    fields_2 =  fieldnames(entity.damagefunctions);
+if isfield(entity,'assets')
+    fprintf('\t\t - Assets sheet\n')
+    fields_2 =  fieldnames(entity.assets);
     counter  = 0;
-    matr     = cell(length(entity.damagefunctions.DamageFunID)+1,1);
+    matr     = cell(length(entity.assets.lon)+1,5);
     for row_i = 1:length(fields_2)
-        if ~strcmp(fields_2{row_i},'filename')
+        if isnumeric(entity.assets.(fields_2{row_i})) && numel(entity.assets.(fields_2{row_i})) > 1
             counter         = counter+1;
             matr{1,counter} = fields_2{row_i};
-            if ~isnumeric(entity.damagefunctions.(fields_2{row_i}))
-                matr(2:end,counter) = entity.damagefunctions.(fields_2{row_i});
-            else
-                matr(2:end,counter) = num2cell(entity.damagefunctions.(fields_2{row_i}));
-            end
+            matr(2:end,counter) = num2cell(entity.assets.(fields_2{row_i})');
         end
     end
-    xlswrite(entity_xls_file, matr, 'damagefunctions')
+    xlswrite(entity_xls_file, matr, 'assets')
+end
+
+%% damagefunctions sheet
+if dam_funct_overwrite == 1;
+    if isfield(entity,'damagefunctions')
+        fprintf('\t\t - Damagefunctions sheet\n')
+        fields_2 =  fieldnames(entity.damagefunctions);
+        counter  = 0;
+        matr     = cell(length(entity.damagefunctions.DamageFunID)+1,1);
+        for row_i = 1:length(fields_2)
+            if ~strcmp(fields_2{row_i},'filename')
+                counter         = counter+1;
+                matr{1,counter} = fields_2{row_i};
+                if ~isnumeric(entity.damagefunctions.(fields_2{row_i}))
+                    matr(2:end,counter) = entity.damagefunctions.(fields_2{row_i});
+                else
+                    matr(2:end,counter) = num2cell(entity.damagefunctions.(fields_2{row_i}));
+                end
+            end
+        end
+        xlswrite(entity_xls_file, matr, 'damagefunctions')
+    end
 end
 %% measures sheet
 if measures_overwrite == 1;
-    fprintf('\t\t - Measures sheet\n')
-    fields_2 =  fieldnames(entity.measures);
-    counter  = 0;
-    matr     = cell(length(entity.measures.name)+1,1);
-    for row_i = 1:length(fields_2)
-        if ~strcmp(fields_2{row_i},'filename') & ~strcmp(fields_2{row_i},'color_RGB') & ~strcmp(fields_2{row_i},'damagefunctions_mapping')
-            counter         = counter+1;
-            matr{1,counter} = fields_2{row_i};
-            if ~isnumeric(entity.measures.(fields_2{row_i})) %is not numeric
-                matr(2:end,counter) = entity.measures.(fields_2{row_i});
-            else
-                matr(2:end,counter) = num2cell(entity.measures.(fields_2{row_i}));
+    if isfield(entity,'measures')
+        fprintf('\t\t - Measures sheet\n')
+        fields_2 =  fieldnames(entity.measures);
+        counter  = 0;
+        matr     = cell(length(entity.measures.name)+1,1);
+        for row_i = 1:length(fields_2)
+            if ~strcmp(fields_2{row_i},'filename') & ~strcmp(fields_2{row_i},'color_RGB') & ~strcmp(fields_2{row_i},'damagefunctions_mapping')
+                counter         = counter+1;
+                matr{1,counter} = fields_2{row_i};
+                if ~isnumeric(entity.measures.(fields_2{row_i})) %is not numeric
+                    matr(2:end,counter) = entity.measures.(fields_2{row_i});
+                else
+                    matr(2:end,counter) = num2cell(entity.measures.(fields_2{row_i}));
+                end
             end
         end
+        xlswrite(entity_xls_file, matr, 'measures')
     end
-    xlswrite(entity_xls_file, matr, 'measures')
 end
 
 %% discount sheet
 if discount_overwrite ==1;
-    fprintf('\t\t - Discount sheet\n')
-    fields_2 =  fieldnames(entity.discount);
-    counter  = 0;
-    matr     = cell(length(entity.discount.yield_ID)+1,1);
-    for row_i = 1:length(fields_2)
-        if ~strcmp(fields_2{row_i},'filename')
-            counter         = counter+1;
-            matr{1,counter} = fields_2{row_i};
-            if ~isnumeric(entity.discount.(fields_2{row_i})) %is not numeric
-                matr(2:end,counter) = entity.discount.(fields_2{row_i});
-            else
-                matr(2:end,counter) = num2cell(entity.discount.(fields_2{row_i}));
+    if isfield(entity,'discount')
+        fprintf('\t\t - Discount sheet\n')
+        fields_2 =  fieldnames(entity.discount);
+        counter  = 0;
+        matr     = cell(length(entity.discount.yield_ID)+1,1);
+        for row_i = 1:length(fields_2)
+            if ~strcmp(fields_2{row_i},'filename')
+                counter         = counter+1;
+                matr{1,counter} = fields_2{row_i};
+                if ~isnumeric(entity.discount.(fields_2{row_i})) %is not numeric
+                    matr(2:end,counter) = entity.discount.(fields_2{row_i});
+                else
+                    matr(2:end,counter) = num2cell(entity.discount.(fields_2{row_i}));
+                end
             end
         end
+        xlswrite(entity_xls_file, matr, 'discount')
     end
-    xlswrite(entity_xls_file, matr, 'discount')
     
     fprintf('\t\t Save entity as xls file\n')
-    cprintf([113 198 113]/255,'\t\t %s\n',entity_xls_file)
+    cprintf([113 198 113]/255,'\t\t %s\n',entity_xls_file);
 end
 
 
