@@ -35,8 +35,8 @@ function ok=country_risk_calibrate(country_name)
 % David N. Bresch, david.bresch@gmail.com, 20150715, HKG added
 % David N. Bresch, david.bresch@gmail.com, 20150803, USA EQ added
 % Lea Mueller, muellele@gmail.com, 20151021, add additional countries for phase 2 (Aruba, Barbados, Bermuda, Venezuela, 
-%                 Bahamas, Cook Islands, Guatemala, Honduras, Jamaica,
-%                 Mozambique, Fiji, Trinidad), calibrated by Jacob Anz
+%            Bahamas, Cook Islands, Guatemala, Honduras, Jamaica, Mozambique, Fiji, Trinidad), calibrated by Jacob Anz
+% Lea Mueller, muellele@gmail.com, 20160212, rename to climada_damagefunctionS_generate instead of without s
 %-
 
 ok=[]; % init output
@@ -155,7 +155,7 @@ switch country_name_char
         
         
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,10,1,0.5,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,10,1,0.5,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -165,7 +165,7 @@ switch country_name_char
     case{'Trinidad and Tobago'} %TC atl
         %compromise between MS and EM-Dat, higher than Em-Dat, lower than MS
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,1,4,3,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,1,4,3,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -173,7 +173,7 @@ switch country_name_char
     case{'Mozambique'} %TC she
         %lower than EM-Dat, for higher RP higher than MS
        
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,10,0.13,0.015,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,10,0.13,0.015,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -181,7 +181,7 @@ switch country_name_char
     case {'Jamaica'} %TC
         %reasonable fit with EM-Dat, tough too high on 100 year RP, less
         %than MS
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,10,1,0.3,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,10,1,0.3,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end    
@@ -190,7 +190,7 @@ switch country_name_char
          %great fit with EM-Dat, lower for higher RP (ret.peri) than MS but
          %MS is derived from Guyana so more focus on EM-Dat
          %after talk with Lea adaptation to more MS directional values
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:2:120,10,1.3,1.8,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:2:120,10,1.3,1.8,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -198,14 +198,14 @@ switch country_name_char
     case {'Guatemala'} %TC
         %could not generated the S shape of EM-Dat perfectly but medium
         %fit, lower than MS; MS result was derived from Guyana as no model
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:2:120,0.1,1.3,0.45,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:2:120,0.1,1.3,0.45,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
     case {'Cook Islands'}    %TC
         %not exposed in climada, damagefunction received per mail 20150110 16:08
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,10,3,1,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,10,3,1,'exp','TC',0);
         damagefunctions.PAA=damagefunctions.PAA*0+1;
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
@@ -213,7 +213,7 @@ switch country_name_char
 
     case {'Aruba'}  %TC atl
         %no EM-Dat data, a bit higher than MS
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,5,1,0.15,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,5,1,0.15,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -221,40 +221,40 @@ switch country_name_char
     case {'Bahamas'} %TC
         %for 15,20 years a bit lower than Em-Dat, good match (bit lower
         %than MS)
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,0.8,1.9,0.8,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,0.8,1.9,0.8,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
     case{'Bermuda'} %TC atl
         %good fit but underestimating Em-dat and MS slightly
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,1,3.8,1.4,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,1,3.8,1.4,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
          
    case {'Barbados'} % TC atl
         % good match EM-DAT, cautious, hence on the high side
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,2,0.9,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,15,2,0.9,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-%         [damagefunctions,dmf_info_str]=climada_damagefunction_generate(4:0.5:13,3,1,1,'s-shape','EQ',0);
+%         [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(4:0.5:13,3,1,1,'s-shape','EQ',0);
 %         fprintf('%s EQ glb: %s\n',country_name_char,dmf_info_str);
 %         entity=climada_damagefunctions_replace(entity,damagefunctions);
 %         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
     case {'Fiji'}  %TC she
         %looks good on multisnap but 50% too high for EM-Dat
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1.5,0.9,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,15,1.5,0.9,'exp','TC',0);
         fprintf('%s TS atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
     case {'Venezuela'} %TC atl
         %Em-Dat exists but is 0, close fit to MS
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,1,1.1,0.1,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,1,1.1,0.1,'exp','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -263,12 +263,12 @@ switch country_name_char
         
         % USA looks good, good match EM-DAT
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,0.75,'s-shape','TS',0);
         fprintf('%s TS atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,25,1,0.4,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,25,1,0.4,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -281,7 +281,7 @@ switch country_name_char
         % to illustrate, run:
         %   country_risk=country_risk_calc('United States',-3,0,0,'EQ')
         %   cr_DFC_plot(country_risk,1,1,0.065)
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:13,3,1,1,'s-shape','EQ',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:13,3,1,1,'s-shape','EQ',0);
         fprintf('%s EQ glb: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -292,12 +292,12 @@ switch country_name_char
         %   EM-DAT, climada TS far too high adjusted down to get close to EM-DAT
         % Colombia looked like Dominican Republic, hence same adjustment, now good fit with EM-DAT
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,20,1,0.45,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,20,1,0.45,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,1,'s-shape','TS',0);
         fprintf('%s TS atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -325,7 +325,7 @@ switch country_name_char
         %   damge to be in the range of max(EM-DAT)
         % Indonesia no adjustment, no EM-DAT
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1.0,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,15,1,1.0,'s-shape','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -334,12 +334,12 @@ switch country_name_char
         
         % China: TC tuned to upper bound of EM-DAT (12% CAGR, in China, the asset base grew more than GDP)
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,30,3,0.6,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,30,3,0.6,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.6,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,0.6,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -348,12 +348,12 @@ switch country_name_char
         
          % Japan TS adjusted to be in EM-DAT range (upper bound at 5% CAGR, only one point)
          %  TC also adjusted, but shape not really nice. 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,45,4,0.5,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,45,4,0.5,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0.5,1,0.6,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0.5,1,0.6,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -362,12 +362,12 @@ switch country_name_char
         
         % Philippines adjusted to match EM-DAT
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,33,3,0.75,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,33,3,0.75,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,0.75,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -378,12 +378,12 @@ switch country_name_char
         %   largest damage - in the far past, hence inflation might
         %   overcompensate. Thus adjusted to match EM-DAT in between
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,35,3,0.6,'exp','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,35,3,0.6,'exp','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,0.75,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,0.75,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -392,7 +392,7 @@ switch country_name_char
         
         % Korea adjusted to be close to EM-DAT
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,35,2,0.5,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,35,2,0.5,'s-shape','TC',0);
         fprintf('%s TC wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -410,7 +410,7 @@ switch country_name_char
         % Myanmar hard to compare, not adjusted either
         % TC nio basin aggregate low for high RP, but looks reasonable an extrap for <100yr
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,2,1.0,'s-shape','TC',0); % 15 to 20
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,15,2,1.0,'s-shape','TC',0); % 15 to 20
         fprintf('%s TC nio: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -433,12 +433,12 @@ switch country_name_char
         
         % New Zealand not much TC/TS exposed, no EM-DAT, just a generic curve
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,15,1,1,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,15,1,1,'s-shape','TC',0);
         fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,1,'s-shape','TS',0);
         fprintf('%s TS wpa: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
@@ -447,12 +447,12 @@ switch country_name_char
         
         % Indonesia TC and TS manually adjusted (no EM-DAT) to be correct order of magnitude
 
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:16,0,1,1,'s-shape','TS',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:16,0,1,1,'s-shape','TS',0);
         fprintf('%s TS she: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunction_generate(0:5:120,30,1,1,'s-shape','TC',0);
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,30,1,1,'s-shape','TC',0);
         fprintf('%s TC she: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
