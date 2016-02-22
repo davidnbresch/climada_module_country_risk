@@ -44,6 +44,7 @@ function [values_distributed,pp] = climada_night_light_to_country(country_name,p
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20130412
 % David N. Bresch, david.bresch@gmail.com, 20141205, cleanup and 1km try (see parameters below)
+% David N. Bresch, david.bresch@gmail.com, 20160222, module_data_dir updated
 %-
 
 values_distributed = []; % init output
@@ -61,12 +62,12 @@ if ~exist('save_on'            , 'var'), save_on             = []; end
 if ~exist('silent_mode'        , 'var'), silent_mode         = 0 ; end
 
 % set modul data directory
-modul_data_dir     = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+module_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
 % the file with the night lights
-png_filename = [modul_data_dir filesep 'night_light_2010_10km.png'];
+png_filename = [module_data_dir filesep 'night_light_2010_10km.png'];
 % the following high-res night light dataset can be produced by running
 % climada_night_light_read and selecting the high-resolution night light
 % image from the climada module country risk, namely the file
@@ -76,7 +77,7 @@ png_filename = [modul_data_dir filesep 'night_light_2010_10km.png'];
 % ..GDP_entity/data/night_light_2012_1km.mat 
 % BUT: currently leads to an error, since night light resolution (~1km)
 % does in this case not match border mask resolution (~10km)
-%png_filename = [modul_data_dir filesep 'night_light_2012_1km.png'];
+%png_filename = [module_data_dir filesep 'night_light_2012_1km.png'];
 
 if isempty(country_name)
     fprintf('No country chosen, aborted\n')
@@ -85,8 +86,8 @@ end
 
 % read stable night lights, 2010 (resolution ~10km)
 if isempty(night_light)
-    [~,fN]=fileparts(png_filename);
-    png_filename_mat=[modul_data_dir filesep fN '.mat'];
+    [fP,fN]=fileparts(png_filename);
+    png_filename_mat=[fP filesep fN '.mat'];
     if exist(png_filename_mat,'file')
         load(png_filename_mat) % contains night_light
     else
@@ -111,7 +112,7 @@ values = night_light.values;
 if pp == 1
     pp = [0 1 0];
 end
-[values pp] = climada_nightlight_nonlinear_transformation(values, pp, 0, 0);
+[values,pp] = climada_nightlight_nonlinear_transformation(values, pp, 0, 0);
 pp_str = 'y = ';
 for i = length(pp):-1:1
     pp_str = sprintf('%s %0.4f*x^%d +',pp_str,pp(i), length(pp) - (i));
@@ -283,7 +284,7 @@ if check_figure
 end
 
 if save_on
-    foldername = [modul_data_dir filesep 'Values_distributed_' country_name '_' int2str(input_resolution_km) 'km_' pp_str_ '.mat'];
+    foldername = [module_data_dir filesep 'Values_distributed_' country_name '_' int2str(input_resolution_km) 'km_' pp_str_ '.mat'];
     save(foldername,'values_distributed')
     if ~silent_mode
         cfprintf('saved 1 mat-file in folder %s\n',foldername)

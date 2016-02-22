@@ -37,6 +37,7 @@ function night_light = climada_night_light_read(png_filename, check_figure, chec
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20120730
 % David N. Bresch, david.bresch@gmail.com, 20141205, cleanup
+% David N. Bresch, david.bresch@gmail.com, 20160222, module_data_dir updated
 %-
 
 global climada_global
@@ -47,12 +48,12 @@ if ~exist('check_printplot', 'var'), check_printplot = 0; end
 if ~exist('save_on'        , 'var'), save_on         = 1; end
 
 % set modul data directory
-modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+module_data_dir = [fileparts(fileparts(fileparts(mfilename('fullpath')))) filesep 'data'];
 
 % prompt for png_filename if not given
 if isempty(png_filename) % local GUI
-    png_filename         = [modul_data_dir filesep '*.png'];
-    png_filename_default = [modul_data_dir filesep 'night_light_2010_10km.png'];
+    png_filename         = [module_data_dir filesep '*.png'];
+    png_filename_default = [module_data_dir filesep 'night_light_2010_10km.png'];
     [filename, pathname] = uigetfile(png_filename, 'Select night lights:',png_filename_default);
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
@@ -62,7 +63,7 @@ if isempty(png_filename) % local GUI
 end
 
 [~,fN]=fileparts(png_filename);
-save_filename = [modul_data_dir filesep fN '.mat'];
+save_filename = [module_data_dir filesep fN '.mat'];
 print_filename = [climada_global.data_dir filesep 'results' filesep fN '.pdf'];
 
 values                   = flipud(double(imread(png_filename)));

@@ -144,7 +144,6 @@ if length(country_name)>1 % more than one country, process recursively
         country_risk_out(country_i)=country_admin1_risk_calc(...
             single_country_name,probabilistic,check_plots,peril_ID,admin1_save_entity);
     end % country_i
-    close all
     country_risk=country_risk_out;
     return
 end

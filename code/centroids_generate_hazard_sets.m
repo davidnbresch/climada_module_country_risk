@@ -294,8 +294,6 @@ if calculate_TC
                     plot(tc_track_nodes.lon,tc_track_nodes.lat,'.b','MarkerSize',3);
                     plot(tc_track_nodes.lon(in_track_poly),tc_track_nodes.lat(in_track_poly),'xg','MarkerSize',4);
                     plot(centroids_edges_x,centroids_edges_y,'-g')
-                else
-                    close all
                 end
                 
                 if sum(in_track_poly)>0
@@ -344,8 +342,6 @@ if calculate_EQ
             plot(eq_data.glon,eq_data.glat,'.r','MarkerSize',3);
             plot(eq_data.glon(in_seismic_poly),eq_data.glat(in_seismic_poly),'xg','MarkerSize',4);
             plot(centroids_edges_x,centroids_edges_y,'-g')
-        else
-            close all
         end
         
         if sum(in_seismic_poly)>0
@@ -379,8 +375,6 @@ if calculate_VQ
             plot(vq_data.lon,vq_data.lat,'.r','MarkerSize',3);
             plot(vq_data.lon(in_seismic_poly),vq_data.lat(in_seismic_poly),'xg','MarkerSize',4);
             plot(centroids_edges_x,centroids_edges_y,'-g')
-        else
-            close all
         end
         
         if sum(in_seismic_poly)>0
@@ -422,8 +416,6 @@ if calculate_WS
             plot(hazard.lon,hazard.lat,'.m','MarkerSize',3);
             plot(hazard.lon(in_ws_poly),hazard.lat(in_ws_poly),'xg','MarkerSize',4);
             plot(centroids_edges_x,centroids_edges_y,'-g')
-        else
-            close all
         end
         
         if sum(in_ws_poly)>0
@@ -819,9 +811,6 @@ for hazard_i=1:hazard_count
             freezeColors % freeze this plot's colormap
             cbfreeze(colorbar)
         end
-        
-    else
-        close all % to be on the safe side
     end % check_plots
     
 end % hazard_i

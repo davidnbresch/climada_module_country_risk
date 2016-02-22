@@ -31,6 +31,7 @@ function border_mask = climada_polygon2raster(borders, raster_size, save_on)
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20120730
 % David N. Bresch, david.bresch@gmail.com, 20141229, revision
+% David N. Bresch, david.bresch@gmail.com, 20160222, module_data_dir updated
 %-
 
 global climada_global
@@ -40,8 +41,7 @@ if ~exist('raster_size', 'var'), raster_size = []; end
 if ~exist('save_on'    , 'var'), save_on     = []; end
 
 % set modul data directory
-modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
-
+module_data_dir = [fileparts(fileparts(fileparts(mfilename('fullpath')))) filesep 'data'];
 
 % load the borders file, if not given
 if isempty(borders)
@@ -64,7 +64,9 @@ y_range      = [ -65  75];
 resolution_x = sum(abs(x_range))/raster_y;
 resolution_y = sum(abs(y_range))/raster_x;
 [X, Y ]      = meshgrid(x_range(1)+resolution_x/2: resolution_x: x_range(2)-resolution_x/2, ...
-                        y_range(1)+resolution_y/2: resolution_y: y_range(2)-resolution_y/2);
+    y_range(1)+resolution_y/2: resolution_y: y_range(2)-resolution_y/2);
+
+fprintf('generating border_mask, might take a few minutes (in %s)\n',mfilename)
 
 % waitbar
 if climada_global.waitbar,h = waitbar(0);end
@@ -127,11 +129,7 @@ resolution_km = round(climada_geo_distance(0,0,resolution_x,0)/1000);
 resolution_km = ceil(resolution_km/5)*5;
 
 if save_on
-    filename = [modul_data_dir filesep 'border_mask_' int2str(resolution_km) 'km.mat'];
+    filename = [module_data_dir filesep 'border_mask_' int2str(resolution_km) 'km.mat'];
     save(filename,'border_mask')
     fprintf('border_mask structure saved in %s\n',filename)
 end
-
-
-
-

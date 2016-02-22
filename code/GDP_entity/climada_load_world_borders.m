@@ -53,6 +53,7 @@ function borders = climada_load_world_borders
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20141016
 % David N. Bresch, david.bresch@gmail.com, 20141126, for backward compatibility
+% David N. Bresch, david.bresch@gmail.com, 20160222, module_data_dir updated
 %-
 
 borders = []; % init
@@ -60,7 +61,7 @@ borders = []; % init
 %global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
-module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+module_data_dir=[fileparts(fileparts(fileparts(mfilename('fullpath')))) filesep 'data'];
 
 % PARAMETERS
 %
@@ -73,7 +74,7 @@ country_ISO3_region_file=[module_data_dir filesep 'countryname_ISO3_groupID_regi
 fprintf('%s called (backward compatibility), consider the new climada_shaperead\n',mfilename)
 
 % check for .mat file to exist
-[fP,fN,fE]=fileparts(map_border_file);
+[fP,fN]=fileparts(map_border_file);
 map_border_file_bin=[fP filesep fN '.mat'];
 
 if climada_check_matfile(map_border_file)

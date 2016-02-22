@@ -201,7 +201,6 @@ if length(country_name)>1 % more than one country, process recursively
             char(single_country_name),country_i,n_countries);
         country_risk_out(country_i)=country_risk_calc(single_country_name,orig_method,force_recalc,check_plots,peril_ID,damagefunctions);
     end % country_i
-    close all
     country_risk=country_risk_out;
     return
 end

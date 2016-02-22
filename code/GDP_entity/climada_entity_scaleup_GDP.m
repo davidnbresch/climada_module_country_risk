@@ -40,6 +40,7 @@ function [entity,scale_up_factor]=climada_entity_scaleup_GDP(entity,GDP_future,y
 % Lea Mueller, 20130412
 % Melanie Bieli, 20150125, added scale_up_factor as an additional output parameter 
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir
+% David N. Bresch, david.bresch@gmail.com, 20160222, module_data_dir updated
 %-
 
 global climada_global
@@ -56,9 +57,9 @@ if ~exist('check_figure'   , 'var'), check_figure    = 1 ;end
 if ~exist('check_printplot', 'var'), check_printplot = [];end
 
 % set module data directory
-modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+module_data_dir = [fileparts(fileparts(fileparts(mfilename('fullpath')))) filesep 'data'];
 
-xlsfilename = [modul_data_dir filesep 'World_GDP_constant_2000_2017.xlsx'];
+xlsfilename = [module_data_dir filesep 'World_GDP_constant_2000_2017.xlsx'];
 
 if isempty(entity)
     entity = climada_entity_load;
@@ -102,7 +103,7 @@ end
 if isempty(borders)
     if isfield(climada_global,'map_border_file')
         %map_border_file = strrep(climada_global.map_border_file,'.gen','.mat');
-        map_border_file = [modul_data_dir filesep 'world_50m.mat'];
+        map_border_file = [module_data_dir filesep 'world_50m.mat'];
     else
         fprintf('Error: no map found, aborted\n')
         return

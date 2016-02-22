@@ -49,11 +49,11 @@ function [centroids, entity] = climada_create_centroids_entity_base(country_name
 % david.bresch@gmail.com, 20141229, tolerant iro country names
 % david.bresch@gmail.com, 20150804, return empty if Cancel pressed
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
+% David N. Bresch, david.bresch@gmail.com, 20150819, module_data_dir updated
 %-
 
 centroids=[];entity=[]; % init
 
-close all
 global climada_global
 if ~climada_init_vars, return; end
 
@@ -77,7 +77,7 @@ entity    = [];
 % save_on_entity_centroids = 0;
 
 % set modul data directory
-modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+%%module_data_dir = [fileparts(fileparts(fileparts(mfilename('fullpath')))) filesep 'data'];
 
 % set default parameters
 if isempty(asset_resolution_km), asset_resolution_km = 10   ; end
