@@ -74,6 +74,11 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       If method has two elements, the second one triggers
 %       EDS_emdat_adjust, i.e. if method(2)=1, we adjust the EDS by
 %       comparison with EM-DAT, see cr_EDS_emdat_adjust
+%
+%       In case method is a vector and abs(method(1)) either 1 or 2:
+%       method(2)=1 -> add distance2coast_km (takes time)
+%       method(3)=1 -> add elevation_m (takes time)
+%   check_plot: if =1: plot nightlight data with admin0 (countries)
 %   force_recalc: if =1, recalculate the hazard sets, even if they exist
 %       (good for TEST while editing the code, default=0)
 %   check_plots: if =1, show figures to check hazards etc.
@@ -118,6 +123,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20150213, peril_ID to contain region and multiple perils enabled (if method=+/-7)
 % David N. Bresch, david.bresch@gmail.com, 20150819, centroids in their own folder
 % Lea Mueller, muellele@gmail.com, 20151021, add climate change option (method=-8) (use hazard TWN_TAIWAN_wpa_TC_cc_2050.mat instead of TWN_TAIWAN_wpa_TC.mat)
+% David N. Bresch, david.bresch@gmail.com, 20160303, method as vector added
 %-
 
 country_risk = []; % init output
@@ -229,6 +235,17 @@ centroids_file     = [country_data_dir filesep 'centroids' filesep country_ISO3 
 entity_file        = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity.mat'];
 entity_future_file = [country_data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name_char,' ','') '_entity_future.mat'];
 
+add_elevation_m=0;
+add_distance2coast_km=1; % OLD default, takes forever...
+if length(method)==3
+    add_elevation_m=method(3);
+    add_distance2coast_km=method(2);
+    method=method(1);
+elseif length(method)==2
+    add_distance2coast_km=method(2);
+    method=method(1);
+end
+
 if method<7 % if method>=6, skip entity and hazard generation alltogether
     
     % 1) read the centroids
@@ -237,9 +254,9 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
     if ( ~exist(centroids_file,'file') || ~exist(entity_file,'file') ) || force_recalc
         
         if method==1
-            entity=climada_nightlight_entity(country_name_char,'',[-1 1],0,[],'',0); % no save
+            entity=climada_nightlight_entity(country_name_char,'',[-1 add_distance2coast_km add_elevation_m],0,[],'',0); % no save
         elseif method==2
-            entity=climada_nightlight_entity(country_name_char,'',[ 1 1],0,[],'',0); % no save
+            entity=climada_nightlight_entity(country_name_char,'',[ 1 add_distance2coast_km add_elevation_m],0,[],'',0); % no save
         elseif method==3
             % invoke the GDP_entity module to generate centroids and entity
             [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
