@@ -25,7 +25,8 @@ function fig = climada_plot_entity_assets(entity,centroids,country_name,check_pr
 % David N. Bresch, david.bresch@gmail.com, 20141127, figure creating suppressed
 % David N. Bresch, david.bresch@gmail.com, 20141208, country_name='' as default
 % David N. Bresch, david.bresch@gmail.com, 20141209, abort if sum(Values)=0
-% Lea Mueller, muellele@gmail.com, 20140205, added keep_boundary option
+% Lea Mueller, muellele@gmail.com, 20140205, add keep_boundary option
+% Lea Mueller, muellele@gmail.com, 20160318, use climada_colormap('assets')
 %-
 
 global climada_global
@@ -42,11 +43,8 @@ if ~exist('keep_boundary'   ,'var'), keep_boundary   = []; end
 
 if isempty(keep_boundary), keep_boundary = 0;end
 
-name_str=''; % init
-
-if ~iscell(country_name)
-    country_name = {country_name};
-end
+name_str = ''; % init
+if ~iscell(country_name), country_name = {country_name}; end
 
 if isempty(centroids)
     % take lat/lon from entity.assets
@@ -84,9 +82,8 @@ if sum(entity.assets.Value)==0
     return
 else
     % colormap(flipud(hot))
-    % if length()
-    cbar = plotclr(entity.assets.lon, entity.assets.lat, entity.assets.Value,'s',markersize,1,...
-        [],[],[],[],1);
+    cmap = climada_colormap('assets');
+    cbar = plotclr(entity.assets.lon, entity.assets.lat, entity.assets.Value,'s',markersize,1,[],[],cmap,[],1);
     set(get(cbar,'ylabel'),'String', 'value per pixel (exponential scale)' ,'fontsize',12);
     hold on
     box on

@@ -29,6 +29,7 @@ function climada_entity_save_xls(entity, entity_xls_file,dam_funct_overwrite,mea
 % Lea Mueller, muellele@gmail.com, 20160212, set dam_funct_overwrite, measures_overwrite, discount_overwrite to 1 (default)
 % Lea Mueller, muellele@gmail.com, 20160212, check excel limit only for .xls version
 % Lea Mueller, muellele@gmail.com, 20160307, add other fields in tab "others" so that this function can be used for any kind of structure, not just an entity
+% Lea Mueller, muellele@gmail.com, 20160318, bugfix if .damagefunctions is empty
 %-
 
 global climada_global
@@ -95,15 +96,17 @@ if dam_funct_overwrite == 1;
             fprintf('\t\t - Damagefunctions sheet\n')
             fields_2 =  fieldnames(entity.damagefunctions);
             counter  = 0;
-            matr     = cell(length(entity.damagefunctions.DamageFunID)+1,1);
-            for row_i = 1:length(fields_2)
-                if ~strcmp(fields_2{row_i},'filename')
-                    counter         = counter+1;
-                    matr{1,counter} = fields_2{row_i};
-                    if ~isnumeric(entity.damagefunctions.(fields_2{row_i}))
-                        matr(2:end,counter) = entity.damagefunctions.(fields_2{row_i});
-                    else
-                        matr(2:end,counter) = num2cell(entity.damagefunctions.(fields_2{row_i}));
+            if isfield(entity.damagefunctions,'DamageFunID')
+                matr     = cell(length(entity.damagefunctions.DamageFunID)+1,1);
+                for row_i = 1:length(fields_2)
+                    if ~strcmp(fields_2{row_i},'filename')
+                        counter         = counter+1;
+                        matr{1,counter} = fields_2{row_i};
+                        if ~isnumeric(entity.damagefunctions.(fields_2{row_i}))
+                            matr(2:end,counter) = entity.damagefunctions.(fields_2{row_i});
+                        else
+                            matr(2:end,counter) = num2cell(entity.damagefunctions.(fields_2{row_i}));
+                        end
                     end
                 end
             end
