@@ -53,7 +53,7 @@ if ~exist('no_wbar'           , 'var'), no_wbar     = 0 ;end
 % PARAMETERS
 %
 % define the file with an empty entity (used as 'template')
-entity_global_without_assets_file=[climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
+entity_global_without_assets_file = [climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
 
 
 if ~climada_check_matfile(entity_global_without_assets_file)
@@ -78,7 +78,7 @@ assets                  = [];
 assets.comment          = [country_name_str ', ' values_distributed.comment hollow_name];
 assets.filename         = country_name_str; % since we did not read from Excel
 
-% mask_index              = logical(country_mask_resolution.values);
+% mask_index = logical(country_mask_resolution.values);
 % check for buffer value
 matrix_hollowout        = double(matrix_hollowout);
 buffer_value            = full(max(matrix_hollowout(:)));
@@ -93,9 +93,7 @@ assets.DamageFunID      = ones(1,length(assets.lon));
 assets.Value_unit       = repmat({climada_global.Value_unit},size(ones(1,length(assets.lon))));
 %assets.Value_today      = full(values_distributed.values(mask_index))'; % _2012 replaced by _today
 assets.reference_year   = [];
-if sum(assets.Value)<100.5 && sum(assets.Value)>99.5
-    assets.reference_year = 100;
-end
+if sum(assets.Value)<100.5 && sum(assets.Value)>99.5, assets.reference_year = 100; end
 
 if ~any(assets.Value)%all zeros
     fprintf('Error: No values within assets for %s\n', country_name_str)

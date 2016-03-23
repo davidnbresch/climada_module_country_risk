@@ -109,20 +109,15 @@ values = night_light.values;
 % based on relationship between night lights and asset distribution),
 % use a second order polynomial function without y-indent
 % y = pp(3)*x^2 + pp(2)*x + + pp(1)
-if pp == 1
-    pp = [0 1 0];
-end
+if pp == 1; pp = [0 1 0]; end
 [values,pp] = climada_nightlight_nonlinear_transformation(values, pp, 0, 0);
 pp_str = 'y = ';
-for i = length(pp):-1:1
-    pp_str = sprintf('%s %0.4f*x^%d +',pp_str,pp(i), length(pp) - (i));
-end
+for i = length(pp):-1:1; pp_str = sprintf('%s %0.4f*x^%d +',pp_str,pp(i), length(pp) - (i)); end
 pp_str(end-1:end) = [];
 % pp_str     = num2str(pp,', %2.1e');
-if ~silent_mode;
-    fprintf('Night lights to values: %s\n',pp_str);
-end
-pp_str_      = strrep(strrep(strrep(strrep(strrep(strrep(pp_str,' ',''),'^',''),'0.',''),'+','_'),'*',''),'.','');
+
+if ~silent_mode; fprintf('Night lights to values: %s\n',pp_str); end
+pp_str_ = strrep(strrep(strrep(strrep(strrep(strrep(pp_str,' ',''),'^',''),'0.',''),'+','_'),'*',''),'.','');
 pp_str_(1:2) = [];
 % values       = sparse(values);
 

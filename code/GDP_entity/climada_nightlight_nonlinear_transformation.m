@@ -26,6 +26,7 @@ function [values_out, pp] = climada_nightlight_nonlinear_transformation(values_i
 %   pp          : parameters of second order polynomial function
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20120813
+% Lea Mueller, muellele@gmail.com, 20160318, add pp numbers
 %-
 
 global climada_global
@@ -35,34 +36,39 @@ if ~exist('pp'             , 'var'), pp              = []; end
 if ~exist('check_figure'   , 'var'), check_figure    = []; end
 if ~exist('check_printplot', 'var'), check_printplot = []; end
 
-% set modul data directory
-modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+% % set modul data directory
+% modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+% second order polynom based on 28 km resolution of assets (US Market Portfolio)
+% load([modul_data_dir filesep 'night_light_vs_prtf_assets_28km'])
+if isempty(pp), pp(1) = 2.1351e+07; pp(2) = -1.016e+08; pp(3) = 0; end
 
-if isempty(pp), 
-    try
-        %load([climada_global.modules_dir{dir_index} filesep 'night_light_vs_prtf_assets_poly_forth_order'])
-        %pp = pp{4}; %all regions combined
-        
-        %%load([climada_global.modules_dir{dir_index} filesep 'night_light_vs_prtf_assets_poly_second_order'])
-        %%pp = pp{3}; %new orleans
-        
-        %load([climada_global.modules_dir{dir_index} filesep 'night_light_vs_prtf_assets_poly_second_order_without_y'])
-        %pp = pp{4}; %all regions combined
-        
-        % second order polynom based on 28 km resolution of assets (US
-        % Market Portfolio)
-        load([modul_data_dir filesep 'night_light_vs_prtf_assets_28km'])
-    catch
-        fprintf('\t No polynomal function found\n')
-        pp            = [0 1 0];
-        %tot_assets_pp = 1;
-    end
-end
+% if isempty(pp)    
+%     try
+%         % second order polynom based on 28 km resolution of assets (US
+%         % Market Portfolio)
+%         load([modul_data_dir filesep 'night_light_vs_prtf_assets_28km'])
+%         
+%         %load([climada_global.modules_dir{dir_index} filesep 'night_light_vs_prtf_assets_poly_forth_order'])
+%         %pp = pp{4}; %all regions combined
+%         
+%         %%load([climada_global.modules_dir{dir_index} filesep 'night_light_vs_prtf_assets_poly_second_order'])
+%         %%pp = pp{3}; %new orleans
+%         
+%         %load([climada_global.modules_dir{dir_index} filesep 'night_light_vs_prtf_assets_poly_second_order_without_y'])
+%         %pp = pp{4}; %all regions combined
+%     catch
+%         fprintf('\t No polynomal function found\n')
+%         pp            = [0 1 0];
+%         %tot_assets_pp = 1;
+%     end
+% end
 
-nl_max_stretched = polyval(pp,1:63);
-pp               = pp/max(nl_max_stretched)*63;
+% non-linearly stretch night-light-values based on polynom pp
+max_nl_value = 63;
+nl_max_stretched = polyval(pp,1:max_nl_value);
+pp = pp/max(nl_max_stretched)*max_nl_value;
 
-values_out       = polyval(pp,values_in);
+values_out = polyval(pp,values_in);
 values_out(values_out<0) = 0;
 
 % values_out    = polyval(pp,values_in)/tot_assets_pp;

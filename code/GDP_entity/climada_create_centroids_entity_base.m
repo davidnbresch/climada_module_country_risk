@@ -50,9 +50,10 @@ function [centroids, entity] = climada_create_centroids_entity_base(country_name
 % david.bresch@gmail.com, 20150804, return empty if Cancel pressed
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 % David N. Bresch, david.bresch@gmail.com, 20150819, module_data_dir updated
+% Lea Mueller, muellele@gmail.com, 20160318, use climada_map_plot instead of climada_plot_centroids and climada_plot_entity_assets
 %-
 
-centroids=[];entity=[]; % init
+centroids=[]; entity=[]; % init
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -103,7 +104,6 @@ if isempty(border_mask), return, end
 
 
 % 0c) ask for country or region
-
 if isempty(country_name)
     [country_name,country_ISO3] = climada_country_name('Single');
     if isempty(country_name),return;end
@@ -149,7 +149,7 @@ pp_str = climada_parameter_string(pp);
 % 1b) Downscale resolution
 asset_resolution_km_ori = asset_resolution_km;
 fprintf('1) Downscale distributed values to ~%dkm ...  ', asset_resolution_km)
-[values_distributed,X,Y,asset_resolution_km]=climada_resolution_downscale(values_distributed, asset_resolution_km, 'sum');
+[values_distributed,X,Y,asset_resolution_km] = climada_resolution_downscale(values_distributed, asset_resolution_km, 'sum');
 values_distributed.values(values_distributed.values<0) = 0;
 if asset_resolution_km_ori ~= asset_resolution_km
     fprintf('(roughly ~%dkm)', asset_resolution_km)
@@ -164,9 +164,7 @@ fprintf('2) Create centroids for %s on a ~%d km resolution\n', country_name_str,
 % Create mask and buffer mask for selected region based on distributed values
 % buffer_km       = 150;
 buffer_km       = 50;
-if asset_resolution_km>buffer_km
-    buffer_km = 2*asset_resolution_km;
-end
+if asset_resolution_km>buffer_km, buffer_km = 2*asset_resolution_km; end
 
 fprintf(' a) Create buffer of ~%dkm\n',buffer_km)
 no_pixel_buffer = ceil(buffer_km/asset_resolution_km);
@@ -184,7 +182,7 @@ end
 
 % for big countries this can take some time
 if asset_resolution_km_ori >= asset_resolution_km-4 && asset_resolution_km_ori <= asset_resolution_km+4;
-    c_idx            = strcmp(border_mask.name, country_name);
+    c_idx = strcmp(border_mask.name, country_name);
     
     % downscale resolution
     country_matrix_high_res        = border_mask;
@@ -214,8 +212,7 @@ if ~any(find(matrix_hollowout))
 end
 
 %% create centroids from matrix and save if needed
-centroids         = climada_matrix2centroid(matrix_hollowout, border_mask.lon_range, border_mask.lat_range, ...
-    country_name);
+centroids = climada_matrix2centroid(matrix_hollowout,border_mask.lon_range,border_mask.lat_range,country_name);
 centroids.comment = sprintf('%s, %s %s',country_name_str, values_distributed.comment, hollow_name);
 if min(centroids.onLand) > 0
     indx = find(centroids.onLand, 1, 'last');
@@ -223,13 +220,16 @@ if min(centroids.onLand) > 0
 end
 
 % visualize centroids on map
-if check_figure
-    climada_plot_centroids(centroids, country_name, check_printplot, printname);
+if check_figure, 
+    climada_global.marker = '+'; centroids.grid_to_show = centroids.onLand+1;
+    figure; climada_map_plot(centroids,'grid_to_show','plotclr'); 
+    climada_global.marker = 's';
 end
+% if check_figure, climada_plot_centroids(centroids,country_name,check_printplot,printname); end
 
 % add country info
-centroids.admin0_name=country_name;
-centroids.admin0_ISO3=country_ISO3;
+centroids.admin0_name = country_name;
+centroids.admin0_ISO3 = country_ISO3;
 
 if save_on_entity_centroids
     centroids_filename = [climada_global.centroids_dir filesep 'centroids_' strrep(country_name_str,', ','') '_' int2str(asset_resolution_km) 'km_' hollow_name];
@@ -239,16 +239,15 @@ end
 
 
 % 3a) Create base entity file and save in xls
-
 fprintf('3) Create base entity\n')
 
 % create entity, read wildcard entity, add assets from values_distributed,
 % and encode to centroids
-entity=climada_entity_base_assets_add(values_distributed, centroids, country_name_str, matrix_hollowout,  X, Y, hollow_name, no_wbar);
+entity = climada_entity_base_assets_add(values_distributed, centroids, country_name_str, matrix_hollowout,  X, Y, hollow_name, no_wbar);
 
 % add country info
-entity.assets.admin0_name=country_name;
-entity.assets.admin0_ISO3=country_ISO3;
+entity.assets.admin0_name = country_name;
+entity.assets.admin0_ISO3 = country_ISO3;
 
 save_entity_xls = 1;
 % save entity as mat-file
@@ -271,6 +270,9 @@ if save_on_entity_centroids
 end
 
 % visualize assets on map
-if check_figure
-    climada_plot_entity_assets(entity, centroids, country_name, check_printplot);
-end
+if check_figure, figure; climada_map_plot(entity); end
+% if check_figure, figure; climada_plot_entity_assets(entity, centroids, country_name, check_printplot); end
+
+
+
+
