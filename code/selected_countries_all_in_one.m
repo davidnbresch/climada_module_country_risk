@@ -32,6 +32,7 @@
 % Lea Mueller, muellele@gmail.com, 20151021, add climate change calculations (country_risk_calc_method=-8)
 % Lea Mueller, muellele@gmail.com, 20151021, use country_list for phase1+phase2
 % David N. Bresch, david.bresch@gmail.com, 20160322, country_list for TEST phase3 (US admin1)
+% David N. Bresch, david.bresch@gmail.com, 20160324, small edit
 %-
 
 global climada_global
