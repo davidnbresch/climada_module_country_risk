@@ -38,6 +38,7 @@ function entity_base = climada_entity_base_assets_add(values_distributed, centro
 % Lea Mueller, muellele@gmail.com, 20150123, omit assets.Value_today, not needed
 % Lea Mueller, muellele@gmail.com, 20150904, add assets.Value_unit field
 % Lea Mueller, muellele@gmail.com, 20151125, invoke climada_entity_read instead of climada_entity_read_wo_assets
+% Lea Mueller, muellele@gmail.com, 20160331, use entity_template.xlsx from from climad/data/entities, omit encoding
 %-
 
 global climada_global
@@ -53,7 +54,8 @@ if ~exist('no_wbar'           , 'var'), no_wbar     = 0 ;end
 % PARAMETERS
 %
 % define the file with an empty entity (used as 'template')
-entity_global_without_assets_file = [climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
+entity_global_without_assets_file = [climada_global.root_dir filesep 'data' filesep 'entities' filesep 'entity_template.xlsx'];
+% entity_global_without_assets_file = [climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
 
 
 if ~climada_check_matfile(entity_global_without_assets_file)
@@ -61,8 +63,8 @@ if ~climada_check_matfile(entity_global_without_assets_file)
     entity = climada_entity_read(entity_global_without_assets_file);
     %entity = climada_entity_read_wo_assets(entity_global_without_assets_file);
 else
-    [fP,fN]=fileparts(entity_global_without_assets_file);
-    mat_filename=[fP filesep fN '.mat'];
+    [fP,fN] = fileparts(entity_global_without_assets_file);
+    mat_filename = [fP filesep fN '.mat'];
     fprintf(' a) Load wildcard entity without assets (damagefunctions, measures, discount)\n')
     load(mat_filename);
 end
@@ -101,8 +103,13 @@ if ~any(assets.Value)%all zeros
     return
 end
 
-% encode assets
-fprintf(' c) Encode assets to centroids\n')
-entity_base.assets = climada_assets_encode(assets,centroids);
+% % encode assets
+% fprintf(' c) Encode assets to centroids\n')
+% entity_base.assets = climada_assets_encode(assets,centroids);
+
+% do not encode assets
+fprintf(' c) Assets not yet encoded to centroids \n')
+entity_base.assets = assets;
+
 
 return
