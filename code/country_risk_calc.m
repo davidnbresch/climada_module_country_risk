@@ -256,7 +256,8 @@ if method<7 % if method>=6, skip entity and hazard generation alltogether
         if method==1
             entity=climada_nightlight_entity(country_name_char,'',[-1 add_distance2coast_km add_elevation_m],0,[],'',0); % no save
         elseif method==2
-            entity=climada_nightlight_entity(country_name_char,'',[ 1 add_distance2coast_km add_elevation_m],0,[],'',0); % no save
+            %entity=climada_nightlight_entity(country_name_char,'',[ 1 add_distance2coast_km add_elevation_m],0,[],'',0); % no save
+            entity=climada_nightlight_entity(country_name_char,'',[ 2 0 0],0,[],'',0); % no save
         elseif method==3
             % invoke the GDP_entity module to generate centroids and entity
             [centroids,entity,entity_future] = climada_create_GDP_entity(country_name_char,[],0,1);
