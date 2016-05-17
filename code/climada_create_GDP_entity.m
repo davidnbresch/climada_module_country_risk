@@ -40,6 +40,7 @@ function [centroids,entity,entity_future]=climada_create_GDP_entity(country_name
 %                                                    climada_entity_GDP not used anymore
 % David N. Bresch, david.bresch@gmail.com, 20150204, cleanup
 % David N. Bresch, david.bresch@gmail.com, 20150804, cleanup
+% David N. Bresch, david.bresch@gmail.com, 20160517, fix for missing entity.assets.centroid_index and entity.assets.hazard.comment
 %-
 
 % init output
@@ -76,6 +77,9 @@ entity.assets.reference_year = climada_global.present_reference_year;
 
 % adjust Values to sum up to country GDP
 entity=climada_entity_value_GDP_adjust_one(entity,2);
+
+entity.assets.centroid_index=1:length(entity.assets.lon); % 20160517, fix, dbresch@ethz.ch 
+entity.assets.hazard.comment='';                          % 20160517, fix, dbresch@ethz.ch 
 
 % generate future entity by scaling up the adjusted entity
 [~, scale_up_factor]= climada_entity_scaleup_GDP(entity,[],year_future,year_start,centroids,'',check_figure,check_printplot);

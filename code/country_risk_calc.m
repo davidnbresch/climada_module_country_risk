@@ -452,7 +452,7 @@ if isfield(country_risk.res,'hazard')
         end
         
         if ~isempty(hazard)
-                        
+
             fprintf('* hazard %s %s',hazard.peril_ID,hazard_name);
             
             country_risk.res.hazard(hazard_i).peril_ID=hazard.peril_ID;
