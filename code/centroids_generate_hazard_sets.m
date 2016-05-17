@@ -79,6 +79,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 % David N. Bresch, david.bresch@gmail.com, 20151010, TR switched on as default
 % David N. Bresch, david.bresch@gmail.com, 20151224, hazard module names renamed
+% David N. Bresch, david.bresch@gmail.com, 20160517, double-check for tc datasets
 %-
 
 centroids_hazard_info = []; % init output
@@ -253,8 +254,13 @@ if calculate_TC
     
     tc_tracks_folder=[local_data_dir filesep 'tc_tracks'];
     if ~exist(tc_tracks_folder,'dir'),mkdir(local_data_dir,'tc_tracks');end
-    if strcmp(climada_global.tc.default_raw_data_ext,'.txt') && ...
-            ~exist([tc_tracks_folder filesep 'tracks.epa.txt'],'file') % check for .epa., as .atl. comes with core climada
+    % check for all basisn's track files
+    tc_tracks_ok=exist([tc_tracks_folder filesep 'tracks.atl.txt'],'file');
+    tc_tracks_ok=exist([tc_tracks_folder filesep 'tracks.epa.txt'],'file')*tc_tracks_ok;
+    tc_tracks_ok=exist([tc_tracks_folder filesep 'tracks.nio.txt'],'file')*tc_tracks_ok;
+    tc_tracks_ok=exist([tc_tracks_folder filesep 'tracks.she.txt'],'file')*tc_tracks_ok;
+    tc_tracks_ok=exist([tc_tracks_folder filesep 'tracks.wpa.txt'],'file')*tc_tracks_ok;
+    if strcmp(climada_global.tc.default_raw_data_ext,'.txt') && tc_tracks_ok==0 % check for .epa., as .atl. comes with core climada
         % if we expect UNISYS (.txt) tc track raw data files and do not
         % find them, get them all from www
         climada_tc_get_unisys_databases(tc_tracks_folder);
@@ -479,7 +485,9 @@ for hazard_i=1:hazard_count
                         % wind speed decay at track nodes after landfall
                         [~,p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,check_plots);
                     else
-                        fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
+                        fprintf('WARNING: no inland decay for probabilistic tracks. Consider to download\n');
+                        fprintf(['<a href="https://github.com/davidnbresch/climada_module_tropical_cyclone">'...
+                            'climada_module_tropical_cyclone</a> from Github.\n'])
                     end
                     
                     tc_track = climada_tc_random_walk(tc_track); % overwrites tc_track to save memory
@@ -487,8 +495,6 @@ for hazard_i=1:hazard_count
                     if exist('climada_tc_track_wind_decay','file')
                         % add the inland decay correction to all probabilistic nodes
                         tc_track   = climada_tc_track_wind_decay(tc_track, p_rel,check_plots);
-                    else
-                        fprintf('WARNING: no inland decay for probabilistic tracks, consider module tc_hazard_advanced\n');
                     end
                     
                     if check_plots

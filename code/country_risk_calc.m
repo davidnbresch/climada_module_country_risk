@@ -46,9 +46,9 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 %       > prompted for via dropdown list if empty (allows for single or
 %       multiple country selection)
 % OPTIONAL INPUT PARAMETERS:
-%   method: =1: use 10km nightlight (climada_nightlight_entity, default)
+%   method: =1: use 10km nightlight (climada_nightlight_entity, NOT default)
 %       =2: use 1km nightlight (climada_nightlight_entity)
-%       =3: use 10km nightlight (GDP_entity). In this case, USA is
+%       =3: (default) use 10km nightlight (GDP_entity). In this case, USA is
 %           restricted to contiguous US excl. Alaska and NZL only West of dateline.
 %
 %       Since the code uses the entity (III_Name, with III Iso3 code and
@@ -124,6 +124,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % David N. Bresch, david.bresch@gmail.com, 20150819, centroids in their own folder
 % Lea Mueller, muellele@gmail.com, 20151021, add climate change option (method=-8) (use hazard TWN_TAIWAN_wpa_TC_cc_2050.mat instead of TWN_TAIWAN_wpa_TC.mat)
 % David N. Bresch, david.bresch@gmail.com, 20160303, method as vector added
+% David N. Bresch, david.bresch@gmail.com, 20160517, probabilistic based on GDP entity as default
 %-
 
 country_risk = []; % init output
@@ -133,7 +134,8 @@ if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
 if ~exist('country_name','var'),    country_name =    '';end
-if ~exist('method','var'),          method       =     1;end % default=1
+%if ~exist('method','var'),          method       =    1;end % default=1, until 20160517
+if ~exist('method','var'),          method       =    -3;end % probabilistic based on GDP entity as default
 if ~exist('force_recalc','var'),    force_recalc =     0;end
 if ~exist('check_plots' ,'var'),    check_plots  =     0;end
 if ~exist('peril_ID' ,'var'),       peril_ID     =    '';end
