@@ -125,6 +125,7 @@ function country_risk=country_risk_calc(country_name,method,force_recalc,check_p
 % Lea Mueller, muellele@gmail.com, 20151021, add climate change option (method=-8) (use hazard TWN_TAIWAN_wpa_TC_cc_2050.mat instead of TWN_TAIWAN_wpa_TC.mat)
 % David N. Bresch, david.bresch@gmail.com, 20160303, method as vector added
 % David N. Bresch, david.bresch@gmail.com, 20160517, probabilistic based on GDP entity as default
+% David N. Bresch, david.bresch@gmail.com, 20160517, enabled use without tropical_cyclone or volcano_earthquake models loaded
 %-
 
 country_risk = []; % init output
@@ -432,11 +433,11 @@ if isfield(country_risk.res,'hazard')
         load(entity_file) % load entity
         
         hazard=[]; % init
-        [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
         
         if exist(country_risk.res.hazard(hazard_i).hazard_set_file,'file')
-                        
-            load(country_risk.res.hazard(hazard_i).hazard_set_file)              
+            
+            load(country_risk.res.hazard(hazard_i).hazard_set_file)
+            [~,hazard_name]=fileparts(country_risk.res.hazard(hazard_i).hazard_set_file);
             
             % Note that one would need to re-encode assets to each hazard,
             % unless one knows that all hazard event sets are valid on the
@@ -507,7 +508,7 @@ if isfield(country_risk.res,'hazard')
             end
             
         else
-            fprintf('WARNING: %s hazard is empty, skipped\n',hazard_name)
+            fprintf('WARNING: %s hazard is empty, skipped\n',country_risk.res.hazard(hazard_i).peril_ID)
         end
         
     end % hazard_i
