@@ -167,6 +167,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,selections,che
 % david.bresch@gmail.com, 20160524, fixed issue with new climada_entity_load (allow for empty assets)
 % david.bresch@gmail.com, 20160529, if restricted to values within admin0 or admin1, add a regular grid outside
 % david.bresch@gmail.com, 20160603, if admin0 and admin1 names are given on input, restrict admin1 search to within admin0 (logo)
+% david.bresch@gmail.com, 20160810, compatibility with Octave 4.0.3
 %-
 
 entity=[]; % init
@@ -604,6 +605,12 @@ x=[bbox(1) bbox(1) bbox(3) bbox(3) (bbox(1)+bbox(3))/2];
 y=[bbox(2) bbox(4) bbox(2) bbox(4) (bbox(2)+bbox(4))/2];
 admin0_shape_i=0;next_admin0=1; % init
 for shape_i=1:length(admin0_shapes)
+    if climada_global.octave_mode
+        % Octave's inpolygon can not deal with NaNs
+        ok_pos=~isnan(admin0_shapes(shape_i).X);
+        admin0_shapes(shape_i).X=admin0_shapes(shape_i).X(ok_pos);
+        admin0_shapes(shape_i).Y=admin0_shapes(shape_i).Y(ok_pos);
+    end
     country_hit=inpolygon(x,y,admin0_shapes(shape_i).X,admin0_shapes(shape_i).Y);
     if sum(country_hit)>0
         admin0_shape_i(next_admin0)=shape_i;
@@ -701,6 +708,12 @@ if restrict_Values_to_country % reduce to assets within the country or admin1
     if isempty(selection_admin1_shape_i)
         fprintf('restricting %i assets to country %s (can take some time) ... ',...
             length(VALUES_1D),admin0_shapes(selection_admin0_shape_i).NAME);
+        if climada_global.octave_mode
+            % Octave's inpolygon can not deal with NaNs
+            ok_pos=~isnan(admin0_shapes(selection_admin0_shape_i).X);
+            admin0_shapes(selection_admin0_shape_i).X=admin0_shapes(selection_admin0_shape_i).X(ok_pos);
+            admin0_shapes(selection_admin0_shape_i).Y=admin0_shapes(selection_admin0_shape_i).Y(ok_pos);
+        end
         admin_hit=inpolygon(entity.assets.lon,entity.assets.lat,...
             admin0_shapes(selection_admin0_shape_i).X,admin0_shapes(selection_admin0_shape_i).Y);
         grid1_hit=inpolygon(grid1_lon,grid1_lat,...
@@ -709,6 +722,12 @@ if restrict_Values_to_country % reduce to assets within the country or admin1
         fprintf('restricting %i assets to admin1 %s (%s) (can take some time) ... ',...
             length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name,...
             admin1_shapes(selection_admin1_shape_i).adm1_code);
+        if climada_global.octave_mode
+            % Octave's inpolygon can not deal with NaNs
+            ok_pos=~isnan(admin1_shapes(selection_admin1_shape_i).X);
+            admin1_shapes(selection_admin1_shape_i).X=admin1_shapes(selection_admin1_shape_i).X(ok_pos);
+            admin1_shapes(selection_admin1_shape_i).Y=admin1_shapes(selection_admin1_shape_i).Y(ok_pos);
+        end
         admin_hit=inpolygon(entity.assets.lon,entity.assets.lat,...
             admin1_shapes(selection_admin1_shape_i).X,admin1_shapes(selection_admin1_shape_i).Y);
         grid1_hit=inpolygon(grid1_lon,grid1_lat,...
