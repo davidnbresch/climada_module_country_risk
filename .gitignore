@@ -69,3 +69,5 @@ data/emdat/emdat.mat
 *.asv
 data/world_50m.mat
 data/World_GDP_current.mat
+
+.DS_Store
