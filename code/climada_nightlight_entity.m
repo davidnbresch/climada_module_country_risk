@@ -154,6 +154,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % MODIFICATION HISTORY:
 % david.bresch@gmail.com, 20141202, initial, see now climada_nightlight_entity_OLD
 % david.bresch@gmail.com, 20160907, complete overhaul
+% david.bresch@gmail.com, 20160911, GDP and population from shape file not added (not even for info) any more
 %-
 
 entity=[]; % init
@@ -764,9 +765,10 @@ if parameters.add_elevation_m
 end
 
 if select_admin0 && parameters.restrict_Values_to_country % only one country
-    entity.assets.GDP_EST=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
-    entity.assets.population_EST=admin0_shapes(selection_admin0_shape_i).POP_EST;
-    if parameters.verbose,fprintf('Note: GDP %g, Population %i (from shapefile, just for info)\n',entity.assets.GDP_EST,entity.assets.population_EST);end
+    % following lines added GDP and population info from shapefile, but outdated
+    %entity.assets.GDP_from_shapefile=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
+    %entity.assets.population_from_shapefile=admin0_shapes(selection_admin0_shape_i).POP_EST;
+    %if parameters.verbose,fprintf('Note: GDP %g, Population %i (from shapefile, just for info)\n',entity.assets.GDP_from_shapefile,entity.assets.population_from_shapefile);end
     
     % Scale up asset values based on a country's estimated total asset value
     entity=climada_entity_value_GDP_adjust_one(entity,parameters.verbose); % ***********
