@@ -61,6 +61,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   entity=climada_nightlight_entity('USA','Florida');
 %   entity=climada_nightlight_entity % all interactive
 %   climada_entity_plot(entity) % to check the content of the final entity
+%   [counry_name,country_ISO3]=climada_country_name();
+%   for i=1:length(country_ISO3),climada_nightlight_entity(country_ISO3{i});end % all (!!)
 % INPUTS:
 % OPTIONAL INPUT PARAMETERS:
 %   admin0_name: the country name, either full or ISO3
@@ -212,7 +214,7 @@ admin0_shape_file=climada_global.map_border_file; % as we use the admin0 as in n
 admin1_shape_file=[module_data_dir filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.shp'];
 %
 % base entity file, such that we do not need to construct the entity from scratch
-entity_file=[climada_global.data_dir filesep 'entities' filesep 'entity_template.xls'];
+entity_file=[climada_global.entities_dir filesep 'entity_template.xls'];
 %
 % whether we select admin0 or admin1 (see parameter selections)
 select_admin0=0; % default=0, to select admin1
@@ -556,8 +558,7 @@ if parameters.resolution_km==10
 else
     entity_save_file=[entity_save_file '_01x01'];
 end
-entity_save_file=[climada_global.data_dir filesep 'entities' ...
-    filesep strrep(entity_save_file,'.','') '.mat'];
+entity_save_file=[climada_global.entities_dir filesep strrep(entity_save_file,'.','') '.mat'];
 
 [X,Y]=meshgrid(xx,yy); % construct regular grid
 
@@ -769,7 +770,6 @@ if select_admin0 && parameters.restrict_Values_to_country % only one country
     
     % Scale up asset values based on a country's estimated total asset value
     entity=climada_entity_value_GDP_adjust_one(entity,parameters.verbose); % ***********
-    %climada_entity_value_GDP_adjust(entity_save_file,parameters.verbose);
 end
 
 if parameters.save_entity
