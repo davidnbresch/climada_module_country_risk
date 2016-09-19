@@ -155,6 +155,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % david.bresch@gmail.com, 20141202, initial, see now climada_nightlight_entity_OLD
 % david.bresch@gmail.com, 20160907, complete overhaul
 % david.bresch@gmail.com, 20160911, GDP and population from shape file not added (not even for info) any more
+% david.bresch@gmail.com, 20160918, str2num replaced by str2double
 %-
 
 entity=[]; % init
@@ -499,13 +500,13 @@ if isempty(xx) && isempty(yy)
     try
         [~,fN]=fileparts(parameters.img_filename);
         [single_token,remaining_str]=strtok(fN,'_');
-        bbox=str2num(single_token);
+        bbox=str2double(single_token);
         [single_token,remaining_str]=strtok(remaining_str,'_');
-        bbox(2)=str2num(single_token);
+        bbox(2)=str2double(single_token);
         [single_token,remaining_str]=strtok(remaining_str,'_');
-        bbox(3)=str2num(single_token);
+        bbox(3)=str2double(single_token);
         [single_token,remaining_str]=strtok(remaining_str,'_');
-        bbox(4)=str2num(single_token);
+        bbox(4)=str2double(single_token);
         [admin_name_tmp,remaining_str]=strtok(remaining_str,'_');
         if ~strncmp(admin_name_tmp,'F182010',7) && isempty(admin0_name),admin0_name=admin_name_tmp;end
         [admin_name_tmp]=strtok(remaining_str,'_');
@@ -688,7 +689,8 @@ if parameters.restrict_Values_to_country % reduce to assets within the country o
     else
         if parameters.verbose,fprintf('restricting %i assets to admin1 %s (%s) (can take some time) ... ',...
             length(VALUES_1D),admin1_shapes(selection_admin1_shape_i).name,...
-            admin1_shapes(selection_admin1_shape_i).adm1_code);end
+            admin1_shapes(selection_admin1_shape_i).adm1_code);
+        end
         if climada_global.octave_mode
             % Octave's inpolygon can not deal with NaNs
             ok_pos=~isnan(admin1_shapes(selection_admin1_shape_i).X);
