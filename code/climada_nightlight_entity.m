@@ -57,6 +57,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % EXAMPLE:
 %   entity=climada_nightlight_entity('Italy'); % good for test, as shape of Italy is well-known
+%   climada_entity_plot(entity,[],1); % visual check
 %   p.resolution_km=1;entity=climada_nightlight_entity('CHE','',p); % Switzerland 1km resolution
 %   entity=climada_nightlight_entity('USA','Florida');
 %   entity=climada_nightlight_entity % all interactive
@@ -105,6 +106,12 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %           After this Values are normalized to sum up to 1.
 %           Note that if a whole country is requested, Values are then
 %           scaled to sum up to GDP*(income_group+1).
+%       value_threshold: if empty or =0, all centroids (also those with zero
+%           value) are kept in the entity (default). If set to a value,
+%           only centroids with entity.Value>value_threshold are kept (note
+%           that this way, one can specify an asset value threshold, reduce
+%           the number of points to be dealt with).
+%           One might often want to avoid all truly tero points, i.e. 
 %       add_distance2coast_km: if =1, add distance to coast, default=0
 %       add_elevation_m: if =1, add elevation, default=0
 %       img_filename: the filename of an image with night light density, as
@@ -156,6 +163,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % david.bresch@gmail.com, 20160907, complete overhaul
 % david.bresch@gmail.com, 20160911, GDP and population from shape file not added (not even for info) any more
 % david.bresch@gmail.com, 20160918, str2num replaced by str2double
+% david.bresch@gmail.com, 20160928, value_threshold added
+% david.bresch@gmail.com, 20160929, entity_save_file without spaces
 %-
 
 entity=[]; % init
@@ -179,6 +188,7 @@ if ~isfield(parameters,'restrict_Values_to_country'),parameters.restrict_Values_
 if ~isfield(parameters,'grid_spacing_multiplier'),parameters.grid_spacing_multiplier=[];end
 if ~isfield(parameters,'img_filename'),parameters.img_filename='';end
 if ~isfield(parameters,'save_entity'),parameters.save_entity=[];end
+if ~isfield(parameters,'value_threshold'),parameters.value_threshold=[];end
 if ~isfield(parameters,'add_distance2coast_km'),parameters.add_distance2coast_km=[];end
 if ~isfield(parameters,'add_elevation_m'),parameters.add_elevation_m=[];end
 if ~isfield(parameters,'check_plot'),parameters.check_plot=[];end
@@ -189,6 +199,7 @@ if isempty(parameters.nightlight_transform_poly),parameters.nightlight_transform
 if isempty(parameters.restrict_Values_to_country),parameters.restrict_Values_to_country=1;end
 if isempty(parameters.grid_spacing_multiplier),parameters.grid_spacing_multiplier=5;end
 if isempty(parameters.save_entity),parameters.save_entity=1;end
+if isempty(parameters.value_threshold),parameters.value_threshold=0;end
 if isempty(parameters.add_distance2coast_km),parameters.add_distance2coast_km=0;end
 if isempty(parameters.add_elevation_m),parameters.add_elevation_m=0;end
 if isempty(parameters.check_plot),parameters.check_plot=0;end
@@ -550,10 +561,13 @@ if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
 end
 
 if isempty(admin1_name) % country
-    entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',admin0_ISO3,admin0_name,bbox);
+    entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',...
+        admin0_ISO3,strrep(admin0_name,' ',''),bbox);
 else % state/province
-    entity_save_file=sprintf('%s_%s_%s_%s_%i_%i_%i_%i',admin0_ISO3,admin0_name,...
-        admin1_shapes(selection_admin1_shape_i).name,admin1_shapes(selection_admin1_shape_i).adm1_code,bbox);
+    entity_save_file=sprintf('%s_%s_%s_%s_%i_%i_%i_%i',...
+        admin0_ISO3,strrep(admin0_name,' ',''),...
+        strrep(admin1_shapes(selection_admin1_shape_i).name,' ',''),...
+        admin1_shapes(selection_admin1_shape_i).adm1_code,bbox);
 end
 if parameters.resolution_km==10
     entity_save_file=[entity_save_file '_10x10'];
@@ -648,6 +662,7 @@ VALUES_1D=VALUES(:); % one dimension
 % generate regular grid (to also find inpoly for it)
 grid_spacing1=0.01*parameters.grid_spacing_multiplier; % about 5km grid
 if parameters.resolution_km==10,grid_spacing1=0.1*parameters.grid_spacing_multiplier;end % about 50km for moderate
+if parameters.value_threshold>0,grid_spacing1=10;end % add only a few points (faster then suppressing grid)
 if parameters.verbose,fprintf('adding inner regular %2.2f degree grid ...',grid_spacing1);end
 [grid1_lon,grid1_lat] = meshgrid(min(entity.assets.lon):grid_spacing1:max(entity.assets.lon),...
     min(entity.assets.lat):grid_spacing1:max(entity.assets.lat));
@@ -749,6 +764,28 @@ end
 entity.assets.Deductible=entity.assets.Value*0;
 entity.assets.Cover=entity.assets.Value;
 
+if select_admin0 && parameters.restrict_Values_to_country % only one country
+    % following lines added GDP and population info from shapefile, but outdated
+    %entity.assets.GDP_from_shapefile=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
+    %entity.assets.population_from_shapefile=admin0_shapes(selection_admin0_shape_i).POP_EST;
+    %if parameters.verbose,fprintf('Note: GDP %g, Population %i (from shapefile, just for info)\n',entity.assets.GDP_from_shapefile,entity.assets.population_from_shapefile);end
+    
+    % Scale up asset values based on a country's estimated total asset value
+    entity=climada_entity_value_GDP_adjust_one(entity,parameters.verbose); % ***********
+end
+
+if parameters.value_threshold>0
+    valid_pos=find(entity.assets.Value>parameters.value_threshold);
+    fprintf('keeping only %i (%2.2f%%) centroids with Value > %f\n',...
+        length(valid_pos),length(valid_pos)/length(entity.assets.Value)*100,parameters.value_threshold);
+    entity.assets.lon=entity.assets.lon(valid_pos);
+    entity.assets.lat=entity.assets.lat(valid_pos);
+    entity.assets.Value=entity.assets.Value(valid_pos);
+    entity.assets.DamageFunID=entity.assets.DamageFunID(valid_pos);
+    entity.assets.Deductible=entity.assets.Deductible(valid_pos);
+    entity.assets.Cover=entity.assets.Cover(valid_pos);             
+end % parameters.value_threshold>=0
+
 if parameters.add_distance2coast_km
     % add distance to coast
     if parameters.verbose,fprintf('adding distance to coast [km] (might take some time) ...\n');end
@@ -764,16 +801,6 @@ if parameters.add_elevation_m
         if parameters.verbose,fprintf('adding elevation [m] (might take some time) ...\n');end
         entity.assets.elevation_m=etopo_elevation_m(entity.assets.lon,entity.assets.lat,check_plot);
     end % add elevation
-end
-
-if select_admin0 && parameters.restrict_Values_to_country % only one country
-    % following lines added GDP and population info from shapefile, but outdated
-    %entity.assets.GDP_from_shapefile=admin0_shapes(selection_admin0_shape_i).GDP_MD_EST*1e6; % USD
-    %entity.assets.population_from_shapefile=admin0_shapes(selection_admin0_shape_i).POP_EST;
-    %if parameters.verbose,fprintf('Note: GDP %g, Population %i (from shapefile, just for info)\n',entity.assets.GDP_from_shapefile,entity.assets.population_from_shapefile);end
-    
-    % Scale up asset values based on a country's estimated total asset value
-    entity=climada_entity_value_GDP_adjust_one(entity,parameters.verbose); % ***********
 end
 
 if parameters.save_entity
