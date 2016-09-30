@@ -136,6 +136,9 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %           ='ASK' prompt for an image file (without first asking for country
 %           where one has to press 'Cancel') to get the to filename prompt
 %       save_entity: whether we save the entity (=1, default) or nor (=0).
+%       entity_filename: the filename to save the entity to, default is a
+%           long one with ISO3, country name, admin1 name, geo coord and
+%           resolution. Not used if save_entity=0
 %       check_plot: if =1: plot nightlight data with admin0 (countries)
 %           superimposed, if=2 also admin1 (country states/provinces)
 %           =0: no plot (default). If=3, plot the resulting asset Values
@@ -156,6 +159,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %       entity.assets.nightlight_transform_poly: the polynomial
 %           coefficients that have been used to transform the nightlight
 %           intensity.
+%       entity.assets.isgridpoint: =1 for the regular grid added 'around'
+%           the assets, =0 for the 'true' asset centroids
 %       see e.g. climada_entity_plot to check
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
@@ -164,8 +169,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % david.bresch@gmail.com, 20160911, GDP and population from shape file not added (not even for info) any more
 % david.bresch@gmail.com, 20160918, str2num replaced by str2double
 % david.bresch@gmail.com, 20160928, value_threshold added
-% david.bresch@gmail.com, 20160929, entity_save_file without spaces
-%-
+% david.bresch@gmail.com, 20160929, entity_filename without spaces
+% david.bresch@gmail.com, 20160929, entity.assets.isgridpoint added
 
 entity=[]; % init
 
@@ -188,6 +193,7 @@ if ~isfield(parameters,'restrict_Values_to_country'),parameters.restrict_Values_
 if ~isfield(parameters,'grid_spacing_multiplier'),parameters.grid_spacing_multiplier=[];end
 if ~isfield(parameters,'img_filename'),parameters.img_filename='';end
 if ~isfield(parameters,'save_entity'),parameters.save_entity=[];end
+if ~isfield(parameters,'entity_filename'),parameters.entity_filename='';end
 if ~isfield(parameters,'value_threshold'),parameters.value_threshold=[];end
 if ~isfield(parameters,'add_distance2coast_km'),parameters.add_distance2coast_km=[];end
 if ~isfield(parameters,'add_elevation_m'),parameters.add_elevation_m=[];end
@@ -244,7 +250,7 @@ end
 
 if parameters.resolution_km==10,full_img_filename=low_img_filename;end
 
-if parameters.verbose,fprintf('resolution %i\n',parameters.resolution_km);end
+if parameters.verbose,fprintf('resolution %ix%i km\n',parameters.resolution_km,parameters.resolution_km);end
 
 % read admin0 (country) shape file (we need this in any case)
 admin0_shapes=climada_shaperead(admin0_shape_file);
@@ -560,21 +566,35 @@ if isempty(selection_admin1_shape_i) && ~isempty(admin1_name)
     end % shape_i
 end
 
-if isempty(admin1_name) % country
-    entity_save_file=sprintf('%s_%s_%i_%i_%i_%i',...
-        admin0_ISO3,strrep(admin0_name,' ',''),bbox);
-else % state/province
-    entity_save_file=sprintf('%s_%s_%s_%s_%i_%i_%i_%i',...
-        admin0_ISO3,strrep(admin0_name,' ',''),...
-        strrep(admin1_shapes(selection_admin1_shape_i).name,' ',''),...
-        admin1_shapes(selection_admin1_shape_i).adm1_code,bbox);
+if isempty(parameters.entity_filename) % define default entity filename
+    if isempty(admin1_name) % country
+        parameters.entity_filename=sprintf('%s_%s',admin0_ISO3,strrep(admin0_name,' ',''));
+        %parameters.entity_filename=sprintf('%s_%s_%i_%i_%i_%i',...
+        %    admin0_ISO3,strrep(admin0_name,' ',''),bbox); % until 20160930
+    else % state/province
+        parameters.entity_filename=sprintf('%s_%s_%s_%s',...
+            admin0_ISO3,strrep(admin0_name,' ',''),...
+            strrep(admin1_shapes(selection_admin1_shape_i).name,' ',''),...
+            admin1_shapes(selection_admin1_shape_i).adm1_code);
+        %parameters.entity_filename=sprintf('%s_%s_%s_%s_%i_%i_%i_%i',...
+        %    admin0_ISO3,strrep(admin0_name,' ',''),...
+        %    strrep(admin1_shapes(selection_admin1_shape_i).name,' ',''),...
+        %    admin1_shapes(selection_admin1_shape_i).adm1_code,bbox); % until 20160930
+    end
+    if parameters.resolution_km==10
+        parameters.entity_filename=[parameters.entity_filename '_10x10'];
+    else
+        parameters.entity_filename=[parameters.entity_filename '_01x01'];
+    end
+    parameters.entity_filename=strrep(parameters.entity_filename,'.','');
+    parameters.entity_filename=strrep(parameters.entity_filename,' ','');
 end
-if parameters.resolution_km==10
-    entity_save_file=[entity_save_file '_10x10'];
-else
-    entity_save_file=[entity_save_file '_01x01'];
-end
-entity_save_file=[climada_global.entities_dir filesep strrep(entity_save_file,'.','') '.mat'];
+
+% parameters.entity_filename: complete path, if missing
+[fP,fN,fE]=fileparts(parameters.entity_filename);
+if isempty(fP),fP=climada_global.entities_dir;end
+if isempty(fE),fE='.mat';end
+parameters.entity_filename=[fP filesep fN fE];
 
 [X,Y]=meshgrid(xx,yy); % construct regular grid
 
@@ -736,7 +756,10 @@ if parameters.restrict_Values_to_country % reduce to assets within the country o
         entity.assets.lon   =[entity.assets.lon   grid1_lon]; % append
         entity.assets.lat   =[entity.assets.lat   grid1_lat]; % append
         entity.assets.Value =[entity.assets.Value grid1_lon*0]; % append
-        
+        entity.assets.isgridpoint=logical(entity.assets.lon*0); % init
+        entity.assets.isgridpoint(end-length(grid1_lon)+1:end)=1; % indicate grid point
+        % one can check with:
+        %climada_circle_plot(entity.assets.isgridpoint,entity.assets.lon,entity.assets.lat);
     end
 else
     entity.assets.Value=VALUES_1D';
@@ -804,8 +827,9 @@ if parameters.add_elevation_m
 end
 
 if parameters.save_entity
-    if parameters.verbose,fprintf('saving entity as %s\n',entity_save_file);end
-    save(entity_save_file,'entity');
+    if parameters.verbose,fprintf('saving entity as %s\n',parameters.entity_filename);end
+    entity.assets.filename=parameters.entity_filename;
+    save(parameters.entity_filename,'entity');
     if parameters.verbose,fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');end
 end
 
