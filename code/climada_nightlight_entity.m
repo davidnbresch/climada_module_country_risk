@@ -16,8 +16,14 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   surrounding buffer and saves the entity, optionally adding distance to
 %   coast (im km) and elevation (in m) for each centroid, too.
 %
+%   The original nightlight intensities are first scaled to the range
+%   [0..1], then transformed using a polynomial (see
+%   parameters.nightlight_transform_poly), then scaled such that all values
+%   sum to to one (normalized).
+%
 %   If admin0 (whole country) is selected, the values are scaled to sum up
-%   to GDP*(income group +1) as a good proxy for the 'real' asset value.
+%   to GDP*(income_group+1) as a good proxy for the 'real' asset value (see
+%   code climada_entity_value_GDP_adjust_one). 
 %
 %   If admin1,is requested, no automatic scaling or allocation of GDP to
 %   centroids is performed.
@@ -32,11 +38,6 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   to the /data folder of country_risk module. As the .tif is so much
 %   larger, the climada module country_risk comes with the .mat file, but
 %   does not contain the original (.tif).
-%
-%   Backward compatibility: Please note that the old GDP_entity code could
-%   also deal with such a high-res dataset (see respective documentation) -
-%   that's why the present code does also check for the night light data to
-%   be stored there (see GDP_entity_CHECK in code).
 %
 %   If the high-resolution night light image is stored locally, it fetches
 %   the tile of night light density from www (i.e. asks the user to enter a
@@ -66,6 +67,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   climada_entity_plot(entity) % to check the content of the final entity
 %   [counry_name,country_ISO3]=climada_country_name();
 %   for i=1:length(country_ISO3),climada_nightlight_entity(country_ISO3{i});end % all (!!)
+%   parameters=climada_nightlight_entity('parameters') % return all default parameters
 % INPUTS:
 % OPTIONAL INPUT PARAMETERS:
 %   admin0_name: the country name, either full or ISO3
@@ -79,6 +81,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %       admin1_name='ask' in case you'd like to be prompted for admin1.
 %       Also useful if a img_filename is passed in parameters
 %       and thus if admin0_name is defined, the respective country is cut out.
+%       If ='parameters', return all default parameters
 %   admin1_name: if passed on, do not prompt for admin1 name
 %       > If empty together with admin0_name, a list dialog lets the user select (default)
 %       Most useful for subsequent calls, i.e. once one knows the exact
@@ -91,6 +94,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %       admin1_name is kept as on input, i.e. 'CHE-176' in the example, not
 %       'Zrich'.
 %   parameters: a structure to pass on parameters, with fields as
+%       (run parameters=climada_nightlight_entity('parameters') to obtain
+%       all default values)
 %       resolution_km: the resuting resolution, either =1 or =10
 %           It is often advisable to first TEST with resolution=10 for
 %           speed reasons. If a fully country is selected, default=10, else
@@ -174,6 +179,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % david.bresch@gmail.com, 20160929, entity_filename without spaces
 % david.bresch@gmail.com, 20160929, entity.assets.isgridpoint added
 % david.bresch@gmail.com, 20161002, using climada_inpolygon
+% david.bresch@gmail.com, 20161005, added option climada_nightlight_entity('parameters')
 
 entity=[]; % init
 
@@ -224,9 +230,7 @@ full_img_filename=[module_data_dir filesep 'F182012.v4c_web.stable_lights.avg_vi
 min_South=-65; % degree, defined on the webpage above
 max_North= 75; % defined on the webpage above
 %
-% low resolution file (approx. 10x10km). Note that this moderate-size
-% (440kB) file is also used in GDP_entity and locally stored there (to
-% avoid cross-dependency between the modules country_risk and GDP_entity).
+% low resolution file (approx. 10x10km):
 low_img_filename=[module_data_dir filesep 'night_light_2010_10km.png'];
 % Note: you might check whether the same min_South and max_Nort happly
 %
@@ -250,6 +254,8 @@ if isempty(parameters.resolution_km),
         parameters.resolution_km=1; % default for admin1
     end
 end
+
+if strcmpi(admin0_name,'parameters'),entity=parameters;return;end % special case, return the full parameters strcture
 
 if parameters.resolution_km==10,full_img_filename=low_img_filename;end
 
@@ -768,9 +774,10 @@ end % params.restrict_Values_to_country
 entity.assets.DamageFunID=entity.assets.Value*0+1;
 entity.assets.reference_year=climada_global.present_reference_year;
 
-if sum(parameters.nightlight_transform_poly)>0
+if sum(parameters.nightlight_transform_poly)>0 && max(entity.assets.Value)>0
+    entity.assets.Value=entity.assets.Value/max(entity.assets.Value); % normalize to range [0..1]
     entity.assets.Value = polyval(parameters.nightlight_transform_poly,entity.assets.Value); % ***********
-    entity.assets.Value=entity.assets.Value/sum(entity.assets.Value); % normalize
+    entity.assets.Value=entity.assets.Value/sum(entity.assets.Value); % normalize to sum=1
     entity.assets.nightlight_transform_poly=parameters.nightlight_transform_poly;
     entity.assets.comment='nightlights transformed using polynomial, then normalized to 1';
     if parameters.verbose,fprintf('%s\n',entity.assets.comment);end

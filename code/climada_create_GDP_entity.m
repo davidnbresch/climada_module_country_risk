@@ -5,6 +5,8 @@ function [centroids,entity,entity_future]=climada_create_GDP_entity(country_name
 % NAME:
 %   climada_create_GDP_entity
 % PURPOSE:
+%   See climada_nightlight_entity for mots purposes first.
+%
 %   create centroids and entity for a specific country, distribute assets
 %   and value according to night light intensities and scale up to match 
 %   GDP today (see climada_global.present_reference_year) and a future (see
