@@ -600,6 +600,7 @@ if isempty(parameters.entity_filename) % define default entity filename
     end
     parameters.entity_filename=strrep(parameters.entity_filename,'.','');
     parameters.entity_filename=strrep(parameters.entity_filename,' ','');
+    parameters.entity_filename=strrep(parameters.entity_filename,',','');
 end
 
 % parameters.entity_filename: complete path, if missing
