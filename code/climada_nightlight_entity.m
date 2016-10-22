@@ -56,6 +56,8 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   Note: the code uses climada_inpolygon instead of inpolygon.
 %
 %   See also older version like climada_create_GDP_entity and climada_hybrid_entity
+%   See climada_nightlight_global_entity to generate a global entity with
+%       all countries scaled etc.
 % CALLING SEQUENCE:
 %   entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % EXAMPLE:
