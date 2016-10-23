@@ -101,16 +101,19 @@ function entity=climada_nightlight_global_entity(parameters)
 %           negatove for ocean depth (needs climada module etopo, just skips
 %           this if module not installed)
 %       entity.assets.centroid_admin0_ISO3{i}: country ISO3 code for each
-%           centroid i, WWW for water (oceans)
+%           centroid i, WWW for water (oceans). Not added, if
+%           restrict_Values_to_country=0)
 %       entity.assets.nightlight_transform_poly: the polynomial
 %           coefficients that have been used to transform the nightlight
 %           intensity.
 %       entity.assets.isgridpoint: =1 for the regular grid added 'around'
-%           the assets, =0 for the 'true' asset centroids
+%           the assets, =0 for the 'true' asset centroids (not added, if
+%           restrict_Values_to_country=0)
 %       see e.g. climada_entity_plot to check
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % david.bresch@gmail.com, 20161022, initial
+% david.bresch@gmail.com, 20161023, save using -v7.3 if troubles
 
 entity=[]; % init
 
@@ -194,8 +197,6 @@ if exist('night_light','var')
     yy=(night_light.lat_range(2)-night_light.lat_range(1))*(1:size(img,1))/size(img,1)+night_light.lat_range(1);
 end % exist('night_light','var')
 
-whos
-
 if isempty(parameters.entity_filename) % define default entity filename
     if parameters.resolution_km==10
         parameters.entity_filename=[parameters.entity_filename 'GLOBAL_10x10'];
@@ -252,7 +253,6 @@ entity.assets.lon=X(:)';
 entity.assets.lat=Y(:)';
 entity.assets.Value=VALUES(:)'; % one dimension
 entity.assets.Value_unit=repmat({climada_global.Value_unit},size(entity.assets.Value));
-entity.assets.centroid_admin0_ISO3=repmat({'WWW'},size(entity.assets.Value));
 
 if sum(parameters.nightlight_transform_poly)>0 && max(entity.assets.Value)>0
     entity.assets.Value=entity.assets.Value/max(entity.assets.Value); % normalize to range [0..1]
@@ -264,7 +264,9 @@ if sum(parameters.nightlight_transform_poly)>0 && max(entity.assets.Value)>0
 end % parameters.nightlight_transform_poly
 
 if parameters.restrict_Values_to_country
-    entity.assets.isgridpoint=logical(entity.assets.lon*1); % init
+    
+    entity.assets.isgridpoint=logical(entity.assets.lon*0+1); % init
+    entity.assets.centroid_admin0_ISO3=repmat({'WWW'},size(entity.assets.Value));
     
     if parameters.add_distance2coast_km,...
             entity.assets.distance2coast_km=entity.assets.lon*0-999;end % init
@@ -288,8 +290,6 @@ if parameters.restrict_Values_to_country
         box_pos=find(entity.assets.lon > min_X & entity.assets.lon < max_X & ...
             entity.assets.lat > min_Y & entity.assets.lat < max_Y);
         
-        
-        
         country_hit=climada_inpolygon(entity.assets.lon(box_pos),entity.assets.lat(box_pos),admin0_shapes(shape_i).X,admin0_shapes(shape_i).Y);
         country_index(box_pos)=country_hit;
         
@@ -302,10 +302,11 @@ if parameters.restrict_Values_to_country
             
             fprintf(' %i centroids ...',sum(country_index));
             
-            entity.assets.isgridpoint(country_index)=0; % is not a grid point
+            entity.assets.isgridpoint(country_index)=false; % is not a grid point
             
-            dummy_entity.assets.admin0_ISO3=admin0_shapes(shape_i).ADM0_A3;
-            dummy_entity.assets.Value=1;
+            % we use a dummy entity to get the scaling factors back from climada_entity_value_GDP_adjust_one
+            dummy_entity.assets.admin0_ISO3=admin0_shapes(shape_i).ADM0_A3; % pass the ISO3 code
+            dummy_entity.assets.Value=1;dummy_entity.assets.GDP_value=1;dummy_entity.assets.scale_up_factor=1; % init
             dummy_entity=climada_entity_value_GDP_adjust_one(dummy_entity); % obtain scaling
             
             entity.assets.Value(country_index)=entity.assets.Value(country_index)/sum(entity.assets.Value(country_index)); % normalize to 1
@@ -324,7 +325,7 @@ if parameters.restrict_Values_to_country
                     if parameters.verbose,fprintf(' elev ...');end
                     entity.assets.elevation_m(country_index)=...
                         etopo_elevation_m(entity.assets.lon(country_index),entity.assets.lat(country_index));
-                end % add elevation
+                end
             end
             
         end % sum(country_hit)>0
@@ -357,7 +358,13 @@ end % parameters.value_threshold>=0
 if parameters.save_entity
     if parameters.verbose,fprintf('saving entity as %s\n',parameters.entity_filename);end
     entity.assets.filename=parameters.entity_filename;
-    save(parameters.entity_filename,'entity');
+    try
+        save(parameters.entity_filename,'entity');
+    catch
+        fprintf('saving with -v7.3, might take quite some time ...')
+        save(parameters.entity_filename,'entity','-v7.3');
+        fprintf(' done\n')
+    end
     if parameters.verbose,fprintf('consider encoding entity to a particular hazard, see climada_assets_encode\n');end
 end
 
