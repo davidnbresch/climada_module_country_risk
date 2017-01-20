@@ -56,6 +56,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %   Note: the code uses climada_inpolygon instead of inpolygon.
 %
 %   See also older version like climada_create_GDP_entity and climada_hybrid_entity
+%   See also climada_nightlight2cdf to store as netCDF (e.g. for isimip)
 %   See climada_nightlight_global_entity to generate a global entity with
 %       all countries scaled etc.
 % CALLING SEQUENCE:
@@ -111,7 +112,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 %           the nightlight intensity (usually in the range 0..60) to proxy
 %           asset values. Evaluated using polyval, i.e.
 %           value=polyval(parameters.nightlight_transform_poly,nightlight_intensity)
-%           Default=[1 0 0 0], which means Value=nightlight_intensity^3
+%           Default=[0 1 0 0], which means Value=nightlight_intensity^2
 %           After this Values are normalized to sum up to 1.
 %           Note that if a whole country is requested, Values are then
 %           scaled to sum up to GDP*(income_group+1).
@@ -182,6 +183,7 @@ function entity=climada_nightlight_entity(admin0_name,admin1_name,parameters)
 % david.bresch@gmail.com, 20160929, entity.assets.isgridpoint added
 % david.bresch@gmail.com, 20161002, using climada_inpolygon
 % david.bresch@gmail.com, 20161005, added option climada_nightlight_entity('parameters')
+% david.bresch@gmail.com, 20170120, default squared, not cubed any more
 
 entity=[]; % init
 
@@ -212,7 +214,8 @@ if ~isfield(parameters,'check_plot'),parameters.check_plot=[];end
 if ~isfield(parameters,'verbose'),parameters.verbose=[];end
 
 % set default values (see header for details)
-if isempty(parameters.nightlight_transform_poly),parameters.nightlight_transform_poly=[1 0 0 0];end
+%if isempty(parameters.nightlight_transform_poly),parameters.nightlight_transform_poly=[1 0 0 0];end % until 20170119
+if isempty(parameters.nightlight_transform_poly),parameters.nightlight_transform_poly=[0 1 0 0];end
 if isempty(parameters.restrict_Values_to_country),parameters.restrict_Values_to_country=1;end
 if isempty(parameters.grid_spacing_multiplier),parameters.grid_spacing_multiplier=5;end
 if isempty(parameters.save_entity),parameters.save_entity=1;end
