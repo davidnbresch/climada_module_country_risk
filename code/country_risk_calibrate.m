@@ -268,7 +268,8 @@ switch country_name_char
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
         
-        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,25,1,0.4,'s-shape','TC',0);
+        %[damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,25,1,0.4,'s-shape','TC',0); % default
+        [damagefunctions,dmf_info_str]=climada_damagefunctions_generate(0:5:120,25,1,0.7,'s-shape','TC',0);
         fprintf('%s TC atl: %s\n',country_name_char,dmf_info_str);
         entity=climada_damagefunctions_replace(entity,damagefunctions);
         if ~isempty(entity_future),entity_future=climada_damagefunctions_replace(entity_future,damagefunctions);end
