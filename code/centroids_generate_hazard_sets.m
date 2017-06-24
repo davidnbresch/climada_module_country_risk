@@ -80,6 +80,8 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20151010, TR switched on as default
 % David N. Bresch, david.bresch@gmail.com, 20151224, hazard module names renamed
 % David N. Bresch, david.bresch@gmail.com, 20160517, double-check for tc datasets
+% David N. Bresch, david.bresch@gmail.com, 20170524, _readme.txt in tc_tracks not processed ;-)
+% David N. Bresch, david.bresch@gmail.com, 20170524, hazard.units displayed
 %-
 
 centroids_hazard_info = []; % init output
@@ -103,7 +105,7 @@ calculate_TC=1; % whether we calculate TC
 calculate_TS=1; % whether we calculate TS (needs TC)
 calculate_TR=1; % whether we calculate TR (needs TC)
 calculate_EQ=1; % whether we calculate EQ
-calculate_VQ=0; % whether we calculate VQ
+calculate_VQ=1; % whether we calculate VQ
 calculate_WS=1; % whether we calculate WS
 %
 % the folder all data will be stored to, usually the standard climada
@@ -270,12 +272,12 @@ if calculate_TC
     for file_i=1:length(D)
         if ~D(file_i).isdir
             raw_data_file_temp=D(file_i).name;
-            [~,~,fE]=fileparts(raw_data_file_temp);
-            if (strcmp(fE,climada_global.tc.default_raw_data_ext) || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST'))
+            [~,fN,fE]=fileparts(raw_data_file_temp);
+            if (strcmp(fE,climada_global.tc.default_raw_data_ext) || strcmp(fE,'.nc')) && isempty(strfind(raw_data_file_temp,'TEST')) && ~strcmpi(fN,'_readme')
                 
                 tc_track_raw_file=[tc_tracks_folder filesep raw_data_file_temp]; % original raw data file
                 tc_track_hist_file=strrep(tc_track_raw_file,fE,'_hist.mat'); % the *_hist.mat file where tc_track is stored
-                
+                                
                 if ~climada_check_matfile(tc_track_raw_file,tc_track_hist_file)
                     % get the tc_tracks (or re-read in case the .mat file is older then the raw data file)
                     if (strcmp(fE,'.txt'))
@@ -529,7 +531,7 @@ for hazard_i=1:hazard_count
             end
             
             hazard = climada_tc_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
-            fprintf('TC: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+            fprintf('TC: max(max(hazard.intensity))=%2.2f%s\n',full(max(max(hazard.intensity))),hazard.units); % a kind of easy check
             
         else
             load(centroids_hazard_info.res.hazard(hazard_i).hazard_set_file); % load hazard (to check)
@@ -565,7 +567,7 @@ for hazard_i=1:hazard_count
                 if exist('climada_ts_hazard_set', 'file') % the function exists
                     hazard = climada_ts_hazard_set(hazard_TC,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file);
                     if ~isempty(hazard)
-                        fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+                        fprintf('TS: max(max(hazard.intensity))=%2.2f%s\n',full(max(max(hazard.intensity))),hazard.units); % a kind of easy check
                     end
                 else
                     fprintf(['Storm surge (TS) module not found. Please download ' ...
@@ -613,7 +615,7 @@ for hazard_i=1:hazard_count
                 load(tc_track_file) % contains tc_track
                 
                 hazard = climada_tr_hazard_set(tc_track,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
-                fprintf('TR: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+                fprintf('TR: max(max(hazard.intensity))=%2.2f%s\n',full(max(max(hazard.intensity))),hazard.units); % a kind of easy check
             else
                 fprintf(['Torrential rain (TR) module not found. Please download ' ...
                     '<a href="https://github.com/davidnbresch/climada_module_tropical_cyclone">'...
@@ -663,7 +665,7 @@ for hazard_i=1:hazard_count
                 end
                 hazard=eq_global_hazard_set(eq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 if ~isempty(hazard)
-                    fprintf('EQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+                    fprintf('EQ: max(max(hazard.intensity))=%2.2f %s\n',full(max(max(hazard.intensity))),hazard.units); % a kind of easy check
                 end
             else
                 fprintf(['Earthquake (EQ) module not found. Please download ' ...
@@ -713,7 +715,7 @@ for hazard_i=1:hazard_count
                 end
                 hazard=vq_global_hazard_set(vq_data,centroids_hazard_info.res.hazard(hazard_i).hazard_set_file,centroids);
                 if ~isempty(hazard)
-                    fprintf('VQ: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+                    fprintf('VQ: max(max(hazard.intensity))=%2.2f%s\n',full(max(max(hazard.intensity))),hazard.units); % a kind of easy check
                 end
             else
                 fprintf(['Volcano/Earthquake (VQ/EQ) module not found. Please download ' ...
