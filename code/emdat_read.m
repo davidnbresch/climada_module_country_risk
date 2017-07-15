@@ -84,6 +84,7 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20150126, initial, Sils Maria
 % David N. Bresch, david.bresch@gmail.com, 20150207, list of countries accepted
 % David N. Bresch, david.bresch@gmail.com, 20150208, YDS added
+% David N. Bresch, david.bresch@gmail.com, 20170715, new emdat until mid 2017
 %-
 
 em_data=[]; % init output
@@ -109,7 +110,7 @@ module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % PARAMETERS
 %
 % define the the default database file
-if isempty(emdat_file),emdat_file=[module_data_dir filesep 'emdat' filesep 'emdat.xls'];end
+if isempty(emdat_file),emdat_file=[module_data_dir filesep 'emdat' filesep 'emdat.xlsx'];end % 20170715 .xslx
 %
 % the EM-DAT reference year, i.e. the last year EM-DAT is valid for
 % see also www.emdat.be/explanatory-notes
