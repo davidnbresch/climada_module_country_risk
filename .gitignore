@@ -77,3 +77,7 @@ data/World_GDP_current.mat
 data/F182012.v4c_web.stable_lights.avg_vis.nc
 
 data/F182012.v4c_web.stable_lights.avg_vis.nc.zip
+
+data/emdat/emdat_disaster_subtype.mat
+
+data/emdat/emdat_disaster_type.mat
