@@ -36,8 +36,8 @@ function GDP = climada_GDP_read(xlsfilename, special_cases_on, check_names, sile
 
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20120730
+% david.bresch@gmail.com, 20170725, iso code read (and added to file ;-)
 %-
-
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
@@ -63,19 +63,9 @@ if isempty(xlsfilename) % local GUI
 end
 
 
-%% read excel
-%[data, text]      = xlsread(xlsfilename);
-%GDP.country_names = text(3:end,2);
-%GDP.year          = data(1,3:end);
-%GDP.value         = data(2:end,3:end);
-%GDP.description = text{1,3};
-% if strcmp(GDP.description,'GDP in USD') & strcmp(GDP.description,'GDP forecast 2000 - 2017, national currency');
-%     special_cases_on = 1;
-% end
-
-
-%% new, using the standard climada reading routine
+% new, using the standard climada reading routine
 xls_data          = climada_xlsread('no',xlsfilename,'',silent_mode);
+GDP.iso           = xls_data.iso; % 20170725
 GDP.country_names = xls_data.countryname;
 xls_fieldnames    = fieldnames(xls_data);
 next_year         = 1;

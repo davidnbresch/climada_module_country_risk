@@ -1,4 +1,4 @@
-function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,verbose_mode,CAGR)
+function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,verbose_mode,CAGR)
 % climada template
 % MODULE:
 %   country_rsk
@@ -8,6 +8,13 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %   Read EM-DAT database (www.emdat.be and www.emdat.be/explanatory-notes)
 %   from the file {country_risk_module}/data/emdat/emdat.xls
 %
+%   The code primarily reads disaster_syubtype (more precise), which also
+%   allows a better mapping to climada perils (see paramter peril_ID). But
+%   since some (past) events are not properly classified by type and/or
+%   subtype, one can also base the selection on disaster_type (see
+%   parameter peril_ID). Since we joined disaster type to subtype in Exel,
+%   disaster type is always there.
+%
 %   Please note that the EM-DAT database does NOT contain its reference
 %   date (i.e. the last year it contains data for, see EMDAT_last_year
 %   in PARAMETERS)
@@ -15,39 +22,48 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %   If requested, index past damages according to GDP (see
 %   exposure_growth). This feature needs t GDP_entity module to exist
 %
+%   Please note that the code stores a .mat copy of the Excel upon first
+%   import (checkes for .mat file being younger then Excel). Use this .mat
+%   file in case you'd like to get all records, also those with no damage
+%   or affeced people.
+%
 %   Also produce a damage frequency curve (DFC) in order to ease comparison with
 %   climada results, especially if EM-DAT data is filtered by country (see
-%   input country_name) and peril (see input peril_ID).
+%   input country_ISO3) and peril (see input peril_ID).
 %   Use e.g. plot(em_data.DFC.return_period,em_data.DFC.damage) to plot the
 %   damage excess frequency curve based on EM-DAT.
 %
 % CALLING SEQUENCE:
-%   em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,verbose_mode)
+%   em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,verbose_mode,CAGR)
 % EXAMPLE:
-%   em_data=emdat_read('','United States','TC');
+%   em_data=emdat_read('','USA','TC',0,1);
 % INPUTS:
 %   emdat_file: filename of the emdat database
 %       Default (='' or no input at all) is full global EM-DAT database, 
 %       see PARAMETERS for its default location
 %       if ='ASK', prompt for
 % OPTIONAL INPUT PARAMETERS:
-%   country_name: if provided, only return records for specific country - r
-%   for the list of countries, if provided as cell, i.e. {'Vanuata','Aruba'}
-%       default: all countries
-%   peril_ID: if provided, only return records for specific peril,
-%       currently implemented are
-%       - 'TC': tropical cyclone, returns records with disaster subtype='Tropical cyclone'
+%   country_ISO3: if provided, only return records for specific country - or
+%       for the list of countries, if provided as cell, i.e. {'USA','CAN'}
+%       default: all countries (use climada_country_name to obtaib the ISO3 code)
+%   peril_ID: if provided, only return records for specific peril, based on
+%       disaster_subtype (since more precise). If peril_ID starts with '-',
+%       such as '-TC' or '-Storm', disaster_type is used instead of subtype.
+%       currently implemented are (see PARAMETERS section)
+%       - 'TC': tropical cyclone, returns records with disaster subtype='Tropical cyclone' or type 'Storm'
 %       - 'TS': tropical cyclone surge, returns records with disaster subtype='Coastal flood'
 %       - 'FL': flood, returns records with disaster subtype='Riverine flood'
-%       - 'WS': winter storm, returns records with disaster subtype='Extra-tropical s'
-%       - 'EQ': earthquake, returns records with disaster subtype='Ground movement'
-%       - or just any of the disaster subtypes in EM-DAT, e.g. 'Tsunami'. You
-%         might use em_data=emdat_read('','China','',0,1); to get a list of all
-%         available disaster subtypes in China
+%       - 'WS': winter storm, returns records with disaster subtype='Extra-tropical storm' or type 'Storm'
+%       - 'EQ': earthquake, returns records with disaster subtype='Ground movement' or type 'Earthquake'
+%       - or just any of the disaster subtypes or types in EM-DAT, e.g.
+%       'Tsunami' (a subtype) or '-Storm' (a type, thus the traling '-'.
+%       You might use em_data=emdat_read('','USA','',0,1); to get a list of
+%       all available disaster types or subtypes in the United States (or
+%       any other country), or emdat_read('','','',0,1) to get all
 %       Default: all perils (i.e. all disaster subtypes)
 %   exposure_growth: =1: correct damage numbers to account for exposure
 %       growth (the field em_data.damage_orig contains the uncorrected numbers
-%       Only works if a single country is requested, i.e. if country_name
+%       Only works if a single country is requested, i.e. if country_ISO3
 %       is specified. In essence, we calculate the correction factor for
 %       year i as GDP(today)/GDP(year i)
 %       =0: no correction (default)
@@ -58,20 +74,22 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 %       default is used where no GDP exists (see PARAMETERS section, CAGR set
 %       to 0.02).
 % OUTPUTS:
-%   em_data, a structure with (for each event i)
+%   em_data, a structure with (for each row/event i, field names converted to lowercase)
 %       filename: the original filename with EM-DAT fata
 %       year(i): the year (e.g. use hist(em_data.year) to get a feel...)
 %       disaster_type{i}: disaster type i, see www.emdat.be/explanatory-notes
 %       disaster_subtype{i}: disaster subtype i, see www.emdat.be/explanatory-notes
 %       occurrence(i): see www.emdat.be/explanatory-notes
-%       deaths(i): see www.emdat.be/explanatory-notes
-%       affected(i): see www.emdat.be/explanatory-notes
+%       total_deaths(i): see www.emdat.be/explanatory-notes
+%       total_affected(i): see www.emdat.be/explanatory-notes
 %       injured(i): see www.emdat.be/explanatory-notes
 %       homeless(i): see www.emdat.be/explanatory-notes
 %       damage(i): the damage in USD (in units of 1 USD)
 %           Note that EM-DAT estimated damage in the database are given in
-%           US$ (?000), hence we multiply by 1000.
+%           US$ (?000), hence we multiply by 1000. And note further that we
+%           rename Total_damage to damage for climada compatibility.
 %       damage_orig(i): the uncorrected damage in case exposure_growth=1
+%       disaster_combitype(i): both type and subtype, as 'type .. subtype' (for checks)
 %       frequency(i): the frequency of eaxch event (once in the years the
 %           database exists for)
 %       DFC: the damage frequency curve, a structure, see e.g.
@@ -85,6 +103,7 @@ function em_data=emdat_read(emdat_file,country_name,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20150207, list of countries accepted
 % David N. Bresch, david.bresch@gmail.com, 20150208, YDS added
 % David N. Bresch, david.bresch@gmail.com, 20170715, new emdat until mid 2017
+% David N. Bresch, david.bresch@gmail.com, 20170725, FULL overhaul
 %-
 
 em_data=[]; % init output
@@ -97,7 +116,7 @@ if ~climada_init_vars,return;end % init/import global variables
 % poor man's version to check arguments
 % and to set default value where  appropriate
 if ~exist('emdat_file','var'),emdat_file='';end
-if ~exist('country_name','var'),country_name='';end
+if ~exist('country_ISO3','var'),country_ISO3='';end
 if ~exist('peril_ID','var'),peril_ID='';end
 if ~exist('exposure_growth','var'),exposure_growth=0;end
 if ~exist('verbose_mode','var'),verbose_mode=0;end
@@ -126,13 +145,25 @@ else
     force_CAGR=1; % since CAGR specified on input
 end
 %
-% the table to match climada peril_ID with EM-data disaster subtype
-peril_match_table={
+% the table to match climada peril_ID with EM-data disaster subtype or type
+peril_subtype_match_table={
     'TC' 'Tropical cyclone'
     'TS' 'Coastal flood'
     'EQ' 'Ground movement'
     'FL' 'Riverine flood'
-    'WS' 'Extra-tropical s'
+    'WS' 'Extra-tropical storm'
+    };
+%
+peril_type_match_table={
+    'DR' 'Drought'
+    'TC' 'Storm'
+    'EQ' 'Earthquake'
+    'FL' 'Flood'
+    'LS' 'Landslide'
+    'WS' 'Storm'
+    'VQ' 'Volcanic activity'
+    'BF' 'Wildfire'
+    'HW' 'Extreme temperature'
     };
 %
 % the table with GDP of past years (only used if exposure_growth=1):
@@ -158,94 +189,110 @@ if isempty(emdat_file) % local GUI
     end
 end
 
+% figure whether we base the selection on disaster subtype (default) or
+% disaster type (on request)
+disaster_type_switch='disaster_subtype'; % default
+if ~isempty(peril_ID)
+    if strcmp(peril_ID(1),'-')
+        peril_ID=peril_ID(2:end);
+        disaster_type_switch='disaster_type'; % default
+    end
+end
+
+if strcmp(disaster_type_switch,'disaster_subtype')
+    peril_match_table=peril_subtype_match_table;
+else
+    peril_match_table=peril_type_match_table;
+end
+if verbose_mode,fprintf('selection based on %s\n',disaster_type_switch);end
+
 [fP,fN]=fileparts(emdat_file);
-emdat_file_mat=[fP filesep fN '.mat'];
+emdat_file_mat=[fP filesep fN '_' disaster_type_switch '.mat']; % special
+
 if climada_check_matfile(emdat_file,emdat_file_mat)
     load(emdat_file_mat);
 else
-    em_data=climada_spreadsheet_read('no',emdat_file,'emdat',1); % allow for .xls and .ods
+    em_data=climada_spreadsheet_read('no',emdat_file,disaster_type_switch,1); % allow for .xls and .ods
     
-    % rename for consistency with climada
-    em_data.damage=em_data.total_damage*1000; % EM-DAT estimated damage are given in US$ (?000)
-    em_data=rmfield(em_data,'total_damage');
+    % remove helper columns (only used in Excel to join type)
+    if isfield(em_data,'unique'),em_data=rmfield(em_data,'unique');end
+    if isfield(em_data,'disaster_type_LOOKUP'),em_data=rmfield(em_data,'disaster_type_LOOKUP');end
+    if isfield(em_data,'disaster_type_MAPPING'),em_data=rmfield(em_data,'disaster_type_MAPPING');end
+    if isfield(em_data,'ISNA_on_LOOKUP'),em_data=rmfield(em_data,'ISNA_on_LOOKUP');end
+    if isfield(em_data,'unique'),em_data=rmfield(em_data,'unique');end
+    if isfield(em_data,'subtype_lookup'),em_data=rmfield(em_data,'subtype_lookup');end
     
-    if isfield(em_data,'unique'),em_data=rmfield(em_data,'unique');end % only used in Excel
+    % set field names to lower case
+    if isfield(em_data,'Total_deaths'),em_data.total_deaths=em_data.Total_deaths;em_data=rmfield(em_data,'Total_deaths');end
+    if isfield(em_data,'Injured'),em_data.injured=em_data.Injured;em_data=rmfield(em_data,'Injured');end
+    if isfield(em_data,'Affected'),em_data.affected=em_data.Affected;em_data=rmfield(em_data,'Affected');end
+    if isfield(em_data,'Homeless'),em_data.homeless=em_data.Homeless;em_data=rmfield(em_data,'Homeless');end
+    if isfield(em_data,'Total_affected'),em_data.total_affected=em_data.Total_affected;em_data=rmfield(em_data,'Total_affected');end
+    if isfield(em_data,'Occurrence'),em_data.occurrence=em_data.Occurrence;em_data=rmfield(em_data,'Occurrence');end % unclear, whether needed
+    
+    % special treatment for Total_damage, rename to damage, EM-DAT estimated damage are given in US$ (?000)
+    if isfield(em_data,'Total_damage'),em_data.damage=em_data.Total_damage*1000;em_data=rmfield(em_data,'Total_damage');end
     
     save(emdat_file_mat,'em_data');
 end
 
-% get rid of all zero values
-orig_datacount=length(em_data.damage);
-non_zero_damage=em_data.damage>0;
-em_data.damage=em_data.damage(non_zero_damage);
-em_data.country=em_data.country(non_zero_damage);
-em_data.disaster_subtype=em_data.disaster_subtype(non_zero_damage);
-em_data.year=em_data.year(non_zero_damage);
-em_data.occurrence=em_data.occurrence(non_zero_damage);
-em_data.deaths=em_data.deaths(non_zero_damage);
-em_data.affected=em_data.affected(non_zero_damage);
-em_data.injured=em_data.injured(non_zero_damage);
-em_data.homeless=em_data.homeless(non_zero_damage);
-em_data.disaster_type=em_data.disaster_type(non_zero_damage);
-em_data.total_affected=em_data.total_affected(non_zero_damage);
-nonzero_datacount=length(em_data.damage);
-if verbose_mode,fprintf('full EM-DAT: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,orig_datacount);end
+% get rid of all rows with no entries for either deaths, affected or damage
+% do NOT get rid of all rows with no entries for either deaths, affected or
+% damage, but at least replace NaN with zeros (for better math)
+em_data.total_deaths(isnan(em_data.total_deaths))=0;
+em_data.injured(isnan(em_data.injured))=0;
+em_data.affected(isnan(em_data.affected))=0;
+em_data.homeless(isnan(em_data.homeless))=0;
+em_data.total_affected(isnan(em_data.total_affected))=0;
+em_data.damage(isnan(em_data.damage))=0;
+
+% % OLD, where we removed entries with no damage
+% orig_datacount=length(em_data.damage);
+% non_zero_entries=em_data.damage>0;
+% em_data.damage=em_data.damage(non_zero_entries);
+% em_data.iso=em_data.iso(non_zero_entries);
+% em_data.country_name=em_data.country_name(non_zero_entries);
+% if isfield(em_data,'disaster_type'),em_data.disaster_type(non_zero_entries);end;
+% if isfield(em_data,'disaster_subtype'),em_data.disaster_subtype(non_zero_entries);end;
+% em_data.year=em_data.year(non_zero_entries);
+% em_data.occurrence=em_data.occurrence(non_zero_entries);
+% em_data.total_deaths=em_data.total_deaths(non_zero_entries);
+% em_data.affected=em_data.affected(non_zero_entries);
+% em_data.injured=em_data.injured(non_zero_entries);
+% em_data.homeless=em_data.homeless(non_zero_entries);
+% em_data.total_affected=em_data.total_affected(non_zero_entries);
+% nonzero_datacount=length(em_data.damage);
+% if verbose_mode,fprintf('full EM-DAT: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,orig_datacount);end
 
 EMDAT_first_year=min(em_data.year);
 
 %fields: (country), year, disaster type, disaster subtype, occurrence, deaths, affected, injured, homeless, total_affected, total_damage
 
-if ~isempty(country_name) && isfield(em_data,'country')
+if ~isempty(country_ISO3) && isfield(em_data,'iso') % formely matched to country_name, but a mess
         
     % if only one country (char), convert to cell
-    if ischar(country_name),country_name=cellstr(country_name);end
+    if ischar(country_ISO3),country_ISO3=cellstr(country_ISO3);end
 
-    if iscell(country_name)
+    if iscell(country_ISO3)
         country_pos=[]; % init
-        for country_i=1:length(country_name)
-            country_name_char=char(country_name{country_i});
-            % explicitely deal with non-standard country names
-            if strcmp(country_name_char,'Vietnam'),country_name_char='Viet Nam';end
-            if strcmp(country_name_char,'US Virgin Islands'),country_name_char='Virgin Is (US)';end
-            if strcmp(country_name_char,'Turks and Caicos Islands'),country_name_char='Turks and Caicos';end
-            if strcmp(country_name_char,'Taiwan'),country_name_char='Taiwan (China)';end
-            if strcmp(country_name_char,'Syria'),country_name_char='Syrian Arab Rep';end
-            if strcmp(country_name_char,'Saint Vincent and the Grenadines'),country_name_char='St Vincent and t';end
-            if strcmp(country_name_char,'Saint Lucia'),country_name_char='St Lucia';end
-            if strcmp(country_name_char,'St. Kitts and Nevis'),country_name_char='St Kitts and Nev';end
-            if strcmp(country_name_char,'Saint Helena'),country_name_char='St Helena';end
-            if strcmp(country_name_char,'Russia'),country_name_char='Soviet Union';end
-            if strcmp(country_name_char,'Sao Tome and Principe'),country_name_char='Sao Tome et Prin';end
-            if strcmp(country_name_char,'Solomon Is.'),country_name_char='Solomon Is';end
-            if strcmp(country_name_char,'Moldova'),country_name_char='Moldova Rep';end
-            if strcmp(country_name_char,'Solomon Islands'),country_name_char='Marshall Is';end
-            if strcmp(country_name_char,'Marshall Islands'),country_name_char='Solomon Is';end
-            if strcmp(country_name_char,'Congo'),country_name_char='Zaire/Congo Dem';end
-            if strcmp(country_name_char,'Laos'),country_name_char='Lao P Dem Rep';end
-            if strcmp(country_name_char,'Korea'),country_name_char='Korea Rep';end
-            if strcmp(country_name_char,'Iran'),country_name_char='Iran Islam Rep';end
-            if strcmp(country_name_char,'Hong Kong'),country_name_char='Hong Kong (China';end
-            if strcmp(country_name_char,'Dominican Republic'),country_name_char='Dominican Rep';end
-            if strcmp(country_name_char,'Czech Republic'),country_name_char='Czech Rep';end
-            if strcmp(country_name_char,'Gambia'),country_name_char='Gambia The';end
-            if strcmp(country_name_char,'Antigua and Barbuda'),country_name_char='Antigua and Barb';end
-            country_name{country_i}=country_name_char;            
-            country_pos=[country_pos strmatch(country_name_char,em_data.country)']; 
+        for country_i=1:length(country_ISO3)
+            country_ISO3_char=char(country_ISO3{country_i});
+            country_ISO3{country_i}=country_ISO3_char;            
+            country_pos=[country_pos strmatch(country_ISO3_char,em_data.iso)']; 
         end % country_i
     else
-        country_pos=strmatch(country_name,em_data.country);
+        country_pos=strmatch(country_ISO3,em_data.iso);
     end
-    
-    if ~isempty(country_pos)
-        %country_pos = strcmp(country_name,em_data.country)==1;
-        %if sum(country_pos)>0
         
-        em_data.country=em_data.country(country_pos);
+    if ~isempty(country_pos)
+               
+        em_data.year=em_data.year(country_pos);
+        em_data.iso=em_data.iso(country_pos);
+        em_data.country_name=em_data.country_name(country_pos);
         if isfield(em_data,'disaster_type'),em_data.disaster_type=em_data.disaster_type(country_pos);end;
         if isfield(em_data,'disaster_subtype'),em_data.disaster_subtype=em_data.disaster_subtype(country_pos);end;
-        em_data.year=em_data.year(country_pos);
         em_data.occurrence=em_data.occurrence(country_pos);
-        em_data.deaths=em_data.deaths(country_pos);
+        em_data.total_deaths=em_data.total_deaths(country_pos);
         em_data.affected=em_data.affected(country_pos);
         em_data.injured=em_data.injured(country_pos);
         em_data.homeless=em_data.homeless(country_pos);
@@ -258,43 +305,48 @@ if ~isempty(country_name) && isfield(em_data,'country')
         if verbose_mode,fprintf('country selection: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,length(em_data.damage));end
 
     else
-        fprintf('EM-DAT, error: country %s not found, aborted\n',char(country_name));
+        fprintf('EM-DAT, error: country %s not found, aborted\n',char(country_ISO3));
         em_data=[];
         return
     end
     
-elseif ~isempty(country_name) && ~isfield(em_data,'country')
+elseif ~isempty(country_ISO3) && ~isfield(em_data,'country')
     
-    fprintf('Warning: no field em_data.country, check whether data is only for country %s\n',char(country_name)');
+    fprintf('Warning: no field em_data.iso, check whether data is only for country %s\n',char(country_ISO3)');
     
-end % country_name
+end % country_ISO3
 
-if ~isempty(peril_ID) && isfield(em_data,'disaster_subtype')
-    
+if ~isempty(peril_ID)
+     % note that we decided above whether subtype or type will be used,
+     % hence peril_match_table is already the required one
     peril_pos=[]; % init
     for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
         one_peril_ID=peril_ID(peril_i,:);
         match_pos=strcmp(peril_match_table(:,1),one_peril_ID);
         
         if sum(match_pos)>0
-            disaster_subtype=peril_match_table{match_pos,2};
+            disaster_sub_type=peril_match_table{match_pos,2};
         else
-            disaster_subtype=one_peril_ID;
+            disaster_sub_type=one_peril_ID;
         end
-        peril_pos=[peril_pos;strmatch(disaster_subtype,em_data.disaster_subtype)];
+        
+        if strcmp(disaster_type_switch,'disaster_subtype') % here we need to switch
+            peril_pos=[peril_pos;strmatch(disaster_sub_type,em_data.disaster_subtype)];
+        else
+            peril_pos=[peril_pos;strmatch(disaster_sub_type,em_data.disaster_type)];
+        end
         
     end % peril_i
     
     if ~isempty(peril_pos)
-        %peril_pos = strcmp(disaster_subtype,em_data.disaster_subtype)==1;
-        %if sum(peril_pos)>0
-        
-        if isfield(em_data,'country'),em_data.country=em_data.country(peril_pos);end;
+  
+        em_data.year=em_data.year(peril_pos);
+        em_data.iso=em_data.iso(peril_pos);
+        em_data.country_name=em_data.country_name(peril_pos);
         if isfield(em_data,'disaster_type'),em_data.disaster_type=em_data.disaster_type(peril_pos);end;
         if isfield(em_data,'disaster_subtype'),em_data.disaster_subtype=em_data.disaster_subtype(peril_pos);end;
-        em_data.year=em_data.year(peril_pos);
         em_data.occurrence=em_data.occurrence(peril_pos);
-        em_data.deaths=em_data.deaths(peril_pos);
+        em_data.total_deaths=em_data.total_deaths(peril_pos);
         em_data.affected=em_data.affected(peril_pos);
         em_data.injured=em_data.injured(peril_pos);
         em_data.homeless=em_data.homeless(peril_pos);
@@ -322,7 +374,7 @@ if exposure_growth
     % Check if economic data file is available
     if ~exist(GDP_data_file,'file')
         fprintf('EM-DAT, warning: %s is missing, no exposure growth correction\n',GDP_data_file)
-        fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_GDP_entity">climada GDP_entity repository on Github\n</a>');
+        fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_country_risk">climada_module_country_risk</a> repository on Github\n');
     else
         
         [fP,fN]=fileparts(GDP_data_file);
@@ -335,18 +387,20 @@ if exposure_growth
             save(GDP_data_file_mat,'GDP'); % save for subsequent calls
         end
         
-        country_pos=strmatch(country_name,GDP.country_names); % more tolerant a matching
+        country_pos=strmatch(country_ISO3,GDP.iso); % more tolerant a matching
         
         if length(country_pos)>1,country_pos=[];end % more than one country, resort to CAGR below
         
         if ~isempty(country_pos)
             
             % we have a country entry in the GDP table
-            %country_pos = strcmp(country_name,GDP.country_names)==1;
+            %country_pos = strcmp(country_ISO3,GDP.country_ISO3s)==1;
             %if sum(country_pos)==1
             
             GDP_value=GDP.value(country_pos,:);
             
+            if verbose_mode,fprintf('GDP values %g .. %g\n',min(GDP_value),max(GDP_value));end
+
             % get rid of occasional NaN (missing GDP years)
             % BUT: this might lead to shifts +/- 1 year in GDP (better than
             % nothing, but really a fix)
@@ -358,7 +412,7 @@ if exposure_growth
           
         if isempty(valid_GDP_pos) || force_CAGR % either no GDP or CAGR specified
             
-            fprintf('Warning: no GDP for country %s, %2.1f%% CAGR correction for exposure growth\n',char(country_name)',CAGR*100);
+            fprintf('Warning: no GDP for country %s, %2.1f%% CAGR correction for exposure growth\n',char(country_ISO3)',CAGR*100);
             
             GDP_factor(1:EMDAT_last_year-year0)=(1+CAGR).^(EMDAT_last_year-year0-1:-1:0);
             annotation_name=[annotation_name ' indexed*']; % '*' indicates the CAGR appraoch
@@ -450,10 +504,28 @@ for year_i=1:length(unique_years)
 end
 
 if verbose_mode
-    country_list=unique(em_data.country);
-    country_list % verbose, hence no ';'
-    disaster_subtype_list=unique(em_data.disaster_subtype);
-    disaster_subtype_list % verbose, hence no ';'
+    list_items=unique(em_data.country_name);
+    n_list_items=length(list_items);
+    fprintf('\n%i countrie(s): (name as in file, ISO3 used for matching)\n',n_list_items);
+    for item_i=1:n_list_items
+        fprintf('  %s\n',list_items{item_i});
+    end % item_i
+    
+    if isfield(em_data,'disaster_subtype')
+        for elem_i=1:length(em_data.disaster_type)
+            em_data.disaster_combitype{elem_i}=[em_data.disaster_type{elem_i} ' .. ' em_data.disaster_subtype{elem_i}];
+        end
+    else
+        em_data.disaster_combitype=em_data.disaster_type;
+    end
+    
+    list_items=unique(em_data.disaster_combitype);
+    n_list_items=length(list_items);
+    fprintf('\n%i disaster type(s) .. subtype(s):\n',n_list_items);
+    for item_i=1:n_list_items
+        fprintf('  %s\n',list_items{item_i});
+    end % item_i
+    
 end
     
 end % emdat_read
