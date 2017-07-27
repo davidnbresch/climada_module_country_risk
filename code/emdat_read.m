@@ -98,12 +98,17 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %       DFC_orig: the DFC of the original damages in case exposure_growth=1
 %       YDS: the year damage set, just plain summation of all damages in
 %           one year, use climada_EDS2DFC(em_data.YDS) to plot...
+%       last_year: the last year there is data in the whole EM-DAT
+%       first_year: the first year there is data for selected country(s)
+%       first_year_overall: the first year there is any data in the whole
+%           EM-DAT
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150126, initial, Sils Maria
 % David N. Bresch, david.bresch@gmail.com, 20150207, list of countries accepted
 % David N. Bresch, david.bresch@gmail.com, 20150208, YDS added
 % David N. Bresch, david.bresch@gmail.com, 20170715, new emdat until mid 2017
 % David N. Bresch, david.bresch@gmail.com, 20170725, FULL overhaul
+% David N. Bresch, david.bresch@gmail.com, 20170727, Value_unit added
 %-
 
 em_data=[]; % init output
@@ -133,7 +138,10 @@ if isempty(emdat_file),emdat_file=[module_data_dir filesep 'emdat' filesep 'emda
 %
 % the EM-DAT reference year, i.e. the last year EM-DAT is valid for
 % see also www.emdat.be/explanatory-notes
-EMDAT_last_year=2013; 
+EMDAT_last_year=2017;
+%
+EMDAT_Value_unit='USD'; % hard-wired, since EM-DAT is all in USD
+%
 % Note that EMDAT_first_year is not the same for all countries, hence
 % determined in code
 year0=1800; % earlier than min(GDP.year), not the smallest EM-DAT year, but a year really in the past
@@ -265,6 +273,7 @@ em_data.damage(isnan(em_data.damage))=0;
 % if verbose_mode,fprintf('full EM-DAT: %i entries damage>0 (%i raw entries)\n',nonzero_datacount,orig_datacount);end
 
 EMDAT_first_year=min(em_data.year);
+EMDAT_last_year=max(max(em_data.year),EMDAT_last_year);
 
 %fields: (country), year, disaster type, disaster subtype, occurrence, deaths, affected, injured, homeless, total_affected, total_damage
 
@@ -299,6 +308,7 @@ if ~isempty(country_ISO3) && isfield(em_data,'iso') % formely matched to country
         em_data.total_affected=em_data.total_affected(country_pos);
         em_data.damage=em_data.damage(country_pos);
         
+        em_data.first_year_overall=EMDAT_first_year; % store the first year of all data
         EMDAT_first_year=min(em_data.year); % adjust, as not all countries have date since same year
         
         nonzero_datacount=sum(em_data.damage>0);
@@ -489,6 +499,8 @@ em_data.YDS.event_ID=[];
 em_data.YDS.orig_event_flag=[];
 em_data.YDS.reference_year=EMDAT_last_year;
 em_data.YDS.Value=[];
+em_data.YDS.Value_unit=EMDAT_Value_unit;
+em_data.YDS.currency_unit=1;
 em_data.YDS.orig_event_flag=[];
 em_data.YDS.peril_ID=peril_ID;
 em_data.YDS.frequency=ones(1,length(em_data.YDS.damage))/(EMDAT_last_year-EMDAT_first_year+1);
