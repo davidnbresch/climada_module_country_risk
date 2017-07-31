@@ -109,6 +109,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20170715, new emdat until mid 2017
 % David N. Bresch, david.bresch@gmail.com, 20170725, FULL overhaul
 % David N. Bresch, david.bresch@gmail.com, 20170727, Value_unit added
+% David N. Bresch, david.bresch@gmail.com, 20170730, on output em_data.emdat_file_mat added
 %-
 
 em_data=[]; % init output
@@ -241,7 +242,7 @@ else
     % special treatment for Total_damage, rename to damage, EM-DAT estimated damage are given in US$ (?000)
     if isfield(em_data,'Total_damage'),em_data.damage=em_data.Total_damage*1000;em_data=rmfield(em_data,'Total_damage');end
     
-    save(emdat_file_mat,'em_data');
+    save(emdat_file_mat,'em_data','-v7'); % -v7, not yet -v7.3 to ensure Octave compatibility
 end
 
 % get rid of all rows with no entries for either deaths, affected or damage
@@ -457,6 +458,7 @@ end % exposure_growth
 % not necessarily min/max of em_data.year
 em_data.first_year=EMDAT_first_year;
 em_data.last_year=EMDAT_last_year;
+em_data.emdat_file_mat=emdat_file_mat;
 
 % add DFC
 em_data.DFC.value=NaN;
