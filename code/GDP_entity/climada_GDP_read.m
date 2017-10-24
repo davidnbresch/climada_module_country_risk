@@ -37,6 +37,7 @@ function GDP = climada_GDP_read(xlsfilename, special_cases_on, check_names, sile
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20120730
 % david.bresch@gmail.com, 20170725, iso code read (and added to file ;-)
+% david.bresch@gmail.com, 20171024, iso code added to World_GDP_constant_2000_2017.xlsx
 %-
 
 global climada_global
