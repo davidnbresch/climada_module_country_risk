@@ -82,6 +82,7 @@ function centroids_hazard_info=centroids_generate_hazard_sets(centroids,probabil
 % David N. Bresch, david.bresch@gmail.com, 20160517, double-check for tc datasets
 % David N. Bresch, david.bresch@gmail.com, 20170524, _readme.txt in tc_tracks not processed ;-)
 % David N. Bresch, david.bresch@gmail.com, 20170524, hazard.units displayed
+% David N. Bresch, david.bresch@gmail.com, 20171029, freezeColors commented out
 %-
 
 centroids_hazard_info = []; % init output
@@ -816,8 +817,10 @@ for hazard_i=1:hazard_count
         cmap = climada_colormap(hazard.peril_ID);
         if ~isempty(cmap)
             colormap(cmap)
-            freezeColors % freeze this plot's colormap
-            cbfreeze(colorbar)
+            % next two lines commented out, actual MATLAB version not
+            % backward compatible, 20171029
+            %freezeColors % freeze this plot's colormap
+            %cbfreeze(colorbar)
         end
     end % check_plots
     
