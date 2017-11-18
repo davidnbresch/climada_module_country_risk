@@ -32,6 +32,8 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %   input country_ISO3) and peril (see input peril_ID).
 %   Use e.g. plot(em_data.DFC.return_period,em_data.DFC.damage) to plot the
 %   damage excess frequency curve based on EM-DAT.
+%   
+%   see also: emdat_barplot 
 %
 % CALLING SEQUENCE:
 %   em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,verbose_mode,CAGR)
