@@ -59,12 +59,13 @@ function entity=climada_centroids_generate_blackmarble_entity(centroids, country
 %           After this Values are normalized to sum up to 1.
 %           Note that if a whole country is requested, Values are then
 %           scaled to sum up to GDP*(income_group+1).
-%       value_threshold: if empty or =0, all centroids (also those with zero
-%           value) are kept in the entity (default). If set to a value,
+%       value_threshold: if empty, all centroids (also those with zero
+%           value) are kept in the entity (default). If = 0 only centroids
+%           with nonzero enity.Value are kept. If set to a value > 0,
 %           only centroids with entity.Value>value_threshold are kept (note
 %           that this way, one can specify an asset value threshold, reduce
 %           the number of points to be dealt with).
-%           One might often want to avoid all truly tero points, i.e.
+%           One might often want to avoid all truly zero points, i.e.
 %       add_distance2coast_km: if =1, add distance to coast, default=0
 %       add_elevation_m: if =1, add elevation, default=0
 %       img_filename: the filename of an image with night light density, as
