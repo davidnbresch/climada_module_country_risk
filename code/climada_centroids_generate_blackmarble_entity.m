@@ -158,7 +158,7 @@ if isempty(parameters.nightlight_transform_poly),parameters.nightlight_transform
 if isempty(parameters.restrict_Values_to_country),parameters.restrict_Values_to_country=1;end
 if isempty(parameters.grid_spacing_multiplier),parameters.grid_spacing_multiplier=5;end
 if isempty(parameters.save_entity),parameters.save_entity=1;end
-if isempty(parameters.value_threshold),parameters.value_threshold=0;end
+% if isempty(parameters.value_threshold),parameters.value_threshold=0;end % commented out to allow for no cropping as default
 if isempty(parameters.add_distance2coast_km),parameters.add_distance2coast_km=0;end
 if isempty(parameters.add_elevation_m),parameters.add_elevation_m=0;end
 if isempty(parameters.check_plot),parameters.check_plot=0;end
@@ -319,21 +319,21 @@ elseif resolution_centroid_sat > 1.2 %% review everything
             elevation_m_centroids((end+1):length(centroids.lat)) = NaN;
         end
     end
-
-    selection_is_positive = value_centroids > 0;
-    value_centroids = value_centroids(selection_is_positive);
-    centroids.lon = centroids.lon(selection_is_positive);
-    centroids.lat = centroids.lat(selection_is_positive);
-    isgridpoint_centroids = isgridpoint_centroids(selection_is_positive);
-    centroid_admin0_ISO3_centroids = centroid_admin0_ISO3_centroids(selection_is_positive);
-    if parameters.add_distance2coast_km
-        distance2coast_km_centroids = distance2coast_km_centroids(selection_is_positive);
+    if ~isempty(parameters.value_threshold)
+        selection_is_positive = value_centroids > parameters.value_threshold;
+        value_centroids = value_centroids(selection_is_positive);
+        centroids.lon = centroids.lon(selection_is_positive);
+        centroids.lat = centroids.lat(selection_is_positive);
+        isgridpoint_centroids = isgridpoint_centroids(selection_is_positive);
+        centroid_admin0_ISO3_centroids = centroid_admin0_ISO3_centroids(selection_is_positive);
+        if parameters.add_distance2coast_km
+            distance2coast_km_centroids = distance2coast_km_centroids(selection_is_positive);
+        end
+        if parameters.add_elevation_m
+            elevation_m_centroids = elevation_m_centroids(selection_is_positive);
+        end
+        clear selection_is_positive
     end
-    if parameters.add_elevation_m
-        elevation_m_centroids = elevation_m_centroids(selection_is_positive);
-    end
-    clear selection_is_positive
-    
 else % resolution of satellite grid and centroids grid is similar
     value_centroids = griddata(entity.assets.lat,entity.assets.lon,entity.assets.Value,centroids.lat,centroids.lon);
     % re-normalize to the same sum of assets
