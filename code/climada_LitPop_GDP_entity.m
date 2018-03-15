@@ -328,7 +328,7 @@ entity.assets.Deductible = 0*entity.assets.Value;
 entity.assets.Category_ID = ones(size(entity.assets.Value));
 entity.assets.DamageFunID = entity.assets.Category_ID;
 entity.assets.Region_ID = entity.assets.Category_ID;
-entity.assets.currency_unit = repmat('USD',size(entity.assets.Category_ID));
+entity.assets.currency_unit = repmat({'USD'},size(entity.assets.Category_ID));
 try
     entity.assets = rmfield(entity.assets,'centroid_index');
     entity.assets = rmfield(entity.assets,'hazard');
