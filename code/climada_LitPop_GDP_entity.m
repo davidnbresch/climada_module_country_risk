@@ -329,10 +329,10 @@ entity.assets.Category_ID = ones(size(entity.assets.Value));
 entity.assets.DamageFunID = entity.assets.Category_ID;
 entity.assets.Region_ID = entity.assets.Category_ID;
 entity.assets.currency_unit = repmat('USD',size(entity.assets.Category_ID));
-
-entity.assets = rmfield(entity.assets,'centroid_index');
-entity.assets = rmfield(entity.assets,'hazard');
-
+try
+    entity.assets = rmfield(entity.assets,'centroid_index');
+    entity.assets = rmfield(entity.assets,'hazard');
+end
 if parameters.do_agrar
     entity.assets.Value_Agrar = (full(admin0.GDP.FromAgrar))';
     entity.assets.Value_LitPop_minus_Agrar = (full(admin0.GDP.FromLitPop_minus_agrar))'; 
