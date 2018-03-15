@@ -24,9 +24,8 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %          for grid points for which no admin1 data has been found (relevant
 %          e.g. in India for island and city union territories) (requires
 %          admin0_calc and admin1_calc)
-%      admin1_check (Default = 1); % compare distribution of national GDP to given GSDP (requires admin0_calc and admin1_calc)
 %      do_agrar (Default = 0); % include split of GDP in agriculture and non-agriculture
-%      make_plot (Default = 0); % make a plots for crosschecking
+%      make_plot (Default = 0); % make plots, map of entity and scatter to compare distribution of national GDP to given GSDP (requires admin0_calc and admin1_calc)
 %      save_as_entity_file (Default = 1); % save resulting grid as CLIMADA entity file  
 %      save_admin0 (Default = 0); % save all grids for country to MAT file
 %      save_admin1 (Default = 1); % save results and comparison on admin1 level to MAT file
@@ -40,6 +39,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180306, initial.
+% Samuel Eberenz, eberenz@posteo.eu, 20180306, Removed parameters.check_admin1
 %-
 
 % import/setup global variables
@@ -57,7 +57,6 @@ if ~exist('parameters','var'), parameters=struct; end
 if ~isfield(parameters,'admin0_calc'), parameters.admin0_calc = 1;end
 if ~isfield(parameters,'admin1_calc'), parameters.admin1_calc = 1;end
 if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 1;end
-if ~isfield(parameters,'admin1_check'), parameters.admin1_check = 1;end
 if ~isfield(parameters,'do_agrar'), parameters.do_agrar = 0;end
 if ~isfield(parameters,'make_plot'), parameters.make_plot = 0;end
 if ~isfield(parameters,'save_as_entity_file'), parameters.save_as_entity_file = 1;end
@@ -198,7 +197,7 @@ end
 
 %% compare sum per state/ province to given values of GSDP
 
-if parameters.admin1_check || parameters.admin1_calc
+if parameters.admin1_calc
     try
         admin1.mapping = climada_xlsread(0,admin1_mapping_file);
         admin1.GSDP = climada_xlsread(0,admin1_GSDP_file);
@@ -322,7 +321,11 @@ entity.assets.reference_year = 2016;
 entity.assets.lon = admin0.litpop.lon';
 entity.assets.lat = admin0.litpop.lat';
 entity.assets.litpop = (full(admin0.litpop.Value))';
-entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
+if parameters.save_admin1
+    entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
+else
+    entity.assets.Value = (full(admin0.GDP.FromLitPop))';
+end
 entity.assets.Cover = entity.assets.Value;
 entity.assets.Deductible = 0*entity.assets.Value;
 entity.assets.Category_ID = ones(size(entity.assets.Value));
