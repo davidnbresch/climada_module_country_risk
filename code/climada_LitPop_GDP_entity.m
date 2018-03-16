@@ -70,8 +70,8 @@ if ~isfield(parameters,'save_admin1'), parameters.save_admin1 = 1;end
 Input_path = [climada_global.modules_dir filesep 'country_risk' filesep 'data'];
 GSDP_folder_path = [Input_path filesep 'GSDP']; % 
 
-admin1_GSDP_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP.xlsx']; % Spreadsheet needs 1 column named 'State_Province' and 1 named 'GSDP_ref'
-admin1_mapping_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP_admin1_mapping.xlsx']; % mapping of admin1 names
+admin1_GSDP_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP.xls']; % Spreadsheet needs 1 column named 'State_Province' and 1 named 'GSDP_ref'
+admin1_mapping_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP_admin1_mapping.xls']; % mapping of admin1 names
 GDP_admin0_file = [GSDP_folder_path filesep 'World_GDP_current_WDI_2015-2016'];
 litpop_file = [climada_global.entities_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation']; % gridded LitPop 
 admin1_shape_file = [Input_path filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.mat'];
