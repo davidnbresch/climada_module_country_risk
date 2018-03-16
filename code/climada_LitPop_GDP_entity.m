@@ -303,11 +303,11 @@ if parameters.admin1_calc
         [admin1.corr_coeff_Ref_LitPop_w_agrar, admin1.corr_pval_Ref_LitPop_w_agrar] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan)+admin1.GSDP_FromAgrar(~idx_isnan));
     end
     if parameters.save_admin1
-        save(parameters.output_admin1_file,'admin1');
+        save(parameters.output_admin1_file,'admin1','-v7.3');
     end
 end
 if parameters.save_admin0
-    save(parameters.output_admin0_file,'admin0');
+    save(parameters.output_admin0_file,'admin0','-v7.3');
 end
 %% Creating entity file
 
@@ -344,7 +344,7 @@ end
     
 if parameters.save_as_entity_file
     entity.assets.filename = parameters.output_entity_file;
-    climada_entity_save(entity,entity.assets.filename); % saving entity
+    save([climada_global.entities_dir filesep entity.assets.filename],entity,'-v7.3');
 end
 
 if parameters.make_plot
