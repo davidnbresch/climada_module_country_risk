@@ -72,7 +72,7 @@ GSDP_folder_path = [Input_path filesep 'GSDP']; %
 
 admin1_GSDP_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP.xlsx']; % Spreadsheet needs 1 column named 'State_Province' and 1 named 'GSDP_ref'
 admin1_mapping_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP_admin1_mapping.xlsx']; % mapping of admin1 names
-GDP_admin0_file = [Input_path filesep 'World_GDP_current_WDI_2000-2016'];
+GDP_admin0_file = [GSDP_folder_path filesep 'World_GDP_current_WDI_2015-2016'];
 litpop_file = [climada_global.entities_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation']; % gridded LitPop 
 admin1_shape_file = [Input_path filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.mat'];
 admin0_shape_file = [Input_path filesep 'ne_10m_admin_0_countries' filesep 'ne_10m_admin_0_countries.shp'];
@@ -202,7 +202,8 @@ if parameters.admin1_calc
         admin1.mapping = climada_xlsread(0,admin1_mapping_file);
         admin1.GSDP = climada_xlsread(0,admin1_GSDP_file);
     catch ME
-        warning([admin0_name ': Import of state/ province level GDP (GSDP) not yet implemented for this country! Please implement if required.']);
+        warning('climada_xlsread failed. Either for technical reasons (java?) or missing file(s): admin1_GSDP_file, admin1_mapping_file');
+ %       warning([admin0_name ': Import of state/ province level GDP (GSDP) not yet implemented for this country! Please implement if required.']);
         display(ME.identifier)
         display(ME.message)
     end   
