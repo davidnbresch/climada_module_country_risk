@@ -45,15 +45,13 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % import/setup global variables
 global climada_global
 if ~climada_init_vars,return;end;
- 
-% check for arguments
-% set_parameters_to_default = 1;
-% clear a A admin* b i* GDP* para* shap* IN* Output* n_shap* litpop* GSDP*
 
+% clear a A admin* b i* GDP* para* shap* entit* IN* Output* n_shap* litpop* GSDP*
+
+% check for arguments
 if ~exist('admin0_name','var'),error('Missing input. Please provide country name or ISO3-code as string!'); end
-%%
-% parameters
 if ~exist('parameters','var'), parameters=struct; end
+% parameters
 if ~isfield(parameters,'admin0_calc'), parameters.admin0_calc = 1;end
 if ~isfield(parameters,'admin1_calc'), parameters.admin1_calc = 1;end
 if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 1;end
@@ -62,6 +60,7 @@ if ~isfield(parameters,'make_plot'), parameters.make_plot = 0;end
 if ~isfield(parameters,'save_as_entity_file'), parameters.save_as_entity_file = 1;end
 if ~isfield(parameters,'save_admin0'), parameters.save_admin0 = 0;end
 if ~isfield(parameters,'save_admin1'), parameters.save_admin1 = 1;end
+if ~isfield(parameters,'debug_mode'), parameters.debug_mode = 0;end; 
 
 % admin0: consistency check, returns both, interprets both name and ISO3
 [admin0_name,admin0_ISO3] = climada_country_name(admin0_name); % get full name
@@ -85,6 +84,9 @@ end
 % OUTPUT: Set defaults for Output filenames
 if parameters.save_as_entity_file
     parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016.mat']; % saved to entity folder
+end
+if parameters.save_as_entity_file && parameters.debug_mode
+    parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_DEBUG.mat']; % saved to entity folder
 end
 if parameters.save_admin0 && ~exist('parameters.output_admin0_file','var')
     parameters.output_admin0_file = [GSDP_folder_path filesep admin0_ISO3 '_GDP_LitPop_grid.mat'];
@@ -136,6 +138,7 @@ end
 % list of admin1 with GSPD:
 idx = ~cellfun('isempty',strfind({shapes.adm0_a3},admin0_ISO3));
 i1 = find(idx==1); 
+if parameters.debug_mode, i1=i1(min(5,length(i1)));end % only process one single admin1
 % find index of country (admin0 )
 idx = ~cellfun('isempty',strfind({shapes0.ISO_A3},admin0_ISO3));
 i0 = find(idx==1); 
@@ -239,8 +242,9 @@ if parameters.admin1_calc
             if parameters.do_agrar
                 IN_agrar  = climada_inpolygon(admin0.agriculture.assets.lon,admin0.agriculture.assets.lat,shapes(i1(i)).X,shapes(i1(i)).Y,0);
             end
-            IN_litpop = climada_inpolygon(admin0.litpop.lon,admin0.litpop.lat,shapes(i1(i)).X,shapes(i1(i)).Y,0);
-            
+            if parameters.admin1_calc
+                IN_litpop = climada_inpolygon(admin0.litpop.lon,admin0.litpop.lat,shapes(i1(i)).X,shapes(i1(i)).Y,0);
+            end
 
             % Find admin1 in mapping of GSDP data:
             switch admin0_ISO3
@@ -252,7 +256,7 @@ if parameters.admin1_calc
             admin1_name_GSDP = admin1.mapping.gov{i1_GSDP};
             if ~isnan(admin1_name_GSDP)
 
-                i1_GSDP = find(~cellfun('isempty',strfind(admin1.GSDP.State_Province,admin1_name_GSDP))==1);                   
+                i1_GSDP = strcmp(admin1.GSDP.State_Province,admin1_name_GSDP);                   
                 admin1.GSDP_Reference(i) = admin1.GSDP.Norm(i1_GSDP).*GDP_admin0_ref; % multiply normalized GSDP with reference admin0 GDP
             else
                 admin1.GSDP_Reference(i) = NaN;
@@ -267,10 +271,11 @@ if parameters.admin1_calc
                 end
                 clear litpop_tmp
                 admin1.GSDP_FromLitPop_admin1(i) = sum(admin0.GDP.FromLitPop_admin1(IN_litpop==1));
+                admin1.GSDP_FromLitPop(i) = sum(admin0.GDP.FromLitPop(IN_litpop==1));
             end
             % Test sum: summing up gridpoints over one admin1 (=GSDP):
-            admin1.GSDP_FromLitPop(i) = sum(admin0.GDP.FromLitPop(IN_litpop==1));
-            if parameters.do_agrar
+            
+            if parameters.do_agrar && parameters.admin1_calc
                 admin1.GSDP_FromLitPop_minus_agrar(i) = sum(admin0.GDP.FromLitPop_minus_agrar(IN_litpop==1));
                 admin1.GSDP_FromAgrar(i) = sum(admin0.GDP.FromAgrar(IN_agrar==1));   
             end
@@ -344,7 +349,10 @@ end
     
 if parameters.save_as_entity_file
     entity.assets.filename = parameters.output_entity_file;
-    save([climada_global.entities_dir filesep entity.assets.filename],entity,'-v7.3');
+    tic
+    disp('Writing to entity file...');
+    save([climada_global.entities_dir filesep entity.assets.filename],'entity','-v7.3')
+    toc
 end
 
 if parameters.make_plot

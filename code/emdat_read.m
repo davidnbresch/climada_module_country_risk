@@ -38,7 +38,9 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % CALLING SEQUENCE:
 %   em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,verbose_mode,CAGR)
 % EXAMPLE:
-%   em_data=emdat_read('','USA','TC',0,1);
+%   em_data=emdat_read('','USA','TC',1,1); % with exposure growth
+%   em_data=emdat_read('','USA','TC',2005,1); % with exposure growth relative to year 2005
+%   em_data=emdat_read('','USA','TC',0,1); % without exposure growth
 % INPUTS:
 %   emdat_file: filename of the emdat database
 %       Default (='' or no input at all) is full global EM-DAT database, 
@@ -69,6 +71,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %       is specified. In essence, we calculate the correction factor for
 %       year i as GDP(today)/GDP(year i)
 %       =0: no correction (default)
+%       =yyyy (e.g. 2005): use this as reference year, see growth_reference_year
 %   verbose_mode: if =1, print list of countries and disaster subtypes that
 %       are returned in em_data. Default=0 (silent)
 %   CAGR: the compound annual growht rate (decimal). If not specified, the
@@ -112,6 +115,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20170725, FULL overhaul
 % David N. Bresch, david.bresch@gmail.com, 20170727, Value_unit added
 % David N. Bresch, david.bresch@gmail.com, 20170730, on output em_data.emdat_file_mat added
+% David N. Bresch, david.bresch@gmail.com, 20180319, growth_reference_year added
 %-
 
 em_data=[]; % init output
@@ -382,6 +386,12 @@ end % peril_ID
 
 if exposure_growth
     
+    if exposure_growth>1900
+        growth_reference_year=exposure_growth;
+    else
+        growth_reference_year=EMDAT_last_year;
+    end
+    
     GDP_factor=ones(2200-year0,1); % allocate, such that GDP_factor(year-year0) is the factor for year
 
     % Check if economic data file is available
@@ -436,7 +446,11 @@ if exposure_growth
             GDP.year = GDP.year(valid_GDP_pos);
             GDP_value=GDP_value(valid_GDP_pos);
             
-            GDP_factor(GDP.year-year0)=GDP_value(end)./GDP_value;
+            reference_year_pos=find(GDP.year==growth_reference_year);
+            if isempty(reference_year_pos),reference_year_pos=length(GDP_value);end
+            em_data.growth_reference_year=growth_reference_year;
+            
+            GDP_factor(GDP.year-year0)=GDP_value(reference_year_pos)./GDP_value;
             
             % fill earlier years with earliest correction factor
             GDP_factor(1:GDP.year(1)-year0-1)=max(GDP_factor);
@@ -452,6 +466,11 @@ if exposure_growth
              
         em_data.damage_orig=em_data.damage; % store uncorrected
         em_data.damage=em_data.damage.*GDP_factor(em_data.year-year0);
+        em_data.GDP_factor=GDP_factor(em_data.year-year0);
+        
+        % check growth correction:
+        % plot(em_data.year,em_data.GDP_factor);hold on;plot(em_data.year,em_data.year*0+1,'-k')
+        % set(gcf,'Color',[1 1 1]);title('growth correction');axis tight
 
     end % table missing
     
