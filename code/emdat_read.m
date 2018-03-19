@@ -41,6 +41,8 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %   em_data=emdat_read('','USA','TC',1,1); % with exposure growth
 %   em_data=emdat_read('','USA','TC',2005,1); % with exposure growth relative to year 2005
 %   em_data=emdat_read('','USA','TC',0,1); % without exposure growth
+%   em_data=emdat_read('','DEU',['FL';'F1';'F2']); % read  Flash flood, Riverine flood and all Flood records with no subtype
+%   em_data=emdat_read('','DEU',['EQ';'E1']); % read  Earthquake all Earthquake records with no subtype
 % INPUTS:
 %   emdat_file: filename of the emdat database
 %       Default (='' or no input at all) is full global EM-DAT database, 
@@ -57,6 +59,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %       - 'TC': tropical cyclone, returns records with disaster subtype='Tropical cyclone' or type 'Storm'
 %       - 'TS': tropical cyclone surge, returns records with disaster subtype='Coastal flood'
 %       - 'FL': flood, returns records with disaster subtype='Riverine flood'
+%               --> see FIX below
 %       - 'WS': winter storm, returns records with disaster subtype='Extra-tropical storm' or type 'Storm'
 %       - 'EQ': earthquake, returns records with disaster subtype='Ground movement' or type 'Earthquake'
 %       - or just any of the disaster subtypes or types in EM-DAT, e.g.
@@ -65,6 +68,9 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %       all available disaster types or subtypes in the United States (or
 %       any other country), or emdat_read('','','',0,1) to get all
 %       Default: all perils (i.e. all disaster subtypes)
+%       FIX: since EM-DAT is not fully consistent, we replaced all --
+%       subtypes witht the main type. In order to get all indland floods,
+%       use em_data=emdat_read('','',['FL';'F1';'F2'],1,1);
 %   exposure_growth: =1: correct damage numbers to account for exposure
 %       growth (the field em_data.damage_orig contains the uncorrected numbers
 %       Only works if a single country is requested, i.e. if country_ISO3
@@ -116,6 +122,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20170727, Value_unit added
 % David N. Bresch, david.bresch@gmail.com, 20170730, on output em_data.emdat_file_mat added
 % David N. Bresch, david.bresch@gmail.com, 20180319, growth_reference_year added
+% David N. Bresch, david.bresch@gmail.com, 20180319, FIX for FL added
 %-
 
 em_data=[]; % init output
@@ -163,10 +170,17 @@ end
 % the table to match climada peril_ID with EM-data disaster subtype or type
 peril_subtype_match_table={
     'TC' 'Tropical cyclone'
+    'T1' 'Storm'  % original entries were '--'
     'TS' 'Coastal flood'
     'EQ' 'Ground movement'
+    'E1' 'Earthquake' % original entries were '--'
     'FL' 'Riverine flood'
+    'F1' 'Flood' % original entries were '--'
+    'F2' 'Flash flood'
     'WS' 'Extra-tropical storm'
+    'W1' 'Storm' % original entries were '--'
+    'DR' 'Drought'
+    'LS' 'Landslide'
     };
 %
 peril_type_match_table={
@@ -337,6 +351,7 @@ if ~isempty(peril_ID)
      % note that we decided above whether subtype or type will be used,
      % hence peril_match_table is already the required one
     peril_pos=[]; % init
+    size(peril_ID,1) 
     for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
         one_peril_ID=peril_ID(peril_i,:);
         match_pos=strcmp(peril_match_table(:,1),one_peril_ID);
