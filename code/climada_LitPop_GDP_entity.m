@@ -32,6 +32,10 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %      output_entity_file: string of file name to export entity to (normally to entity folder)
 %      output_admin0_file: string of file name to export admin0 data to (specify with full path)
 %      output_admin1_file: string of file name to export admin1 data to (specify with full path)
+%      debug_mode (Default = 0); If = 1, only one admin1 is evaluated to
+%               speed up debugging
+%      hazard_file (string): name of a hazard set (.mat). If this is
+%               provided, the entities are encoded to the centroids of this hazard set.
 % OUTPUTS:
 %       entity: CLIMADA entity struct with asset value based on GDP distributed to
 %           grid points according to LitPop + additional fields depending on
@@ -316,11 +320,8 @@ if parameters.save_admin0
 end
 %% Creating entity file
 
-try
-    entity = climada_entity_load('201802_ebs_DF_dummy_02.mat');
-catch
-    entity = climada_entity_load('entity_template_ADVANCED.mat');
-end
+entity = climada_entity_load('entity_template_ADVANCED.mat');
+
 entity.assets.reference_year = 2016;
 
 
@@ -346,7 +347,10 @@ if parameters.do_agrar
     entity.assets.Value_Agrar = (full(admin0.GDP.FromAgrar))';
     entity.assets.Value_LitPop_minus_Agrar = (full(admin0.GDP.FromLitPop_minus_agrar))'; 
 end
-    
+if isfield(parameters,'hazard_file') && (ischar(parameters.hazard_file) || isstring(parameters.hazard_file))
+    hazard = climada_hazard_load(parameters.hazard_file);
+    entity = climada_assets_encode(entity,hazard);%,40000);
+end
 if parameters.save_as_entity_file
     entity.assets.filename = parameters.output_entity_file;
     tic
