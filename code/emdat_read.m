@@ -123,6 +123,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20170730, on output em_data.emdat_file_mat added
 % David N. Bresch, david.bresch@gmail.com, 20180319, growth_reference_year added
 % David N. Bresch, david.bresch@gmail.com, 20180319, FIX for FL added
+% David N. Bresch, david.bresch@gmail.com, 20180320, FIX for EQ und FF added
 %-
 
 em_data=[]; % init output
@@ -181,6 +182,9 @@ peril_subtype_match_table={
     'W1' 'Storm' % original entries were '--'
     'DR' 'Drought'
     'LS' 'Landslide'
+    'FF' 'Forest fire'
+    'F1' 'Wildfire' % many original entries were '--'
+    'F2' 'Land fire (Brush, Bush, Pastur'
     };
 %
 peril_type_match_table={
