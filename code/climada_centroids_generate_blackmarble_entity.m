@@ -215,8 +215,8 @@ end % country_i
 
 %% project assets on new grid
 resolution_centroid_sat = ...
-    mean( [mean(diff(centroids.lon)) mean(diff(centroids.lat))] ) /...
-    mean( [mean(diff(entity.assets.lon)) mean(diff(entity.assets.lat))] );
+    mean( [median(diff(unique(centroids.lon))) median(diff(unique(centroids.lat)))] ) /...
+    mean( [median(diff(unique(entity.assets.lon))) median(diff(unique(entity.assets.lat)))] );
 if resolution_centroid_sat < 0.8333
     error('projection from one grid to another not implemented yet')
     
