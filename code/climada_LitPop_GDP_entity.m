@@ -47,6 +47,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180306, initial.
 % Samuel Eberenz, eberenz@posteo.eu, 20180306, Removed parameters.check_admin1
 % Samuel Eberenz, eberenz@posteo.eu, 20180321, include bounding boxes to make inpolygon faster, add option mainland for USA
+% Samuel Eberenz, eberenz@posteo.eu, 20180403, litpop no longer written to entity file to reduce size and speed up
 %-
 
 % import/setup global variables
@@ -356,7 +357,7 @@ entity.assets.reference_year = 2016;
 
 entity.assets.lon = admin0.litpop.lon';
 entity.assets.lat = admin0.litpop.lat';
-entity.assets.litpop = (full(admin0.litpop.Value))';
+% entity.assets.litpop = (full(admin0.litpop.Value))';
 if parameters.save_admin1
     entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
 else
@@ -381,10 +382,10 @@ if isfield(parameters,'hazard_file') && (ischar(parameters.hazard_file) || isstr
     entity = climada_assets_encode(entity,hazard);%,40000);
 end
 if parameters.save_as_entity_file
-    entity.assets.filename = parameters.output_entity_file;
+    disp(['Writing to entity file: ' parameters.output_entity_file]);
+    entity.assets.filename = parameters.output_entity_file; 
     tic
-    disp('Writing to entity file...');
-    save([climada_global.entities_dir filesep entity.assets.filename],'entity','-v7.3')
+    save([climada_global.entities_dir filesep parameters.output_entity_file],'entity','-v7.3')
     toc
 end
 
