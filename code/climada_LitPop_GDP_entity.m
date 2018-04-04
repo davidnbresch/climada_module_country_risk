@@ -144,13 +144,21 @@ if parameters.mainLand
     litpop.([admin0_ISO3 '_ind']) = litpop.mainLand_ind;
     litpop.([admin0_ISO3 '_LitPopulation']) = litpop.mainLand_LitPopulation;
 end
-if ~isfield(litpop,'lon')
-    litpop.lon = litpop.gpw_lon(litpop.([admin0_ISO3 '_ind']));
+if isfield(litpop,[admin0_ISO3 '_ind'])
+    if ~isfield(litpop,'lon')
+        litpop.lon = litpop.gpw_lon(litpop.([admin0_ISO3 '_ind']));
+    end
+    if ~isfield(litpop,'lat')
+        litpop.lat = litpop.gpw_lat(litpop.([admin0_ISO3 '_ind']));
+    end
+else % if isfield(litpop,[admin0_ISO3 '_index'])
+    if ~isfield(litpop,'lon')
+        litpop.lon = litpop.gpw_lon(litpop.([admin0_ISO3 '_index']));
+    end
+    if ~isfield(litpop,'lat')
+        litpop.lat = litpop.gpw_lat(litpop.([admin0_ISO3 '_index']));
+    end
 end
-if ~isfield(litpop,'lat')
-    litpop.lat = litpop.gpw_lat(litpop.([admin0_ISO3 '_ind']));
-end
-
 % list of admin1 with GSPD:
 idx = ~cellfun('isempty',strfind({shapes.adm0_a3},admin0_ISO3));
 i1 = find(idx==1); 
@@ -197,7 +205,7 @@ if parameters.admin0_calc
     admin0.litpop.Norm = admin0.litpop.Value./sum(admin0.litpop.Value(:));
     
     %% find country in GDP structs:
-    i0_GDP = find(~cellfun('isempty',strfind(GDP_admin0.iso,admin0_ISO3))==1);   
+    i0_GDP = ~cellfun('isempty',strfind(GDP_admin0.iso,admin0_ISO3))==1;   
     if parameters.do_agrar
         i0_agrar_share = find(~cellfun('isempty',strfind(GDP_share_agrar.Country_Code,admin0_ISO3))==1);
         if isequal(GDP_share_agrar.Att_2016{i0_agrar_share},'NaN') || isnan(GDP_share_agrar.Att_2016{i0_agrar_share})
@@ -207,6 +215,7 @@ if parameters.admin0_calc
     %% Distribute GDP to gridpoints
     GDP_admin0_ref = GDP_admin0.year2016(i0_GDP); % from worldbank
     GDP_admin0_ref =     GDP_admin0_ref(1);    
+    if GDP_admin0_ref==0, GDP_admin0_ref = 1;warning('No GDP value found; GDP is set to 1');end
     % 100% GDP distributed linearly to LitPopulation:
     admin0.GDP.FromLitPop = admin0.litpop.Norm .* GDP_admin0_ref ;
     
@@ -358,7 +367,7 @@ entity.assets.reference_year = 2016;
 entity.assets.lon = admin0.litpop.lon';
 entity.assets.lat = admin0.litpop.lat';
 % entity.assets.litpop = (full(admin0.litpop.Value))';
-if parameters.save_admin1
+if parameters.save_admin1 && parameters.admin1_calc
     entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
 else
     entity.assets.Value = (full(admin0.GDP.FromLitPop))';
@@ -392,8 +401,10 @@ end
 if parameters.make_plot
     figure(1); climada_entity_plot(entity,2); title('admin1')
     entity.assets.Value = (full(admin0.GDP.FromLitPop))';
-    figure(2); climada_entity_plot(entity,2); title('admin0')
-    entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
+    if parameters.admin1_calc
+        figure(2); climada_entity_plot(entity,2); title('admin0')
+        entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
+    end
 end
 
 
@@ -410,7 +421,7 @@ end
 
 %%
 
-if parameters.make_plot
+if parameters.make_plot && parameters.admin1_calc
     
     figure(5); hold on;
     scatter(admin1.GSDP_Reference,admin1.GSDP_FromLitPop,'xb');
