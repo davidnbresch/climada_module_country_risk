@@ -47,7 +47,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %           possible values: 30 60 120 300 600 3600
 %      admin0_calc (Default= 1); % Distribute national GDP (admin0) to grid (requires GDP per country)
 %      admin1_calc (Default= 1); % Distribute sub-national GDP (admin1) to grid (requires G(S)DP per admin0)
-%      admin1_calc_inherit_admin0 (Default = 1); % Use distribution from admin0_calc
+%      admin1_calc_inherit_admin0 (Default = 0); % Use distribution from admin0_calc
 %          for grid points for which no admin1 data has been found (relevant
 %          e.g. in India for island and city union territories) (requires
 %          admin0_calc and admin1_calc)
@@ -95,7 +95,7 @@ if ~exist('parameters','var'), parameters=struct; end
 if ~isfield(parameters,'target_res'), parameters.target_res = 30;end
 if ~isfield(parameters,'admin0_calc'), parameters.admin0_calc = 1;end
 if ~isfield(parameters,'admin1_calc'), parameters.admin1_calc = 1;end
-if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 1;end
+if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 0;end
 if ~isfield(parameters,'do_agrar'), parameters.do_agrar = 0;end
 if ~isfield(parameters,'make_plot'), parameters.make_plot = 0;end
 if ~isfield(parameters,'save_as_entity_file'), parameters.save_as_entity_file = 1;end

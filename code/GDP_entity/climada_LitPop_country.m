@@ -1,6 +1,6 @@
-function [country_LitPop,country_idx,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_country(admin0_name,target_res,save_flag,plot_flag)
+function [country_LitPop,country_idx,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_country(admin0_name,target_res,save_flag,plot_flag,fallback_mode)
 % MODULE:
-%   core
+%   country_risk
 % NAME:
 %	climada_LitPop_country
 % PURPOSE:
@@ -30,9 +30,12 @@ function [country_LitPop,country_idx,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_c
 %       In a way the inversion operation of gpw_index.
 %   gpw_lon: The same as gpw_lat, but for longitudes.
 % MODIFICATION HISTORY:
-% Dario Stocker, dario.stocker@gmail.ch, 2018, init
-% Dario Stocker, dario.stocker@gmail.ch, 20180406, add flexible target_res
+% Dario Stocker, dario.stocker@gmail.com, 2018, init
+% Dario Stocker, dario.stocker@gmail.com, 20180406, add flexible target_res
+% Dario Stocker, dario.stocker@gmail.com, 20180425, implements
+%   climada_shape_mask for speed imporvement.
 %%%
+
 % import/setup global variables
 global climada_global
 if ~climada_init_vars,return;end;
@@ -43,6 +46,7 @@ if ~exist('admin0_name','var'),admin0_name=''; end
 if ~exist('target_res','var'),target_res=[];end
 if ~exist('save_flag','var'),save_flag=1;end
 if ~exist('plot_flag','var'),plot_flag=1;end
+if ~exist('fallback_mode','var'),fallback_mode=0;end
 
 
 % locate data folder of country risk module
@@ -61,43 +65,8 @@ else
     clearvars possible_res;
 end
 
-LitPop_Filename = ['GPW_BM_LitPopulation_' num2str(target_res) 'arcsec.mat'];
-LitPop_data_path=[module_data_dir filesep LitPop_Filename];
 
-% Check if file exists
-if ~exist(LitPop_data_path,'file')
-    disp(['The LitPopulation data with the filename ' LitPop_Filename ' was not found (a dialog should open now)']);
-    nextStep = questdlg(['The LitPopulation data with the filename ' LitPop_Filename ' was not found.' newline 'What would you like to do next? Please note that you need to download the raw data first if you choose to generate the Nighlight population data.'] , ...
-	'Missing LitPopulation data', ...
-	'Locate missing file','Generate LitPopulatoin Data','Abort Operation','Locate missing file');
-    % Handle response
-    switch nextStep
-        case 'Locate missing file'
-            ui_path=uigetdir([],['Locate folder where file ' LitPop_Filename ' is placed.']);
-            if ui_path(end:end)==filesep % remove filesep if neccessary, it is added later
-                ui_path=ui_path(1:(end-1));
-            end
-            LitPop_data_path=[ui_path filesep LitPop_Filename];
-            if ~exist(LitPop_data_path,'file')
-                error('Global LitPopulation data could not be found. Operation aborted.');
-            end
-        case 'Generate LitPopulatoin Data'
-            fprintf('LitPopulation is created. This may take a while.\n');
-            [LitPopulation,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_import([],target_res);    
-        otherwise
-            fprintf('Operation aborted by user.\n')
-            return;
-    end
-    %error('LitPopulation file does not exist, plese import it first using the function climada_LitPopulation_import');
-else
-    try
-        load(LitPop_data_path);
-    catch
-        error('An error occured while loading LitPopulation. Operation aborted.');
-    end
-end
-
-
+%%% Do country stuff
 % admin0 and admin1 shape files (in climada module country_risk):
 admin0_shape_file=climada_global.map_border_file; 
 
@@ -147,36 +116,110 @@ end
 country_shape=admin0_shapes(admin0_idx);
 clearvars admin0_shapes;
 
+%%% End country stuff
+
+
+%%% Do LitPopulation file loading
+
+LitPop_Filename = ['GPW_BM_LitPopulation_' num2str(target_res) 'arcsec.mat'];
+LitPop_data_path=[module_data_dir filesep LitPop_Filename];
+
+% Check if file exists
+if ~exist(LitPop_data_path,'file')
+    disp(['The LitPopulation data with the filename ' LitPop_Filename ' was not found (a dialog should open now)']);
+    nextStep = questdlg(['The LitPopulation data with the filename ' LitPop_Filename ' was not found.' newline 'What would you like to do next? Please note that you need to download the raw data first if you choose to generate the Nighlight population data.'] , ...
+	'Missing LitPopulation data', ...
+	'Locate missing file','Generate LitPopulatoin Data','Abort Operation','Locate missing file');
+    % Handle response
+    switch nextStep
+        case 'Locate missing file'
+            ui_path=uigetdir([],['Locate folder where file ' LitPop_Filename ' is placed.']);
+            if ui_path(end:end)==filesep % remove filesep if neccessary, it is added later
+                ui_path=ui_path(1:(end-1));
+            end
+            LitPop_data_path=[ui_path filesep LitPop_Filename];
+            if ~exist(LitPop_data_path,'file')
+                error('Global LitPopulation data could not be found. Operation aborted.');
+            end
+        case 'Generate LitPopulatoin Data'
+            fprintf('LitPopulation is created. This may take a while.\n');
+            [LitPopulation,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_import([],target_res);    
+        otherwise
+            fprintf('Operation aborted by user.\n')
+            return;
+    end
+    %error('LitPopulation file does not exist, plese import it first using the function climada_LitPopulation_import');
+else
+    try
+        glb_litpop=load(LitPop_data_path);
+    catch
+        error('An error occured while loading LitPopulation. Operation aborted.');
+    end
+end
 
 % Double check if neccessary functions exist
-if ~exist('gpw_index','var')
+if ~isfield(glb_litpop, 'gpw_index')
     error('Function gpw_index missing (should load with global LitPopulation data). Operation aborted')
 end
-if ~exist('gpw_lat','var')
+if ~isfield(glb_litpop, 'gpw_lat')
     error('Function gpw_lat missing (should load with global LitPopulation data). Operation aborted')
 end
-if ~exist('gpw_lon','var')
+if ~isfield(glb_litpop, 'gpw_lon')
     error('Function gpw_lon missing (should load with global LitPopulation data). Operation aborted')
 end
 
-% Set initial index, lat, lon
-country_bb_ind = gpw_index(min(min(country_shape.Y)),max(max(country_shape.Y)),min(min(country_shape.X)),max(max(country_shape.X)));
-country_bb_lat = gpw_lat(country_bb_ind);
-country_bb_lon = gpw_lon(country_bb_ind);
+fprintf('Global LitPopulation file loaded successfully\n');
+
+%%% End loading of LitPopulation file
+
 
 % Now do the acutal operation
 fprintf(['Locating coordinates within ' admin0_name '. This may take a while\n']);
-in_country=climada_inshape(country_bb_lat, country_bb_lon, country_shape, 0);
+tic;
 
-% Data cleaning
-country_ind_temp = (in_country.*double(country_bb_ind));
-country_ind = country_ind_temp(find(country_ind_temp~=0));
-clearvars country_ind_temp;
-country_LitPopulation = LitPopulation(country_ind);
+try
+    if fallback_mode ~= 1
+        [~, country_ind] = climada_shape_mask(country_shape, [], target_res, glb_litpop.gpw_index, glb_litpop.gpw_lon, glb_litpop.gpw_lat, 0);
+    
+        country_LitPopulation=glb_litpop.LitPopulation(country_ind);
+    else
+        error('Fallback mode selected.');
+    end
+    
+catch
+    try     % Fallback method if Matlab imaging toolbox is not installed. Significantly slower.
+        fprintf('Warning: Could not apply principal method for locating coordinates. Using the fallback method.\nThe Imaging Toolbox is probably missing. Consider installing it to significantly speed up the process.\n');
+        
+        % Set initial index, lat, lon
+        country_bb_ind = glb_litpop.gpw_index(min(min(country_shape.Y)),max(max(country_shape.Y)),min(min(country_shape.X)),max(max(country_shape.X)));
+        country_bb_lat = glb_litpop.gpw_lat(country_bb_ind);
+        country_bb_lon = glb_litpop.gpw_lon(country_bb_ind);
+        
+        in_country=climada_inshape(country_bb_lat, country_bb_lon, country_shape, 0);
+    
+        % Data cleaning
+        country_ind_temp = (in_country.*double(country_bb_ind));
+        country_ind = country_ind_temp(find(country_ind_temp~=0));
+        clearvars country_ind_temp;
+        country_LitPopulation = glb_litpop.LitPopulation(country_ind);
+    catch
+    %lasterr
+    error('Error while trying to extract coordinates. Operation aborted.');
+    end
+end
 
+
+gpw_index=glb_litpop.gpw_index;
+gpw_lat=glb_litpop.gpw_lat;
+gpw_lon=glb_litpop.gpw_lon;
+
+clearvars glb_litpop;
+
+toc;
 
 if plot_flag~=0
     figure; plotclr(gpw_lon(country_ind),gpw_lat(country_ind),double(country_LitPopulation));
+    climada_shapeplotter(country_shape);
 end
 
 % Generate dynamic variable names
