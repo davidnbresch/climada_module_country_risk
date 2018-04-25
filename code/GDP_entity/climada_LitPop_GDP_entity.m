@@ -4,32 +4,58 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % NAME:
 %   climada_LitPop_GDP_entity
 % PURPOSE:
-%   Create gridded entity for a country based on "Lit Population" (LitPop) 
+%   Create gridded entity for a country based on "Lit Population" (LitPop).
+%   GDP on admin1 or admin0 level is distributed spatially in proportion to LitPop.
+%   (LitPop is computed by multiplying nightlight intensity with population
+%   density).
+%   Additionally, an agriculture entity can be computed seperately from all
+%   other GDP. 
 % DATA REQUIREMENTS:
-%   Needs a file of "Lit Population" (litpop) for the country or global and
-%   further data files inside the country risk module in /data and
-%   /data/GSDP.   Please set alternative file paths and names for input below.
+%   LITPOP:
+%   Requires "Lit Population" data files inside the country risk module in /data and
+%   /data/GSDP. LitPop is computed for each country if it is not yet available as a MAT-File.
+%   This requires gridded nightlight (Blackmarble, NASA, 2016) and population data (SEDAC, 2015).
+%   Please refer to climada_LitPop_country.m and climada_LitPop_import.m for more info on LitPop
+%   and data requirements.
+%   Please set alternative file paths and names for input below.
+%   GDP: 
+%   For admin1 options, an additional xls-file with district-level GDP
+%   (i.e. GSDP) and a mapping of admin1 names to the identifiers used in the shape1 file need to be provided.
+%   For agriculture, a table with the agriculture share of GDP by country
+%   AGRICULTURE:
+%   (source: worldbank, 'GDP_share_agrar_per_country_Worldbank_1960-2016')
+%   and a global agriculture entity
+%   ('GLB_agriculture_XXX.mat') i.e. http://dx.doi.org/10.7910/DVN/DHXBJX,
+%   as used in the CLIMADA MRIO project needs to be provided
 % CALLING SEQUENCE:
+%   climada_gpw_read;
+%   climada_blackmarble_read;
+%   climada_LitPop_import;
+%   climada_LitPop_country;
 %   entity = climada_LitPop_GDP_entity(admin0_name, parameters)
-% EXAMPLE:
+% EXAMPLES:
+%   parameters.admin1_calc=0;
+%   climada_LitPop_GDP_entity('India', parameters)
+%
 %   parameters.make_plot = 1;
 %   entity = climada_LitPop_GDP_entity('CHE', parameters)
 % INPUTS:
-%   admin0_name: String with name or ISO3 code of country, e.g. 'USA' or 'India'
+%   admin0_name: String with name or ISO3 code of country, e.g. 'USA' or 'Taiwan'
 % OPTIONAL INPUT PARAMETERS:
-%   target_res: Integer, with target resolution in arc-seconds (Default: 30)
 %   parameters: struct with the following fields:
+%      target_res: Integer, with target resolution in arc-seconds (Default: 30)
+%           possible values: 30 60 120 300 600 3600
 %      admin0_calc (Default= 1); % Distribute national GDP (admin0) to grid (requires GDP per country)
 %      admin1_calc (Default= 1); % Distribute sub-national GDP (admin1) to grid (requires G(S)DP per admin0)
 %      admin1_calc_inherit_admin0 (Default = 1); % Use distribution from admin0_calc
 %          for grid points for which no admin1 data has been found (relevant
 %          e.g. in India for island and city union territories) (requires
 %          admin0_calc and admin1_calc)
-%      do_agrar (Default = 0); % include split of GDP in agriculture and non-agriculture
-%      make_plot (Default = 0); % make plots, map of entity and scatter to compare distribution of national GDP to given GSDP (requires admin0_calc and admin1_calc)
+%      do_agrar (Default = 0); % include split of GDP in agriculture and
+%          non-agriculture (slow!)
 %      save_as_entity_file (Default = 1); % save resulting grid as CLIMADA entity file  
 %      save_admin0 (Default = 0); % save all grids for country to MAT file
-%      save_admin1 (Default = 1); % save results and comparison on admin1 level to MAT file
+%      save_admin1 (Default = 0); % save results and comparison on admin1 level to MAT file
 %      output_entity_file: string of file name to export entity to (normally to entity folder)
 %      output_admin0_file: string of file name to export admin0 data to (specify with full path)
 %      output_admin1_file: string of file name to export admin1 data to (specify with full path)
@@ -39,6 +65,8 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %               speed up debugging
 %      hazard_file (string): name of a hazard set (.mat). If this is
 %               provided, the entities are encoded to the centroids of this hazard set.
+%      max_encoding_distance_m: max_encoding distance in meters (see climada_asset_encode.m)
+%      make_plot (Default = 0); % make plots, map of entity and scatter to compare distribution of national GDP to given GSDP (requires admin0_calc and admin1_calc)
 % OUTPUTS:
 %       entity: CLIMADA entity struct with asset value based on GDP distributed to
 %           grid points according to LitPop + additional fields depending on
@@ -50,6 +78,8 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180321, include bounding boxes to make inpolygon faster, add option mainland for USA
 % Samuel Eberenz, eberenz@posteo.eu, 20180403, litpop no longer written to entity file to reduce size and speed up
 % Dario Stocker, dario.stocker@gmail.com, 20180405, Bugs fixed, adaptations for usage from climada_LitPop_country.m
+% Dario Stocker, dario.stocker@gmail.com, 20180418, adaptations for usage with climada_shape_mask
+% Samuel Eberenz, eberenz@posteo.eu, 20180425, clean up & debug in case no admin1 spreadsheet is provided, improve encoding option
 %-
 
 % import/setup global variables
@@ -60,9 +90,9 @@ if ~climada_init_vars,return;end;
 
 % check for arguments
 if ~exist('admin0_name','var'),error('Missing input. Please provide country name or ISO3-code as string!'); end
-if ~exist('target_res','var'), target_res=30; end
 if ~exist('parameters','var'), parameters=struct; end
 % parameters
+if ~isfield(parameters,'target_res'), parameters.target_res = 30;end
 if ~isfield(parameters,'admin0_calc'), parameters.admin0_calc = 1;end
 if ~isfield(parameters,'admin1_calc'), parameters.admin1_calc = 1;end
 if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 1;end
@@ -70,9 +100,11 @@ if ~isfield(parameters,'do_agrar'), parameters.do_agrar = 0;end
 if ~isfield(parameters,'make_plot'), parameters.make_plot = 0;end
 if ~isfield(parameters,'save_as_entity_file'), parameters.save_as_entity_file = 1;end
 if ~isfield(parameters,'save_admin0'), parameters.save_admin0 = 0;end
-if ~isfield(parameters,'save_admin1'), parameters.save_admin1 = 1;end
+if ~isfield(parameters,'save_admin1'), parameters.save_admin1 = 0;end
 if ~isfield(parameters,'mainLand'), parameters.mainLand = 0;end
 if ~isfield(parameters,'debug_mode'), parameters.debug_mode = 0;end;
+if ~isfield(parameters,'hazard_file'), parameters.hazard_file = [];end;
+if ~isfield(parameters,'max_encoding_distance_m'), parameters.max_encoding_distance_m = climada_global.max_encoding_distance_m;end;
 
 if parameters.admin1_calc_inherit_admin0 == 1 && (parameters.admin0_calc + parameters.admin1_calc) <2
     parameters.admin0_calc=1;
@@ -84,15 +116,15 @@ if parameters.admin1_calc~=1
     fprintf('Parameter save_admin1 is set =0.\n');
 end
 
-% set target resolution
-if ~isscalar(target_res)
-    target_res=30;
+% set target resolution = parameters.target_res
+if ~isscalar(parameters.target_res)
+    parameters.target_res=30;
     fprintf(['None or invalid target resolution. Resorting to default resolution (30 arc-sec).\n']);
 else
     possible_res=[30 60 120 300 600 3600];
-    if interp1(possible_res,possible_res,target_res,'nearest','extrap') ~= target_res
-        target_res = interp1(possible_res,possible_res,target_res,'nearest','extrap');
-    fprintf(['Target resolution adjusted. It was set to ', num2str(target_res), ' arc-sec\n']);
+    if interp1(possible_res,possible_res,parameters.target_res,'nearest','extrap') ~= parameters.target_res
+        parameters.target_res = interp1(possible_res,possible_res,parameters.target_res,'nearest','extrap');
+    fprintf(['Target resolution adjusted. It was set to ', num2str(parameters.target_res), ' arc-sec\n']);
     end
     clearvars possible_res;
 end
@@ -190,13 +222,14 @@ end
 country_litpop_varname = [admin0_ISO3, '_LitPopulation'];
 country_index_varname = [admin0_ISO3, '_ind'];
 
-if ~exist([module_data_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation_', num2str(target_res), 'arcsec.mat'],'file')
-    [litpop.(country_litpop_varname), litpop.(country_index_varname), litpop.gpw_index, litpop.gpw_lon, litpop.gpw_lat] = climada_LitPop_country(admin0_ISO3,target_res,1,0);
-%climada_LitPop_country(admin0_ISO3,target_res,1,0);
+if ~exist([module_data_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation_', num2str(parameters.target_res), 'arcsec.mat'],'file')
+    [litpop.(country_litpop_varname), litpop.(country_index_varname), litpop.gpw_index, litpop.gpw_lon, litpop.gpw_lat] = climada_LitPop_country(admin0_ISO3,parameters.target_res,1,0);
+%climada_LitPop_country(admin0_ISO3,parameters.target_res,1,0);
 else
     try
-        litpop_file = [module_data_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation_', num2str(target_res), 'arcsec.mat']; % gridded LitPop
+        litpop_file = [module_data_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation_', num2str(parameters.target_res), 'arcsec.mat']; % gridded LitPop
         litpop = load(litpop_file);
+        fprintf('LitPop successfully loaded.\n');
     catch
         error('Error while trying to load the LitPopulation file. Operation aborted.')
     end
@@ -247,9 +280,22 @@ idx = ~cellfun('isempty',strfind({shapes.adm0_a3},admin0_ISO3));
 i1 = find(idx==1); 
 if parameters.debug_mode, i1=i1(min(5,length(i1)));end % only process one single admin1
 % find index of country (admin0 )
-idx = ~cellfun('isempty',strfind({admin0_shapes.ISO_A3},admin0_ISO3));
-i0 = find(idx==1); 
-clear idx
+%idx = ~cellfun('isempty',strfind({admin0_shapes.ISO_A3},admin0_ISO3)); %
+%Throws error if empty countries are included. Hence new version:
+i0=0;
+
+for admin0_i=1:length(shapes)
+    if strcmp(admin0_ISO3,admin0_shapes(admin0_i).ISO_A3)==1
+        i0=admin0_i;
+        break;
+    end
+end
+
+clearvars admin0_i idx;
+
+%i0 = find(idx==1); 
+
+
 admin1_names = {shapes.name}; 
 admin1_adm1_cod_1 = {shapes.adm1_cod_1}; 
 
@@ -284,7 +330,7 @@ if parameters.admin0_calc
     admin0.litpop.lon = litpop.lon(IN0_litpop==1);
     admin0.litpop.lat = litpop.lat(IN0_litpop==1);
     admin0.litpop.Value = litpop.([admin0_ISO3 '_LitPopulation'])(IN0_litpop==1);
-    clear litpop
+    litpop = rmfield(litpop,{[admin0_ISO3 '_LitPopulation'],[admin0_ISO3 '_ind'],'lat','lon'});
     admin0.litpop.Norm = admin0.litpop.Value./sum(admin0.litpop.Value(:));
     
     %% find country in GDP structs:
@@ -363,7 +409,8 @@ if parameters.admin1_calc
                                admin0.litpop.lat>=shapes(i1(i)).BoundingBox(1,2) &...
                                admin0.litpop.lat<=shapes(i1(i)).BoundingBox(2,2));
                 if parameters.admin1_calc
-                    IN_litpop = climada_inpolygon(admin0.litpop.lon(in_box),admin0.litpop.lat(in_box),shapes(i1(i)).X,shapes(i1(i)).Y,0);
+                    % IN_litpop = climada_inpolygon(admin0.litpop.lon(in_box),admin0.litpop.lat(in_box),shapes(i1(i)).X,shapes(i1(i)).Y,0);
+                    [IDX_LitPop, IN_litpop] = climada_shape_mask(shapes(i1(i)),[],parameters.target_res,litpop.gpw_index,litpop.gpw_lon,litpop.gpw_lat,0);
                 end
 
                 % Find admin1 in mapping of GSDP data:
@@ -383,24 +430,24 @@ if parameters.admin1_calc
                 end
                 if parameters.admin1_calc
                     litpop_tmp = admin0.litpop.Value;
-                    litpop_tmp(in_box(IN_litpop==1)) = litpop_tmp(in_box(IN_litpop==1))/nansum(litpop_tmp(in_box(IN_litpop==1))); % normalized by admin1 level
-                    if round(full(nansum(litpop_tmp(in_box(IN_litpop==1)))).*1e9)~=1e9      
+                    litpop_tmp(IDX_LitPop) = litpop_tmp(IDX_LitPop)/nansum(litpop_tmp(IDX_LitPop)); % normalized by admin1 level
+                    if round(full(nansum(litpop_tmp(IDX_LitPop))).*1e9)~=1e9      
                         warning('nansum(litpop_tmp(in_box(IN_litpop==1))) is not equal to 1. Normalization failed.')
                     else % distribute GSDP to gridpoints in state/ province (admin1): 
-                        admin0.GDP.FromLitPop_admin1(in_box(IN_litpop==1)) = litpop_tmp(in_box(IN_litpop==1)).*admin1.GSDP_Reference(i); % multiply by reference GSDP
+                        admin0.GDP.FromLitPop_admin1(IDX_LitPop) = litpop_tmp(IDX_LitPop).*admin1.GSDP_Reference(i); % multiply by reference GSDP
                     end
                     clear litpop_tmp
-                    admin1.GSDP_FromLitPop_admin1(i) = sum(admin0.GDP.FromLitPop_admin1(in_box(IN_litpop==1)));
-                    admin1.GSDP_FromLitPop(i) = sum(admin0.GDP.FromLitPop(in_box(IN_litpop==1)));
+                    admin1.GSDP_FromLitPop_admin1(i) = sum(admin0.GDP.FromLitPop_admin1(IDX_LitPop));
+                    admin1.GSDP_FromLitPop(i) = sum(admin0.GDP.FromLitPop(IDX_LitPop));
                 end
                 % Test sum: summing up gridpoints over one admin1 (=GSDP):
 
                 if parameters.do_agrar && parameters.admin1_calc
-                    admin1.GSDP_FromLitPop_minus_agrar(i) = sum(admin0.GDP.FromLitPop_minus_agrar(in_box(IN_litpop==1)));
+                    admin1.GSDP_FromLitPop_minus_agrar(i) = sum(admin0.GDP.FromLitPop_minus_agrar(IDX_LitPop));
                     admin1.GSDP_FromAgrar(i) = sum(admin0.GDP.FromAgrar(in_box_agrar(IN_agrar==1)));   
                 end
 
-                clear IN_*
+                clear IN_* IDX_LitPop
                 toc
             else
                 admin1.GSDP_FromLitPop(i) = NaN;
@@ -423,20 +470,21 @@ if parameters.admin1_calc
         parameters.admin1_calc=0;
         parameters.save_admin1=0;
     end
+    if parameters.admin1_calc
+        admin1.GSDP_Reference_RestOfNation = GDP_admin0_ref - nansum(admin1.GSDP_Reference);
+        if parameters.do_agrar
+            admin1.GSDP_FromGDPandAgrarCombined = admin1.GSDP_FromLitPop_minus_agrar + admin1.GSDP_FromAgrar;
+        end
+        % correlation:
+        idx_isnan = isnan(admin1.GSDP_Reference) + isnan(admin1.GSDP_FromLitPop);
 
-    admin1.GSDP_Reference_RestOfNation = GDP_admin0_ref - nansum(admin1.GSDP_Reference);
-    if parameters.do_agrar
-        admin1.GSDP_FromGDPandAgrarCombined = admin1.GSDP_FromLitPop_minus_agrar + admin1.GSDP_FromAgrar;
-    end
-    % correlation:
-    idx_isnan = isnan(admin1.GSDP_Reference) + isnan(admin1.GSDP_FromLitPop);
-
-    [admin1.corr_coeff_Ref_LitPop, admin1.corr_pval_Ref_LitPop] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan));
-    if parameters.do_agrar
-        [admin1.corr_coeff_Ref_LitPop_w_agrar, admin1.corr_pval_Ref_LitPop_w_agrar] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan)+admin1.GSDP_FromAgrar(~idx_isnan));
-    end
-    if parameters.save_admin1
-        save(parameters.output_admin1_file,'admin1','-v7.3');
+        [admin1.corr_coeff_Ref_LitPop, admin1.corr_pval_Ref_LitPop] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan));
+        if parameters.do_agrar
+            [admin1.corr_coeff_Ref_LitPop_w_agrar, admin1.corr_pval_Ref_LitPop_w_agrar] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan)+admin1.GSDP_FromAgrar(~idx_isnan));
+        end
+        if parameters.save_admin1
+            save(parameters.output_admin1_file,'admin1','-v7.3');
+        end
     end
 end
 if parameters.save_admin0
@@ -454,15 +502,18 @@ entity.assets.lat = admin0.litpop.lat';
 % entity.assets.litpop = (full(admin0.litpop.Value))';
 if parameters.save_admin1
     entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
+    entity.assets.comment='asset.Value: admin1-level GDP distributed proportionally to Lit Population';
 else
     entity.assets.Value = (full(admin0.GDP.FromLitPop))';
+    entity.assets.comment='asset.Value: admin0-level GDP distributed proportionally to Lit Population';
 end
 entity.assets.Cover = entity.assets.Value;
 entity.assets.Deductible = 0*entity.assets.Value;
 entity.assets.Category_ID = ones(size(entity.assets.Value));
 entity.assets.DamageFunID = entity.assets.Category_ID;
 entity.assets.Region_ID = entity.assets.Category_ID;
-entity.assets.Value_unit = repmat({'USD'},size(entity.assets.Category_ID));
+entity.assets.Value_unit = repmat({'USD'},size(entity.assets.Category_ID));    % Necessary while entity requires an equal number of fields for the value unit
+%entity.assets.Value_unit = {'USD'};
 try
     entity.assets = rmfield(entity.assets,'centroid_index');
     entity.assets = rmfield(entity.assets,'hazard');
@@ -471,9 +522,15 @@ if parameters.do_agrar
     entity.assets.Value_Agrar = (full(admin0.GDP.FromAgrar))';
     entity.assets.Value_LitPop_minus_Agrar = (full(admin0.GDP.FromLitPop_minus_agrar))'; 
 end
-if isfield(parameters,'hazard_file') && (ischar(parameters.hazard_file) || isstring(parameters.hazard_file))
-    hazard = climada_hazard_load(parameters.hazard_file);
-    entity = climada_assets_encode(entity,hazard);%,40000);
+if isfield(parameters,'hazard_file') && ~isempty(parameters.hazard_file)
+    try
+        entity = climada_assets_encode(entity,parameters.hazard_file,parameters.max_encoding_distance_m);
+        display(['entity was encoded to hazard ' parameters.hazard_file]);
+    catch ME
+        warning('Encoding failed, either due to error while loading hazard or while encoding.');
+        display(ME.identifier)
+        display(ME.message)
+    end
 end
 if parameters.save_as_entity_file
     disp(['Writing to entity file: ' parameters.output_entity_file]);
