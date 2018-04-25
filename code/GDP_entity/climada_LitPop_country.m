@@ -66,6 +66,7 @@ LitPop_data_path=[module_data_dir filesep LitPop_Filename];
 
 % Check if file exists
 if ~exist(LitPop_data_path,'file')
+    disp(['The LitPopulation data with the filename ' LitPop_Filename ' was not found (a dialog should open now)']);
     nextStep = questdlg(['The LitPopulation data with the filename ' LitPop_Filename ' was not found.' newline 'What would you like to do next? Please note that you need to download the raw data first if you choose to generate the Nighlight population data.'] , ...
 	'Missing LitPopulation data', ...
 	'Locate missing file','Generate LitPopulatoin Data','Abort Operation','Locate missing file');
