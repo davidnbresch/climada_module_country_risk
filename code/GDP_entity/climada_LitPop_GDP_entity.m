@@ -346,7 +346,10 @@ if parameters.admin0_calc
     %% Distribute GDP to gridpoints
     GDP_admin0_ref = GDP_admin0.year2016(i0_GDP); % from worldbank
     GDP_admin0_ref =     GDP_admin0_ref(1);    
-    if GDP_admin0_ref==0, GDP_admin0_ref = 1;warning('No GDP value found; GDP is set to 1');end
+    if GDP_admin0_ref==0, GDP_admin0_ref = 1;warning('No GDP value found; GDP is set to 1');
+    elseif isnan(GDP_admin0_ref),GDP_admin0_ref = 1;warning('No GDP value found; GDP is set to 1');
+    end
+    
     % 100% GDP distributed linearly to LitPopulation:
     admin0.GDP.FromLitPop = admin0.litpop.Norm .* GDP_admin0_ref ;
     
@@ -498,7 +501,7 @@ entity = climada_entity_load('entity_template_ADVANCED.mat');
 
 entity.assets.reference_year = 2016;
 
-
+entity.assets.GDPtotal=GDP_admin0_ref;
 entity.assets.lon = admin0.litpop.lon';
 entity.assets.lat = admin0.litpop.lat';
 % entity.assets.litpop = (full(admin0.litpop.Value))';
