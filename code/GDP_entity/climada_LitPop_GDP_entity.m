@@ -187,14 +187,16 @@ if parameters.do_agrar
 end
 
 % OUTPUT: Set defaults for Output filenames
-if parameters.save_as_entity_file
-    parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016.mat']; % saved to entity folder
-    if parameters.mainLand
-        parameters.output_entity_file = [admin0_ISO3 'mainLand_GDP_LitPop_BM2016.mat'];
+if ~isfield(parameters,'output_entity_file')
+    if parameters.save_as_entity_file
+        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016.mat']; % saved to entity folder
+        if parameters.mainLand
+            parameters.output_entity_file = [admin0_ISO3 'mainLand_GDP_LitPop_BM2016.mat'];
+        end  
     end
-end
-if parameters.save_as_entity_file && parameters.debug_mode
-    parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_DEBUG.mat']; % saved to entity folder
+    if parameters.save_as_entity_file && parameters.debug_mode
+        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_DEBUG.mat']; % saved to entity folder
+    end
 end
 if parameters.save_admin0 && ~exist('parameters.output_admin0_file','var')
     parameters.output_admin0_file = [GSDP_folder_path filesep admin0_ISO3 '_GDP_LitPop_grid.mat'];
