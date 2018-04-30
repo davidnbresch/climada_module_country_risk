@@ -342,6 +342,10 @@ if parameters.admin0_calc
         if isequal(GDP_share_agrar.Att_2016{i0_agrar_share},'NaN') || isnan(GDP_share_agrar.Att_2016{i0_agrar_share})
             GDP_share_agrar.Att_2016{i0_agrar_share} = GDP_share_agrar.Att_2015{i0_agrar_share};
         end
+        if isequal(GDP_share_agrar.Att_2016{i0_agrar_share},'NaN') || isnan(GDP_share_agrar.Att_2016{i0_agrar_share})
+            GDP_share_agrar.Att_2016{i0_agrar_share} = 0.1;
+            warning('No GDP agriculture share found, factor set to 0.1')
+        end
     end
     %% Distribute GDP to gridpoints
     GDP_admin0_ref = GDP_admin0.year2016(i0_GDP); % from worldbank

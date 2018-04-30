@@ -32,8 +32,9 @@ function [country_LitPop,country_idx,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_c
 % MODIFICATION HISTORY:
 % Dario Stocker, dario.stocker@gmail.com, 2018, init
 % Dario Stocker, dario.stocker@gmail.com, 20180406, add flexible target_res
-% Dario Stocker, dario.stocker@gmail.com, 20180425, implements
-%   climada_shape_mask for speed imporvement.
+% Dario Stocker, dario.stocker@gmail.com, 20180425, implements climada_shape_mask for speed improvement.
+% Samuel Eberenz, eberenz@posteo.eu, 20180430, results of climada_LitPop_import written to variable glb_litpop
+%   
 %%%
 
 % import/setup global variables
@@ -143,7 +144,7 @@ if ~exist(LitPop_data_path,'file')
             end
         case 'Generate LitPopulatoin Data'
             fprintf('LitPopulation is created. This may take a while.\n');
-            [LitPopulation,gpw_index,gpw_lon,gpw_lat]=climada_LitPop_import([],target_res);    
+            [glb_litpop.LitPopulation,glb_litpop.gpw_index,glb_litpop.gpw_lon,glb_litpop.gpw_lat]=climada_LitPop_import([],target_res);    
         otherwise
             fprintf('Operation aborted by user.\n')
             return;

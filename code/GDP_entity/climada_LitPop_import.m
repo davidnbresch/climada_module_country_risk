@@ -7,7 +7,7 @@ function [LitPopulation, gpw_index, gpw_lon, gpw_lat] = climada_LitPop_import(so
 %     This script imports the data from the files of the blackmarble nightlight
 %     and the Gridded Population of the World (GPW) products and creates a global "Litpouplation" product.
 %     The Litpopulation method is derived from: Zhao, N., Liu, Y., Cao, G., Samson, E. L., & Zhang, J. (2017).
-%     "Forecasting China’s GDP at the pixel level using nighttime lights time series and population images". GIScience & Remote Sensing, 54(3), 407-425.
+%     "Forecasting China?s GDP at the pixel level using nighttime lights time series and population images". GIScience & Remote Sensing, 54(3), 407-425.
 % 
 %     Please download the following datasets first:
 %     - Blackmarble: Full Resolution (500m / 15 arc-sec) By Region - 2016 Grayscale"
@@ -64,8 +64,9 @@ function [LitPopulation, gpw_index, gpw_lon, gpw_lat] = climada_LitPop_import(so
 %       In a way the inversion operation of gpw_index.
 %   gpw_lon: The same as gpw_lat, but for longitudes.
 
-% Thomas Röösli, thomas.roeoesli@usys.ethz.ch, initial Blackmarble script
+% Thomas Roosli, thomas.roeoesli@usys.ethz.ch, initial Blackmarble script
 % Dario Stocker, dario.stocker@gmail.com, 201803, adapted from Blackmarble to "LitPopulation"
+% Samuel Eberenz, eberenz@posteo.eu, 20180430, changed filename for save from GPW_BM_LitPopulation30arcsec.mat to GPW_BM_LitPopulation_300arcsec.mat
 
 
 
@@ -282,7 +283,7 @@ eval(['gpw_index = @(lat_min,lat_max,lon_min,lon_max)(uint32(interp1([1 2], [lin
 
 if ~save_flag==0
     module_data_dir=[fileparts(fileparts(which('centroids_generate_hazard_sets'))) filesep 'data'];
-    save([module_data_dir filesep 'GPW_BM_LitPopulation', num2str(target_res), 'arcsec.mat'],'LitPopulation','gpw_lat','gpw_lon','gpw_index','-v7.3');
+    save([module_data_dir filesep 'GPW_BM_LitPopulation_', num2str(target_res), 'arcsec.mat'],'LitPopulation','gpw_lat','gpw_lon','gpw_index','-v7.3');
 end
 
 % plot a sample of the map (every 50th point)
