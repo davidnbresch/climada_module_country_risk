@@ -80,6 +80,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Dario Stocker, dario.stocker@gmail.com, 20180405, Bugs fixed, adaptations for usage from climada_LitPop_country.m
 % Dario Stocker, dario.stocker@gmail.com, 20180418, adaptations for usage with climada_shape_mask
 % Samuel Eberenz, eberenz@posteo.eu, 20180425, clean up & debug in case no admin1 spreadsheet is provided, improve encoding option
+% Samuel Eberenz, eberenz@posteo.eu, 20180430, target resolution added to name of result file
 %-
 
 % import/setup global variables
@@ -189,9 +190,9 @@ end
 % OUTPUT: Set defaults for Output filenames
 if ~isfield(parameters,'output_entity_file')
     if parameters.save_as_entity_file
-        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016.mat']; % saved to entity folder
+        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec.mat']; % saved to entity folder
         if parameters.mainLand
-            parameters.output_entity_file = [admin0_ISO3 'mainLand_GDP_LitPop_BM2016.mat'];
+            parameters.output_entity_file = [admin0_ISO3 'mainLand_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec.mat']; % saved to entity folder
         end  
     end
     if parameters.save_as_entity_file && parameters.debug_mode
@@ -199,10 +200,10 @@ if ~isfield(parameters,'output_entity_file')
     end
 end
 if parameters.save_admin0 && ~exist('parameters.output_admin0_file','var')
-    parameters.output_admin0_file = [GSDP_folder_path filesep admin0_ISO3 '_GDP_LitPop_grid.mat'];
+    parameters.output_admin0_file = [GSDP_folder_path filesep admin0_ISO3 '_GDP_LitPop_grid_', num2str(parameters.target_res), 'arcsec.mat'];
 end
 if parameters.save_admin1 && ~exist('parameters.output_admin1_file','var')
-    parameters.output_admin1_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP_LitPop_admin1.mat'];
+    parameters.output_admin1_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP_LitPop_admin1_', num2str(parameters.target_res), 'arcsec.mat'];
 end
 
 %% Loading data
