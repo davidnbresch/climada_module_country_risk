@@ -81,6 +81,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Dario Stocker, dario.stocker@gmail.com, 20180418, adaptations for usage with climada_shape_mask
 % Samuel Eberenz, eberenz@posteo.eu, 20180425, clean up & debug in case no admin1 spreadsheet is provided, improve encoding option
 % Samuel Eberenz, eberenz@posteo.eu, 20180430, target resolution added to name of result file
+% Samuel Eberenz, eberenz@posteo.eu, 20180516, xlsread in silent mode
 %-
 
 % import/setup global variables
@@ -238,7 +239,7 @@ else
     end
 end
 
-GDP_admin0 = climada_xlsread(0,GDP_admin0_file,'world_GDP_current');
+GDP_admin0 = climada_xlsread(0,GDP_admin0_file,'world_GDP_current',1);
 if parameters.do_agrar
     try
         load(GDP_agrar_admin0_file); % GDP_share_agrar (variable)
