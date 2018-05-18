@@ -45,6 +45,9 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %   parameters: struct with the following fields:
 %      target_res: Integer, with target resolution in arc-seconds (Default: 30)
 %           possible values: 30 60 120 300 600 3600
+%      reference_year (Default= 2016): this year defines which total GDP value
+%           is distributed. It does not affect. the data sources of
+%           nightlight or population
 %      admin0_calc (Default= 1); % Distribute national GDP (admin0) to grid (requires GDP per country)
 %      admin1_calc (Default= 1); % Distribute sub-national GDP (admin1) to grid (requires G(S)DP per admin0)
 %      admin1_calc_inherit_admin0 (Default = 0); % Use distribution from admin0_calc
@@ -82,6 +85,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180425, clean up & debug in case no admin1 spreadsheet is provided, improve encoding option
 % Samuel Eberenz, eberenz@posteo.eu, 20180430, target resolution added to name of result file
 % Samuel Eberenz, eberenz@posteo.eu, 20180516, xlsread in silent mode
+% Samuel Eberenz, eberenz@posteo.eu, 20180517, flexible reference_year for GDP + better handling of missing GDP values
 %-
 
 % import/setup global variables
@@ -95,6 +99,7 @@ if ~exist('admin0_name','var'),error('Missing input. Please provide country name
 if ~exist('parameters','var'), parameters=struct; end
 % parameters
 if ~isfield(parameters,'target_res'), parameters.target_res = 30;end
+if ~isfield(parameters,'reference_year'), parameters.reference_year = 2016;end
 if ~isfield(parameters,'admin0_calc'), parameters.admin0_calc = 1;end
 if ~isfield(parameters,'admin1_calc'), parameters.admin1_calc = 1;end
 if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 0;end
@@ -179,7 +184,8 @@ GSDP_folder_path = [Input_path filesep 'GSDP']; %
 
 admin1_GSDP_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP.xls']; % Spreadsheet needs 1 column named 'State_Province' and 1 named 'GSDP_ref'
 admin1_mapping_file = [GSDP_folder_path filesep admin0_ISO3 '_GSDP_admin1_mapping.xls']; % mapping of admin1 names
-GDP_admin0_file = [GSDP_folder_path filesep 'World_GDP_current_WDI_2015-2016'];
+% GDP_admin0_file = [GSDP_folder_path filesep 'World_GDP_current_WDI_2015-2016'];
+GDP_admin0_file = [climada_global.modules_dir filesep 'country_risk' filesep 'data' filesep 'World_GDP_current.xls'];
 % litpop_file = [climada_global.entities_dir filesep 'GPW_BM_' admin0_ISO3 '_LitPopulation']; % gridded LitPop
 admin1_shape_file = [Input_path filesep 'ne_10m_admin_1_states_provinces' filesep 'ne_10m_admin_1_states_provinces.mat'];
 
@@ -305,7 +311,7 @@ admin1_adm1_cod_1 = {shapes.adm1_cod_1};
 
 %% distribute national GDP to grid points
 if parameters.admin0_calc
-    tic
+    % tic
     % find grid points inside country's polygon
     % shapes.BoundingBox = [Lon_min, Lat_min; Lon_max, Lat_max];
     if parameters.do_agrar
@@ -321,7 +327,7 @@ if parameters.admin0_calc
     end
     % IN0_litpop = climada_inpolygon(litpop.lon,litpop.lat,admin0_shapes(i0).X,admin0_shapes(i0).Y,0); % only if not cut out already
     IN0_litpop = ones(size(litpop.lon));
-    toc
+    % toc
     %% isolate gridpoints inside polygon
     if parameters.do_agrar
     % admin0_agriculture = GLB_agriculture;
@@ -350,12 +356,33 @@ if parameters.admin0_calc
         end
     end
     %% Distribute GDP to gridpoints
-    GDP_admin0_ref = GDP_admin0.year2016(i0_GDP); % from worldbank
-    GDP_admin0_ref =     GDP_admin0_ref(1);    
-    if GDP_admin0_ref==0, GDP_admin0_ref = 1;warning('No GDP value found; GDP is set to 1');
-    elseif isnan(GDP_admin0_ref),GDP_admin0_ref = 1;warning('No GDP value found; GDP is set to 1');
-    end
+    GDP_admin0_ref = GDP_admin0.(['year' num2str(parameters.reference_year)])(i0_GDP); % from worldbank
+    GDP_admin0_ref =     GDP_admin0_ref(1);
+    tt = 1;
     
+    while isnan(GDP_admin0_ref) && tt<(parameters.reference_year-1961)
+        GDP_admin0_ref = GDP_admin0.(['year' num2str(parameters.reference_year-tt)])(i0_GDP); % from worldbank
+        GDP_admin0_ref = GDP_admin0_ref(1)*(1.02^tt);
+        if ~isnan(GDP_admin0_ref)
+            disp(['Warning for ' admin0_name ': No GDP value found for ' num2str(parameters.reference_year) '. Took GDP of ' num2str(parameters.reference_year-tt) ' instead and inflated it by 2% per year difference.']);
+        else
+            tt=tt+1;
+        end
+    end
+    tt = 1;
+    while isnan(GDP_admin0_ref) && tt<=(2016-parameters.reference_year)
+        GDP_admin0_ref = GDP_admin0.(['year' num2str(parameters.reference_year+tt)])(i0_GDP); % from worldbank
+        GDP_admin0_ref = GDP_admin0_ref(1)*(0.98^tt);
+        if ~isnan(GDP_admin0_ref)
+            disp(['Warning for ' admin0_name ': No GDP value found for ' num2str(parameters.reference_year) '. Took GDP of ' num2str(parameters.reference_year+tt) ' instead and deflated it by 2% per year difference.']);
+        else
+            tt=tt+1;
+        end
+    end
+    clear tt    
+    if GDP_admin0_ref<2 || isnan(GDP_admin0_ref), GDP_admin0_ref = 1;warning([admin0_name ': No valid GDP value found; GDP is set to 1(!)']);
+    end
+    %%
     % 100% GDP distributed linearly to LitPopulation:
     admin0.GDP.FromLitPop = admin0.litpop.Norm .* GDP_admin0_ref ;
     
@@ -406,7 +433,7 @@ if parameters.admin1_calc
             if ~isempty(admin1_names{i1(i)})
                 % Sum inside polygon of state/ province and sum grid point data
                 % to get GSDP:
-                tic;
+                % tic;
                 if parameters.do_agrar
                     in_box_agrar = find(admin0.agriculture.assets.lon>=shapes(i1(i)).BoundingBox(1,1) &...
                                admin0.agriculture.assets.lon<=shapes(i1(i)).BoundingBox(2,1) &...
@@ -459,7 +486,7 @@ if parameters.admin1_calc
                 end
 
                 clear IN_* IDX_LitPop
-                toc
+                % toc
             else
                 admin1.GSDP_FromLitPop(i) = NaN;
                 admin1.GSDP_FromLitPop_admin1(i) = NaN;
@@ -473,11 +500,11 @@ if parameters.admin1_calc
 
         end
     catch ME
-        warning('climada_xlsread failed. Either for technical reasons (java?) or missing file(s): admin1_GSDP_file, admin1_mapping_file');
+        disp('Warning: climada_xlsread failed for GSDP. Either for technical reasons (java?) or missing file(s): admin1_GSDP_file, admin1_mapping_file');
         %       warning([admin0_name ': Import of state/ province level GDP (GSDP) not yet implemented for this country! Please implement if required.']);
-        display(ME.identifier)
+        % display(ME.identifier)
         display(ME.message)
-        warning('admin1 was not calculated.')
+        display('admin1 was not calculated.')
         parameters.admin1_calc=0;
         parameters.save_admin1=0;
     end
@@ -505,7 +532,7 @@ end
 
 entity = climada_entity_load('entity_template_ADVANCED.mat');
 
-entity.assets.reference_year = 2016;
+entity.assets.reference_year = parameters.reference_year;
 
 entity.assets.GDPtotal=GDP_admin0_ref;
 entity.assets.lon = admin0.litpop.lon';
@@ -546,9 +573,9 @@ end
 if parameters.save_as_entity_file
     disp(['Writing to entity file: ' parameters.output_entity_file]);
     entity.assets.filename = parameters.output_entity_file; 
-    tic
+    % tic
     save([climada_global.entities_dir filesep parameters.output_entity_file],'entity','-v7.3')
-    toc
+    % toc
 end
 
 if parameters.make_plot
