@@ -197,7 +197,7 @@ end
 % OUTPUT: Set defaults for Output filenames
 if ~isfield(parameters,'output_entity_file')
     if parameters.save_as_entity_file
-        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec.mat']; % saved to entity folder
+        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec_ry' num2str(parameters.reference_year) '.mat']; % saved to entity folder
         if parameters.mainLand
             parameters.output_entity_file = [admin0_ISO3 'mainLand_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec.mat']; % saved to entity folder
         end  
