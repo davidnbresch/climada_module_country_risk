@@ -86,6 +86,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180430, target resolution added to name of result file
 % Samuel Eberenz, eberenz@posteo.eu, 20180516, xlsread in silent mode
 % Samuel Eberenz, eberenz@posteo.eu, 20180517, flexible reference_year for GDP + better handling of missing GDP values
+% Samuel Eberenz, eberenz@posteo.eu, 20180531, debugged for admin1, normalizing admin1 total GDP to admin0 (worldbank)
 %-
 
 % import/setup global variables
@@ -102,7 +103,7 @@ if ~isfield(parameters,'target_res'), parameters.target_res = 30;end
 if ~isfield(parameters,'reference_year'), parameters.reference_year = 2016;end
 if ~isfield(parameters,'admin0_calc'), parameters.admin0_calc = 1;end
 if ~isfield(parameters,'admin1_calc'), parameters.admin1_calc = 1;end
-if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 0;end
+if ~isfield(parameters,'admin1_calc_inherit_admin0'), parameters.admin1_calc_inherit_admin0 = 1;end
 if ~isfield(parameters,'do_agrar'), parameters.do_agrar = 0;end
 if ~isfield(parameters,'make_plot'), parameters.make_plot = 0;end
 if ~isfield(parameters,'save_as_entity_file'), parameters.save_as_entity_file = 1;end
@@ -113,11 +114,11 @@ if ~isfield(parameters,'debug_mode'), parameters.debug_mode = 0;end;
 if ~isfield(parameters,'hazard_file'), parameters.hazard_file = [];end;
 if ~isfield(parameters,'max_encoding_distance_m'), parameters.max_encoding_distance_m = climada_global.max_encoding_distance_m;end;
 
-if parameters.admin1_calc_inherit_admin0 == 1 && (parameters.admin0_calc + parameters.admin1_calc) <2
-    parameters.admin0_calc=1;
-    parameters.admin1_calc=1;
-    fprintf('Parameter admin1_calc_inherit is set to one. Automatically adjusted some other neccessary paramters.\n');
-end
+% if parameters.admin1_calc_inherit_admin0 == 1 && (parameters.admin0_calc + parameters.admin1_calc) <2
+%     parameters.admin0_calc=1;
+%     parameters.admin1_calc=1;
+%     fprintf('Parameter admin1_calc_inherit is set to one. Automatically adjusted some other neccessary paramters.\n');
+% end
 if parameters.admin1_calc~=1
     parameters.save_admin1=0;
     fprintf('Parameter save_admin1 is set =0.\n');
@@ -142,10 +143,10 @@ admin0_shape_file = [Input_path filesep 'ne_10m_admin_0_countries' filesep 'ne_1
 module_data_dir=[fileparts(fileparts(which('centroids_generate_hazard_sets'))) filesep 'data'];
 % get the admin0 boundaries (countries)
 if exist(admin0_shape_file,'file')
-    admin0_shapes=climada_shaperead(admin0_shape_file); % read the admin1 shapes
+    admin0_shapes=climada_shaperead(admin0_shape_file); % read the admin0 shapes
     n_shapes_admin0=length(admin0_shapes);
 else
-    fprintf('ERROR: admin0 shape file %s not found, aborted\n',admin1_shape_file);
+    fprintf('ERROR: admin0 shape file %s not found, aborted\n',admin0_shape_file);
     fprintf('download from www.naturalearthdata.com\n');
     fprintf('and store in %s\n',module_data_dir);
     return
@@ -288,6 +289,21 @@ end
 % list of admin1 with GSPD:
 idx = ~cellfun('isempty',strfind({shapes.adm0_a3},admin0_ISO3));
 i1 = find(idx==1); 
+if isequal(admin0_ISO3,'PHL')
+    for i = 1:length(i1)
+        if  isequal(shapes(i1(i)).type_en,'Highly Urbanized City') && ...
+                (isequal(shapes(i1(i)).name,'Cebu') || isequal(shapes(i1(i)).name,'Iloilo')...
+                || isequal(shapes(i1(i)).name,'Isabela') || isequal(shapes(i1(i)).name,'Cotabato'))
+            idx(i1(i))=0;
+            disp(['excluded admin1 ' shapes(i1(i)).name '(' shapes(i1(i)).type_en ')']); % because name same as province, treated together
+        end
+    end
+    i1 = find(idx==1); 
+elseif isequal(admin0_ISO3,'JPN')
+    shapes(2047).name=shapes(2047).name_alt; % 'Hiogo'
+end
+
+
 if parameters.debug_mode, i1=i1(min(5,length(i1)));end % only process one single admin1
 % find index of country (admin0 )
 %idx = ~cellfun('isempty',strfind({admin0_shapes.ISO_A3},admin0_ISO3)); %
@@ -339,8 +355,9 @@ if parameters.admin0_calc
     end
     admin0.litpop.lon = litpop.lon(IN0_litpop==1);
     admin0.litpop.lat = litpop.lat(IN0_litpop==1);
+    admin0.litpop.index = litpop.(country_index_varname)(IN0_litpop==1);
     admin0.litpop.Value = litpop.([admin0_ISO3 '_LitPopulation'])(IN0_litpop==1);
-    litpop = rmfield(litpop,{[admin0_ISO3 '_LitPopulation'],[admin0_ISO3 '_ind'],'lat','lon'});
+    %litpop = rmfield(litpop,{[admin0_ISO3 '_LitPopulation'],[admin0_ISO3 '_ind'],'lat','lon'});
     admin0.litpop.Norm = admin0.litpop.Value./sum(admin0.litpop.Value(:));
     
     %% find country in GDP structs:
@@ -357,7 +374,7 @@ if parameters.admin0_calc
     end
     %% Distribute GDP to gridpoints
     GDP_admin0_ref = GDP_admin0.(['year' num2str(parameters.reference_year)])(i0_GDP); % from worldbank
-    GDP_admin0_ref =     GDP_admin0_ref(1);
+    GDP_admin0_ref = GDP_admin0_ref(1);
     tt = 1;
     
     while isnan(GDP_admin0_ref) && tt<(parameters.reference_year-1961)
@@ -386,8 +403,8 @@ if parameters.admin0_calc
     % 100% GDP distributed linearly to LitPopulation:
     admin0.GDP.FromLitPop = admin0.litpop.Norm .* GDP_admin0_ref ;
     
-    % GDP without agriculture distributed linearly to LitPopulation:
     if parameters.do_agrar
+        % GDP without agriculture distributed linearly to LitPopulation:
         admin0.GDP.FromLitPop_minus_agrar = admin0.litpop.Norm .* ...
             (GDP_admin0_ref * (1-GDP_share_agrar.Att_2016{i0_agrar_share}));
 
@@ -403,111 +420,148 @@ end
 
 if parameters.admin1_calc
     try
-        admin1.mapping = climada_xlsread(0,admin1_mapping_file);
         admin1.GSDP = climada_xlsread(0,admin1_GSDP_file);
-        admin1.GSDP.Norm = admin1.GSDP.GSDP_ref / nansum(admin1.GSDP.GSDP_ref(end));
-
-
-        %% Prepare result vectors
-        admin1.GSDP_FromLitPop = zeros(size(i1))';
-        if parameters.do_agrar
-            admin1.GSDP_FromLitPop_minus_agrar = admin1.GSDP_FromLitPop;
-            admin1.GSDP_FromAgrar = admin1.GSDP_FromLitPop;
-        end
-        admin1.GSDP_Reference = admin1.GSDP_FromLitPop;
-        admin1.name = cell(size(i1))';
-        if parameters.admin1_calc
-            admin1.GSDP_FromLitPop_admin1 = admin1.GSDP_FromLitPop;
-            if parameters.admin1_calc_inherit_admin0
-                admin0.GDP.FromLitPop_admin1 = admin0.GDP.FromLitPop;
-            else
-                admin0.GDP.FromLitPop_admin1 = zeros(size(admin0.GDP.FromLitPop)); % admin0 GDP-grid for redistribution according to admin1-GSDP
-            end
-        end
-
-        %% Loop through admin1
-
-        for i = 1:length(i1)
-            display(admin1_names{i1(i)});
-            admin1.name{i} = admin1_names{i1(i)};
-            if ~isempty(admin1_names{i1(i)})
-                % Sum inside polygon of state/ province and sum grid point data
-                % to get GSDP:
-                % tic;
-                if parameters.do_agrar
-                    in_box_agrar = find(admin0.agriculture.assets.lon>=shapes(i1(i)).BoundingBox(1,1) &...
-                               admin0.agriculture.assets.lon<=shapes(i1(i)).BoundingBox(2,1) &...
-                               admin0.agriculture.assets.lat>=shapes(i1(i)).BoundingBox(1,2) &...
-                               admin0.agriculture.assets.lat<=shapes(i1(i)).BoundingBox(2,2));
-
-                    IN_agrar  = climada_inpolygon(admin0.agriculture.assets.lon(in_box_agrar),admin0.agriculture.assets.lat(in_box_agrar),shapes(i1(i)).X,shapes(i1(i)).Y,0);
-                end
-                in_box = find(admin0.litpop.lon>=shapes(i1(i)).BoundingBox(1,1) &...
-                               admin0.litpop.lon<=shapes(i1(i)).BoundingBox(2,1) &...
-                               admin0.litpop.lat>=shapes(i1(i)).BoundingBox(1,2) &...
-                               admin0.litpop.lat<=shapes(i1(i)).BoundingBox(2,2));
-                if parameters.admin1_calc
-                    % IN_litpop = climada_inpolygon(admin0.litpop.lon(in_box),admin0.litpop.lat(in_box),shapes(i1(i)).X,shapes(i1(i)).Y,0);
-                    [IDX_LitPop, IN_litpop] = climada_shape_mask(shapes(i1(i)),[],parameters.target_res,litpop.gpw_index,litpop.gpw_lon,litpop.gpw_lat,0);
-                end
-
-                % Find admin1 in mapping of GSDP data:
-                switch admin0_ISO3
-                    case 'CHE'
-                        i1_GSDP = find(~cellfun('isempty',strfind(admin1.mapping.adm1_cod_1,admin1_adm1_cod_1{i1(i)}))==1); 
-                    otherwise
-                        i1_GSDP = find(~cellfun('isempty',strfind(admin1.mapping.admin1,admin1_names{i1(i)}))==1);  
-                end
-                admin1_name_GSDP = admin1.mapping.gov{i1_GSDP};
-                if ~isnan(admin1_name_GSDP)
-
-                    i1_GSDP = strcmp(admin1.GSDP.State_Province,admin1_name_GSDP);                   
-                    admin1.GSDP_Reference(i) = admin1.GSDP.Norm(i1_GSDP).*GDP_admin0_ref; % multiply normalized GSDP with reference admin0 GDP
-                else
-                    admin1.GSDP_Reference(i) = NaN;
-                end
-                if parameters.admin1_calc
-                    litpop_tmp = admin0.litpop.Value;
-                    litpop_tmp(IDX_LitPop) = litpop_tmp(IDX_LitPop)/nansum(litpop_tmp(IDX_LitPop)); % normalized by admin1 level
-                    if round(full(nansum(litpop_tmp(IDX_LitPop))).*1e9)~=1e9      
-                        warning('nansum(litpop_tmp(in_box(IN_litpop==1))) is not equal to 1. Normalization failed.')
-                    else % distribute GSDP to gridpoints in state/ province (admin1): 
-                        admin0.GDP.FromLitPop_admin1(IDX_LitPop) = litpop_tmp(IDX_LitPop).*admin1.GSDP_Reference(i); % multiply by reference GSDP
-                    end
-                    clear litpop_tmp
-                    admin1.GSDP_FromLitPop_admin1(i) = sum(admin0.GDP.FromLitPop_admin1(IDX_LitPop));
-                    admin1.GSDP_FromLitPop(i) = sum(admin0.GDP.FromLitPop(IDX_LitPop));
-                end
-                % Test sum: summing up gridpoints over one admin1 (=GSDP):
-
-                if parameters.do_agrar && parameters.admin1_calc
-                    admin1.GSDP_FromLitPop_minus_agrar(i) = sum(admin0.GDP.FromLitPop_minus_agrar(IDX_LitPop));
-                    admin1.GSDP_FromAgrar(i) = sum(admin0.GDP.FromAgrar(in_box_agrar(IN_agrar==1)));   
-                end
-
-                clear IN_* IDX_LitPop
-                % toc
-            else
-                admin1.GSDP_FromLitPop(i) = NaN;
-                admin1.GSDP_FromLitPop_admin1(i) = NaN;
-                if parameters.do_agrar
-                    admin1.GSDP_FromLitPop_minus_agrar(i) = NaN;
-                    admin1.GSDP_FromAgrar(i) = NaN;
-                end
-
-
-            end
-
+        if exist(admin1_mapping_file,'file')
+            admin1.mapping = climada_xlsread(0,admin1_mapping_file);
+            admin1_mapping=1;
+        else
+            admin1.mapping.admin1 = admin1.GSDP.State_Province;
+            admin1.mapping.gov = admin1.mapping.admin1;
+            admin1_mapping=0;
         end
     catch ME
         disp('Warning: climada_xlsread failed for GSDP. Either for technical reasons (java?) or missing file(s): admin1_GSDP_file, admin1_mapping_file');
         %       warning([admin0_name ': Import of state/ province level GDP (GSDP) not yet implemented for this country! Please implement if required.']);
         % display(ME.identifier)
         display(ME.message)
+        ME.stack(end).line
         display('admin1 was not calculated.')
         parameters.admin1_calc=0;
         parameters.save_admin1=0;
     end
+end
+if parameters.admin1_calc
+    admin1.GSDP.Norm = admin1.GSDP.GSDP_ref / nansum(admin1.GSDP.GSDP_ref);
+    
+    
+    %% Prepare result vectors for GDP distribution on admin1 level
+    admin1.GSDP_FromLitPop = zeros(size(i1))';
+    if parameters.do_agrar
+        admin1.GSDP_FromLitPop_minus_agrar = admin1.GSDP_FromLitPop;
+        admin1.GSDP_FromAgrar = admin1.GSDP_FromLitPop;
+    end
+    admin1.GSDP_Reference = NaN.*admin1.GSDP_FromLitPop;
+    admin1.name = cell(size(i1))';
+    if parameters.admin1_calc
+        admin1.GSDP_FromLitPop_admin1 = admin1.GSDP_FromLitPop;
+        if parameters.admin1_calc_inherit_admin0
+            admin0.GDP.FromLitPop_admin1 = admin0.GDP.FromLitPop;
+        else
+            admin0.GDP.FromLitPop_admin1 = zeros(size(admin0.GDP.FromLitPop)); % admin0 GDP-grid for redistribution according to admin1-GSDP
+        end
+    end
+    
+    %% Loop through admin1 and distribute GDP
+    for i = 1:length(i1)
+        %%
+        display(admin1_names{i1(i)});
+        admin1.name{i} = admin1_names{i1(i)};
+        if ~isempty(admin1_names{i1(i)})
+            % Sum inside polygon of state/ province and sum grid point data
+            % to get GSDP:
+            % tic;
+            if parameters.do_agrar
+                in_box_agrar = find(admin0.agriculture.assets.lon>=shapes(i1(i)).BoundingBox(1,1) &...
+                    admin0.agriculture.assets.lon<=shapes(i1(i)).BoundingBox(2,1) &...
+                    admin0.agriculture.assets.lat>=shapes(i1(i)).BoundingBox(1,2) &...
+                    admin0.agriculture.assets.lat<=shapes(i1(i)).BoundingBox(2,2));
+                
+                IN_agrar  = climada_inpolygon(admin0.agriculture.assets.lon(in_box_agrar),admin0.agriculture.assets.lat(in_box_agrar),shapes(i1(i)).X,shapes(i1(i)).Y,0);
+            end
+            in_box = find(admin0.litpop.lon>=shapes(i1(i)).BoundingBox(1,1) &...
+                admin0.litpop.lon<=shapes(i1(i)).BoundingBox(2,1) &...
+                admin0.litpop.lat>=shapes(i1(i)).BoundingBox(1,2) &...
+                admin0.litpop.lat<=shapes(i1(i)).BoundingBox(2,2));
+            if parameters.admin1_calc
+                % IN_litpop = climada_inpolygon(admin0.litpop.lon(in_box),admin0.litpop.lat(in_box),shapes(i1(i)).X,shapes(i1(i)).Y,0);
+                [IDX_LitPop, IN_litpop] = climada_shape_mask(shapes(i1(i)),[],parameters.target_res,litpop.gpw_index,litpop.gpw_lon,litpop.gpw_lat,0);
+            end
+            [~,IN_litpop] = ismember(IN_litpop,admin0.litpop.index);
+            IN_litpop(IN_litpop==0)=[];
+            % Find admin1 in mapping of GSDP data:
+            switch admin0_ISO3
+                case 'CHE'
+                    i1_GSDP_mapping = find(~cellfun('isempty',strfind(admin1.mapping.adm1_cod_1,admin1_adm1_cod_1{i1(i)}))==1);
+                otherwise
+                    i1_GSDP_mapping = find(~cellfun('isempty',strfind(admin1.mapping.admin1,admin1_names{i1(i)}))==1);
+                    
+            end
+            try
+                admin1_name_GSDP = admin1.mapping.gov{i1_GSDP_mapping};
+            catch
+                admin1_name_GSDP = NaN;
+                disp([admin1_names{i1(i)} ': admin1 entity not found in admin1.mapping.gov. Skipped.']);
+                continue
+            end
+            if ~isnan(admin1_name_GSDP)
+                
+                i1_GSDP = strcmp(admin1.GSDP.State_Province,admin1_name_GSDP);
+                i1_GSDPi = find(i1_GSDP);
+                if length(i1_GSDPi)>1
+                    warning(['i1_GSDPi>1:  double entry of admin1 province in GSDP file.']);
+                    admin1.GSDP.Norm(i1_GSDPi(1))=sum(admin1.GSDP.Norm(i1_GSDPi));
+                    i1_GSDP(i1_GSDPi(2:end))=0;
+                    
+                end
+                admin1.GSDP_Reference(i) = admin1.GSDP.Norm(i1_GSDP).*GDP_admin0_ref; % multiply normalized GSDP with reference admin0 GDP
+            else
+                admin1.GSDP_Reference(i) = NaN;
+            end
+            if parameters.admin1_calc
+                litpop_tmp = admin0.litpop.Value;
+                litpop_tmp(IN_litpop) = litpop_tmp(IN_litpop)/nansum(litpop_tmp(IN_litpop)); % normalized by admin1 level
+                if round(full(nansum(litpop_tmp(IN_litpop))).*1e9)~=1e9
+                    warning([admin1_names{i1(i)} ': Normalization failed.'])
+                    disp(round(full(nansum(litpop_tmp(IN_litpop)))).*1e9)
+                else % distribute GSDP to gridpoints in state/ province (admin1):
+                    admin0.GDP.FromLitPop_admin1(IN_litpop) = litpop_tmp(IN_litpop).*admin1.GSDP_Reference(i); % multiply by reference GSDP
+                end
+                clear litpop_tmp
+                admin1.GSDP_FromLitPop_admin1(i) = sum(admin0.GDP.FromLitPop_admin1(IN_litpop));
+                admin1.GSDP_FromLitPop(i) = sum(admin0.GDP.FromLitPop(IN_litpop));
+            end
+            % Test sum: summing up gridpoints over one admin1 (=GSDP):
+            
+            if parameters.do_agrar && parameters.admin1_calc
+                admin1.GSDP_FromLitPop_minus_agrar(i) = sum(admin0.GDP.FromLitPop_minus_agrar(IN_litpop));
+                admin1.GSDP_FromAgrar(i) = sum(admin0.GDP.FromAgrar(in_box_agrar(IN_agrar==1)));
+            end
+            
+            clear IN_* IDX_LitPop
+            % toc
+        else
+            admin1.GSDP_FromLitPop(i) = NaN;
+            admin1.GSDP_FromLitPop_admin1(i) = NaN;
+            if parameters.do_agrar
+                admin1.GSDP_FromLitPop_minus_agrar(i) = NaN;
+                admin1.GSDP_FromAgrar(i) = NaN;
+            end
+            
+            
+        end
+        %%
+        
+    end
+    % test whether GDP from admin1 sums to total country GDP:
+    %if full(sum(admin0.GDP.FromLitPop_admin1))~=GDP_admin0_ref
+    if round(full(sum(admin0.GDP.FromLitPop_admin1)/GDP_admin0_ref).*1e9)~=1e9    
+        disp('Total GDP mismatch between admin1 and admin0: renormalizating GDP distribution for admin1 entity. Correction by factor:')
+        disp(GDP_admin0_ref/sum(admin0.GDP.FromLitPop_admin1))
+        GDP_admin0_ref
+        sum(admin0.GDP.FromLitPop_admin1)
+        admin0.GDP.FromLitPop_admin1 = GDP_admin0_ref*(admin0.GDP.FromLitPop_admin1./sum(admin0.GDP.FromLitPop_admin1));
+    end
+    
     if parameters.admin1_calc
         admin1.GSDP_Reference_RestOfNation = GDP_admin0_ref - nansum(admin1.GSDP_Reference);
         if parameters.do_agrar
@@ -515,7 +569,7 @@ if parameters.admin1_calc
         end
         % correlation:
         idx_isnan = isnan(admin1.GSDP_Reference) + isnan(admin1.GSDP_FromLitPop);
-
+        
         [admin1.corr_coeff_Ref_LitPop, admin1.corr_pval_Ref_LitPop] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan));
         if parameters.do_agrar
             [admin1.corr_coeff_Ref_LitPop_w_agrar, admin1.corr_pval_Ref_LitPop_w_agrar] = corrcoef(admin1.GSDP_Reference(~idx_isnan),admin1.GSDP_FromLitPop(~idx_isnan)+admin1.GSDP_FromAgrar(~idx_isnan));
@@ -538,7 +592,7 @@ entity.assets.GDPtotal=GDP_admin0_ref;
 entity.assets.lon = admin0.litpop.lon';
 entity.assets.lat = admin0.litpop.lat';
 % entity.assets.litpop = (full(admin0.litpop.Value))';
-if parameters.save_admin1
+if parameters.admin1_calc
     entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
     entity.assets.comment='asset.Value: admin1-level GDP distributed proportionally to Lit Population';
 else

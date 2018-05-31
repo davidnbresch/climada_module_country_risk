@@ -124,6 +124,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20180319, growth_reference_year added
 % David N. Bresch, david.bresch@gmail.com, 20180319, FIX for FL added
 % David N. Bresch, david.bresch@gmail.com, 20180320, FIX for EQ und FF added
+% Samuel Eberenz, eberenz@posteo.eu, 20180531, improved handling of missing GDP data for reference year
 %-
 
 em_data=[]; % init output
@@ -466,7 +467,11 @@ if exposure_growth
             GDP_value=GDP_value(valid_GDP_pos);
             
             reference_year_pos=find(GDP.year==growth_reference_year);
-            if isempty(reference_year_pos),reference_year_pos=length(GDP_value);end
+            if isempty(reference_year_pos) && growth_reference_year<min(GDP.year)
+                reference_year_pos=1;
+            elseif isempty(reference_year_pos)
+                reference_year_pos=length(GDP_value);
+            end
             em_data.growth_reference_year=growth_reference_year;
             
             GDP_factor(GDP.year-year0)=GDP_value(reference_year_pos)./GDP_value;

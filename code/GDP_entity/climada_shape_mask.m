@@ -36,6 +36,8 @@ function [in, idx]=climada_shape_mask(shape,precision,target_res,gpw_index,gpw_l
 %       columns)
 % MODIFICATION HISTORY:
 %  Dario Stocker, dario.stocker@gmail.com, 20180412, initial
+%  Samuel Eberenz, eberenz@posteo.eu, 20180531, improved error handling
+%
 % Additional commment: 
 % For conversion to python regarding poly2mask: see https://github.com/scikit-image/scikit-image/issues/1103
 %-
@@ -443,9 +445,14 @@ end % enclave special treatment
     clearvars in_both in_notout border_region_* country_mask_idx temp_bbox;
     
     %country_LitPopulation=LitPopulation(country_ind);
-    toc;
-catch
+    try
+        toc;
+    end
+catch ME
     %lasterr
+    display(ME.identifier)
+    display(ME.message)
+    disp(ME.stack(end).line)
     error('Error while trying to extract coordinates. Operation aborted.');
 end
 
