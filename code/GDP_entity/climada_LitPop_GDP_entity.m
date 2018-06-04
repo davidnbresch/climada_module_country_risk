@@ -87,6 +87,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180516, xlsread in silent mode
 % Samuel Eberenz, eberenz@posteo.eu, 20180517, flexible reference_year for GDP + better handling of missing GDP values
 % Samuel Eberenz, eberenz@posteo.eu, 20180531, debugged for admin1, normalizing admin1 total GDP to admin0 (worldbank)
+% Samuel Eberenz, eberenz@posteo.eu, 20180604, improved functionality of parameters.admin1_calc_inherit_admin0
 %-
 
 % import/setup global variables
@@ -478,15 +479,15 @@ if parameters.admin1_calc
                 
                 IN_agrar  = climada_inpolygon(admin0.agriculture.assets.lon(in_box_agrar),admin0.agriculture.assets.lat(in_box_agrar),shapes(i1(i)).X,shapes(i1(i)).Y,0);
             end
-            in_box = find(admin0.litpop.lon>=shapes(i1(i)).BoundingBox(1,1) &...
-                admin0.litpop.lon<=shapes(i1(i)).BoundingBox(2,1) &...
-                admin0.litpop.lat>=shapes(i1(i)).BoundingBox(1,2) &...
-                admin0.litpop.lat<=shapes(i1(i)).BoundingBox(2,2));
+            %in_box = find(admin0.litpop.lon>=shapes(i1(i)).BoundingBox(1,1) &...
+            %    admin0.litpop.lon<=shapes(i1(i)).BoundingBox(2,1) &...
+            %    admin0.litpop.lat>=shapes(i1(i)).BoundingBox(1,2) &...
+            %    admin0.litpop.lat<=shapes(i1(i)).BoundingBox(2,2));
             if parameters.admin1_calc
                 % IN_litpop = climada_inpolygon(admin0.litpop.lon(in_box),admin0.litpop.lat(in_box),shapes(i1(i)).X,shapes(i1(i)).Y,0);
-                [IDX_LitPop, IN_litpop] = climada_shape_mask(shapes(i1(i)),[],parameters.target_res,litpop.gpw_index,litpop.gpw_lon,litpop.gpw_lat,0);
+                [~, IN_litpop] = climada_shape_mask(shapes(i1(i)),[],parameters.target_res,litpop.gpw_index,litpop.gpw_lon,litpop.gpw_lat,0);
             end
-            [~,IN_litpop] = ismember(IN_litpop,admin0.litpop.index);
+            [~,IN_litpop] = ismember(IN_litpop,admin0.litpop.index); % transform from global to country specific index
             IN_litpop(IN_litpop==0)=[];
             % Find admin1 in mapping of GSDP data:
             switch admin0_ISO3
@@ -523,8 +524,16 @@ if parameters.admin1_calc
                 if round(full(nansum(litpop_tmp(IN_litpop))).*1e9)~=1e9
                     warning([admin1_names{i1(i)} ': Normalization failed.'])
                     disp(round(full(nansum(litpop_tmp(IN_litpop)))).*1e9)
+                    if parameters.admin1_calc_inherit_admin0
+                        admin0.GDP.FromLitPop_admin1(IN_litpop) = admin0.GDP.FromLitPop(IN_litpop); % inherit from admin0
+                    end
+                        
                 else % distribute GSDP to gridpoints in state/ province (admin1):
-                    admin0.GDP.FromLitPop_admin1(IN_litpop) = litpop_tmp(IN_litpop).*admin1.GSDP_Reference(i); % multiply by reference GSDP
+                    if parameters.admin1_calc_inherit_admin0 && (isnan(admin1.GSDP_Reference(i)) || admin1.GSDP_Reference(i)==0)
+                        admin0.GDP.FromLitPop_admin1(IN_litpop) = litpop_tmp(IN_litpop).*full(sum(admin0.GDP.FromLitPop(IN_litpop))); % multiply by admin0 GDP of grid points
+                    else % best case: insert new numbers for admin1
+                        admin0.GDP.FromLitPop_admin1(IN_litpop) = litpop_tmp(IN_litpop).*admin1.GSDP_Reference(i); % multiply by reference GSDP
+                    end
                 end
                 clear litpop_tmp
                 admin1.GSDP_FromLitPop_admin1(i) = sum(admin0.GDP.FromLitPop_admin1(IN_litpop));
@@ -537,7 +546,7 @@ if parameters.admin1_calc
                 admin1.GSDP_FromAgrar(i) = sum(admin0.GDP.FromAgrar(in_box_agrar(IN_agrar==1)));
             end
             
-            clear IN_* IDX_LitPop
+            clear IN_* 
             % toc
         else
             admin1.GSDP_FromLitPop(i) = NaN;
