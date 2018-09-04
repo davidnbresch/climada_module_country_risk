@@ -311,7 +311,7 @@ if parameters.debug_mode, i1=i1(min(5,length(i1)));end % only process one single
 %Throws error if empty countries are included. Hence new version:
 i0=0;
 
-for admin0_i=1:length(shapes)
+for admin0_i=1:length(admin0_shapes)
     if strcmp(admin0_ISO3,admin0_shapes(admin0_i).ISO_A3)==1
         i0=admin0_i;
         break;
