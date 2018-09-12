@@ -203,7 +203,7 @@ peril_type_match_table={
 %
 % the table with GDP of past years (only used if exposure_growth=1):
 GDP_module_data_dir=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
-GDP_data_file=[GDP_module_data_dir filesep 'World_GDP_current.xls']
+GDP_data_file=[GDP_module_data_dir filesep 'World_GDP_current.xls'];
 %
 % the annotation name in DFC (see below)
 annotation_name='EM-DAT';
@@ -357,7 +357,7 @@ if ~isempty(peril_ID)
      % note that we decided above whether subtype or type will be used,
      % hence peril_match_table is already the required one
     peril_pos=[]; % init
-    size(peril_ID,1) 
+    size(peril_ID,1);
     for peril_i=1:size(peril_ID,1) % we allow for more than one peril here
         one_peril_ID=peril_ID(peril_i,:);
         match_pos=strcmp(peril_match_table(:,1),one_peril_ID);
