@@ -494,7 +494,7 @@ if parameters.admin1_calc
             [~,IN_litpop] = ismember(IN_litpop,admin0.litpop.index); % transform from global to country specific index
             IN_litpop(IN_litpop==0)=[];
             % Find admin1 in mapping of GSDP data:
-            switch admin0_ISO3
+            switch admin0_ISO3 % special treatment of Switzerland
                 case 'CHE'
                     i1_GSDP_mapping = find(~cellfun('isempty',strfind(admin1.mapping.adm1_cod_1,admin1_adm1_cod_1{i1(i)}))==1);
                 otherwise
