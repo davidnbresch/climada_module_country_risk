@@ -125,6 +125,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20180319, FIX for FL added
 % David N. Bresch, david.bresch@gmail.com, 20180320, FIX for EQ und FF added
 % Samuel Eberenz, eberenz@posteo.eu, 20180531, improved handling of missing GDP data for reference year
+% Samuel Eberenz, eberenz@posteo.eu, 20180912, improved handling of double GDP data of country
 %-
 
 em_data=[]; % init output
@@ -202,7 +203,7 @@ peril_type_match_table={
 %
 % the table with GDP of past years (only used if exposure_growth=1):
 GDP_module_data_dir=[fileparts(fileparts(which('climada_create_GDP_entity'))) filesep 'data'];
-GDP_data_file=[GDP_module_data_dir filesep 'World_GDP_current.xls'];
+GDP_data_file=[GDP_module_data_dir filesep 'World_GDP_current.xls']
 %
 % the annotation name in DFC (see below)
 annotation_name='EM-DAT';
@@ -432,7 +433,7 @@ if exposure_growth
         
         country_pos=strmatch(country_ISO3,GDP.iso); % more tolerant a matching
         
-        if length(country_pos)>1,country_pos=[];end % more than one country, resort to CAGR below
+        if length(country_pos)>1,country_pos=country_pos(1);end % more than one country, resort to CAGR below
         
         if ~isempty(country_pos)
             
