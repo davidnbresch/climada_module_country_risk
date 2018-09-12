@@ -70,6 +70,8 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %               provided, the entities are encoded to the centroids of this hazard set.
 %      max_encoding_distance_m: max_encoding distance in meters (see climada_asset_encode.m)
 %      make_plot (Default = 0); % make plots, map of entity and scatter to compare distribution of national GDP to given GSDP (requires admin0_calc and admin1_calc)
+%      damagefunction_Emanuel (Default = 1): Set damage function based
+%           on Emanuel (2011) as standard TC 001 damage function
 % OUTPUTS:
 %       entity: CLIMADA entity struct with asset value based on GDP distributed to
 %           grid points according to LitPop + additional fields depending on
@@ -88,6 +90,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180517, flexible reference_year for GDP + better handling of missing GDP values
 % Samuel Eberenz, eberenz@posteo.eu, 20180531, debugged for admin1, normalizing admin1 total GDP to admin0 (worldbank)
 % Samuel Eberenz, eberenz@posteo.eu, 20180604, improved functionality of parameters.admin1_calc_inherit_admin0
+% Samuel Eberenz, eberenz@posteo.eu, 20180912, added new default damage function based on Emanuel (2011) via parameters.damagefunction_Emanuel
 %-
 
 % import/setup global variables
@@ -114,6 +117,7 @@ if ~isfield(parameters,'mainLand'), parameters.mainLand = 0;end
 if ~isfield(parameters,'debug_mode'), parameters.debug_mode = 0;end;
 if ~isfield(parameters,'hazard_file'), parameters.hazard_file = [];end;
 if ~isfield(parameters,'max_encoding_distance_m'), parameters.max_encoding_distance_m = climada_global.max_encoding_distance_m;end;
+if ~isfield(parameters,'damagefunction_Emanuel'), parameters.damagefunction_Emanuel = 1;end;
 
 % if parameters.admin1_calc_inherit_admin0 == 1 && (parameters.admin0_calc + parameters.admin1_calc) <2
 %     parameters.admin0_calc=1;
@@ -594,6 +598,12 @@ end
 %% Creating entity file
 
 entity = climada_entity_load('entity_template_ADVANCED.mat');
+
+% change damage function TC 001:
+if parameters.damagefunction_Emanuel
+    entity.damagefunctions = climada_tc_damagefun_emanuel2011(entity.damagefunctions,25.7,25.7+49,1.,1,[],[],0);
+end
+    
 
 entity.assets.reference_year = parameters.reference_year;
 
