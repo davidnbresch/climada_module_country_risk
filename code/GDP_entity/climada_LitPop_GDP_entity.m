@@ -72,6 +72,11 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 %      make_plot (Default = 0); % make plots, map of entity and scatter to compare distribution of national GDP to given GSDP (requires admin0_calc and admin1_calc)
 %      damagefunction_Emanuel (Default = 1): Set damage function based
 %           on Emanuel (2011) as standard TC 001 damage function
+%      asset_mode (Default = 'GDP'), which value to use to estimate total asset value of a country:
+%               - 'GDP': Gross Domestic Product (Source: World Bank)
+%               - 'NFW': Non-financial Wealth (Source: Credit Suisse 2017 / World Bank)
+%               - 'TOW': Total Financial Wealth (Source: Credit Suisse 2017 / World Bank)
+%               
 % OUTPUTS:
 %       entity: CLIMADA entity struct with asset value based on GDP distributed to
 %           grid points according to LitPop + additional fields depending on
@@ -91,6 +96,7 @@ function entity = climada_LitPop_GDP_entity(admin0_name, parameters)
 % Samuel Eberenz, eberenz@posteo.eu, 20180531, debugged for admin1, normalizing admin1 total GDP to admin0 (worldbank)
 % Samuel Eberenz, eberenz@posteo.eu, 20180604, improved functionality of parameters.admin1_calc_inherit_admin0
 % Samuel Eberenz, eberenz@posteo.eu, 20180912, added new default damage function based on Emanuel (2011) via parameters.damagefunction_Emanuel
+% Samuel Eberenz, eberenz@posteo.eu, 20180912, option to chose wealth instead of GDP (asset_mode)
 %-
 
 % import/setup global variables
@@ -118,6 +124,7 @@ if ~isfield(parameters,'debug_mode'), parameters.debug_mode = 0;end;
 if ~isfield(parameters,'hazard_file'), parameters.hazard_file = [];end;
 if ~isfield(parameters,'max_encoding_distance_m'), parameters.max_encoding_distance_m = climada_global.max_encoding_distance_m;end;
 if ~isfield(parameters,'damagefunction_Emanuel'), parameters.damagefunction_Emanuel = 1;end;
+if ~isfield(parameters,'asset_mode'), parameters.asset_mode = 'GDP'; end;
 
 % if parameters.admin1_calc_inherit_admin0 == 1 && (parameters.admin0_calc + parameters.admin1_calc) <2
 %     parameters.admin0_calc=1;
@@ -144,6 +151,7 @@ end
 
 % load shape file (admin0):
 Input_path = [climada_global.modules_dir filesep 'country_risk' filesep 'data'];
+
 admin0_shape_file = [Input_path filesep 'ne_10m_admin_0_countries' filesep 'ne_10m_admin_0_countries.shp'];
 module_data_dir=[fileparts(fileparts(which('centroids_generate_hazard_sets'))) filesep 'data'];
 % get the admin0 boundaries (countries)
@@ -156,6 +164,8 @@ else
     fprintf('and store in %s\n',module_data_dir);
     return
 end
+% get CS factors for asset value conversion
+wealth_file_xls = [Input_path filesep 'asset2GDPConversion_GLB.xls'];
 
 % fetch and present list, if admin0 empty or couldn't be matched
 if isempty(admin0_name)
@@ -203,13 +213,13 @@ end
 % OUTPUT: Set defaults for Output filenames
 if ~isfield(parameters,'output_entity_file')
     if parameters.save_as_entity_file
-        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec_ry' num2str(parameters.reference_year) '.mat']; % saved to entity folder
+        parameters.output_entity_file = [admin0_ISO3 '_' parameters.asset_mode '_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec_ry' num2str(parameters.reference_year) '.mat']; % saved to entity folder
         if parameters.mainLand
-            parameters.output_entity_file = [admin0_ISO3 'mainLand_GDP_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec.mat']; % saved to entity folder
+            parameters.output_entity_file = [admin0_ISO3 'mainLand_' parameters.asset_mode '_LitPop_BM2016_', num2str(parameters.target_res), 'arcsec.mat']; % saved to entity folder
         end  
     end
     if parameters.save_as_entity_file && parameters.debug_mode
-        parameters.output_entity_file = [admin0_ISO3 '_GDP_LitPop_BM2016_DEBUG.mat']; % saved to entity folder
+        parameters.output_entity_file = [admin0_ISO3 '_LitPop_BM2016_DEBUG.mat']; % saved to entity folder
     end
 end
 if parameters.save_admin0 && ~exist('parameters.output_admin0_file','var')
@@ -613,10 +623,10 @@ entity.assets.lat = admin0.litpop.lat';
 % entity.assets.litpop = (full(admin0.litpop.Value))';
 if parameters.admin1_calc
     entity.assets.Value = (full(admin0.GDP.FromLitPop_admin1))';
-    entity.assets.comment='asset.Value: admin1-level GDP distributed proportionally to Lit Population';
+    entity.assets.comment=['asset.Value: admin1-level ' parameters.asset_mode ' distributed proportionally to Lit Population'];
 else
     entity.assets.Value = (full(admin0.GDP.FromLitPop))';
-    entity.assets.comment='asset.Value: admin0-level GDP distributed proportionally to Lit Population';
+    entity.assets.comment=['asset.Value: admin0-level ' parameters.asset_mode ' distributed proportionally to Lit Population'];
 end
 entity.assets.Cover = entity.assets.Value;
 entity.assets.Deductible = 0*entity.assets.Value;
@@ -643,6 +653,32 @@ if isfield(parameters,'hazard_file') && ~isempty(parameters.hazard_file)
         display(ME.message)
     end
 end
+
+% change total asset value according to asset mode
+wealth_ratios = climada_xlsread(0,wealth_file_xls,'Sheet1',0);
+switch parameters.asset_mode
+    case 'GDP'
+        wealth_factor = 1;
+    case 'NFW'
+        wealth_factor = wealth_ratios.AssettoGDPRatio(find(...
+            ~cellfun('isempty',strfind(wealth_ratios.Climada_Country_Code,admin0_ISO3))==1));
+        if isempty(wealth_factor) || isnan(wealth_factor) || wealth_factor<=0
+            wealth_factor = nanmean(wealth_ratios.AssettoGDPRatio);
+        end
+    case 'TOW'
+        wealth_factor = wealth_ratios.WealthtoGDPration(find(...
+            ~cellfun('isempty',strfind(wealth_ratios.Climada_Country_Code,admin0_ISO3))==1));
+        if isempty(wealth_factor) || isnan(wealth_factor) || wealth_factor<=0
+            wealth_factor = nanmean(wealth_ratios.WealthtoGDPration);
+        end
+end
+
+entity.assets.Value = entity.assets.Value * wealth_factor;
+entity.assets.([parameters.asset_mode 'total'])=sum(entity.assets.Value);
+entity.assets.asset_mode = parameters.asset_mode;
+entity.assets.asset2GDP_ration = wealth_factor;
+
+
 if parameters.save_as_entity_file
     disp(['Writing to entity file: ' parameters.output_entity_file]);
     entity.assets.filename = parameters.output_entity_file; 
