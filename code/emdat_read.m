@@ -1,4 +1,4 @@
-function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,verbose_mode,CAGR)
+function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,verbose_mode,CAGR,exposure_growth_countryPOS)
 % climada template
 % MODULE:
 %   country_rsk
@@ -73,17 +73,28 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %       use em_data=emdat_read('','',['FL';'F1';'F2'],1,1);
 %   exposure_growth: =1: correct damage numbers to account for exposure
 %       growth (the field em_data.damage_orig contains the uncorrected numbers
-%       Only works if a single country is requested, i.e. if country_ISO3
-%       is specified. In essence, we calculate the correction factor for
+%       If exposure_growth_countryPOS is 0, this only works if a single country is
+%       requested, i.e. if one country_ISO3 is specified. If
+%       exposure_growth_countryPOS is positive, the exposure growth
+%       correction will be based on the country
+%       country_ISO3{exposure_growth_countryPOS}, which can be useful when
+%       dealing with e.g. Germany and setting country_ISO3={'DEU','DFR'}
+%       and exposure_growth_countryPOS=1.
+%       In essence, we calculate the correction factor for
 %       year i as GDP(today)/GDP(year i)
 %       =0: no correction (default)
 %       =yyyy (e.g. 2005): use this as reference year, see growth_reference_year
 %   verbose_mode: if =1, print list of countries and disaster subtypes that
 %       are returned in em_data. Default=0 (silent)
 %   CAGR: the compound annual growht rate (decimal). If not specified, the
-%       GDP development of thw past is used to index damages, and a CAGR
+%       GDP development of the past is used to index damages, and a CAGR
 %       default is used where no GDP exists (see PARAMETERS section, CAGR set
 %       to 0.02).
+%   exposure_growth_countryPOS: indice stating which country out of the
+%       list provided in country_ISO3 should be used to correct exposure (in
+%       other words, exposure growth correction is based on
+%       country_ISO{exposure_growth_countryPOS}). Default=0 (i.e., no
+%       correction for multiple countries). 
 % OUTPUTS:
 %   em_data, a structure with (for each row/event i, field names converted to lowercase)
 %       filename: the original filename with EM-DAT fata
@@ -126,6 +137,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % David N. Bresch, david.bresch@gmail.com, 20180320, FIX for EQ und FF added
 % Samuel Eberenz, eberenz@posteo.eu, 20180531, improved handling of missing GDP data for reference year
 % Samuel Eberenz, eberenz@posteo.eu, 20180912, improved handling of double GDP data of country
+% Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, exposure_growth_countryPOS added
 %-
 
 em_data=[]; % init output
@@ -143,6 +155,19 @@ if ~exist('peril_ID','var'),peril_ID='';end
 if ~exist('exposure_growth','var'),exposure_growth=0;end
 if ~exist('verbose_mode','var'),verbose_mode=0;end
 if ~exist('CAGR','var'),CAGR=[];end
+if ~exist('exposure_growth_countryPOS','var')
+    exposure_growth_countryPOS=0;
+else
+    % check exposure_growth_countryPOS
+    if exposure_growth && iscell(country_ISO3)
+        if exposure_growth_countryPOS > length(country_ISO3)
+            exposure_growth_countryPOS = 0;
+            fprintf('** EM-DAT warning: exposure growth for multiple countries not possible: exposure_growth_countryPOS is larger than the number of countries provided **')
+        end
+    end
+end
+
+
 
 % locate the module's (or this code's) data folder (usually  afolder
 % 'parallel' to the code folder, i.e. in the same level as code folder)
@@ -431,7 +456,11 @@ if exposure_growth
             save(GDP_data_file_mat,'GDP'); % save for subsequent calls
         end
         
-        country_pos=strmatch(country_ISO3,GDP.iso); % more tolerant a matching
+        if iscell(country_ISO3) && (exposure_growth_countryPOS>0)
+            country_pos=strmatch(country_ISO3{exposure_growth_countryPOS},GDP.iso); % more tolerant a matching
+        else
+            country_pos=strmatch(country_ISO3,GDP.iso); % more tolerant a matching
+        end
         
         if length(country_pos)>1,country_pos=country_pos(1);end % more than one country, resort to CAGR below
         
