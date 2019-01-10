@@ -62,6 +62,7 @@ function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_
 %            checking.
 % MODIFICATION HISTORY:
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190104, initial
+% Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fix in the indentification of existing country in emdat and for country SCG
 %-
 
 global climada_global
@@ -98,8 +99,8 @@ climada_global.emdat_file = emdat_file;
 country_climada =  climada_country_name(country_ISO3);
 if isempty(country_climada)
     % check if any data for that country in EM-DAT
-    emdat_exists=any_em_data(country_ISO3,'');
-    if ~emdat_exists
+    emdat_i=emdat_read(climada_global.emdat_file,country_ISO3);
+    if isempty(emdat_i)
         if verbose_mode,fprintf('Country %s not found in climada_country_name or emdat_read\n',country_ISO3);end
         % reset climada_global if changed
         if ~isempty(emdat_file_global)
@@ -129,8 +130,11 @@ switch country_ISO3
     case 'SCG'
         % Serbia and Montenegro: 1 country until 2006
         sub_countries_ISO3 = {'SCG','SRB','MNE'};
-        [iso3_emdat,changes_list]=check_sub_countries(sub_countries_ISO3,peril_ID,years_range);
         iso3_climada = {'SRB','MNE'};
+        [iso3_emdat_a,changes_list_a]=check_sub_countries(sub_countries_ISO3,peril_ID,years_range);
+        [iso3_emdat_b,changes_list_b] = check_larger_country(country_ISO3,'YUG',peril_ID,years_range);
+        iso3_emdat = union(iso3_emdat_a,iso3_emdat_b);
+        changes_list = max(changes_list_a,changes_list_b);
     case {'MNE','SRB'}
         [iso3_emdat_a,changes_list_a] = check_larger_country(country_ISO3,'SCG',peril_ID,years_range);
         iso3_climada = {country_ISO3};
@@ -237,7 +241,7 @@ data_in = false;
 em_data_i=emdat_read(climada_global.emdat_file,country_ISO3,peril_ID);
 if ~isempty(em_data_i)
     yi = (em_data_i.year >= years_range(1)) & (em_data_i.year <= years_range(2));
-    data_in = any(em_data_i.damage(yi));
+    data_in = any(em_data_i.damage(yi)>0);
 end
 end
 
