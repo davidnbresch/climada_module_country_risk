@@ -93,8 +93,9 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 %   exposure_growth_countryPOS: indice stating which country out of the
 %       list provided in country_ISO3 should be used to correct exposure (in
 %       other words, exposure growth correction is based on
-%       country_ISO{exposure_growth_countryPOS}). Default=0 (i.e., no
-%       correction for multiple countries). 
+%       country_ISO{exposure_growth_countryPOS}). Alternatively, an ISO
+%       code of a country to be used for correction can be given. Default=0
+%       (i.e., no correction for multiple countries).
 % OUTPUTS:
 %   em_data, a structure with (for each row/event i, field names converted to lowercase)
 %       filename: the original filename with EM-DAT fata
@@ -159,11 +160,15 @@ if ~exist('exposure_growth_countryPOS','var')
     exposure_growth_countryPOS=0;
 else
     % check exposure_growth_countryPOS
-    if exposure_growth && iscell(country_ISO3)
-        if exposure_growth_countryPOS > length(country_ISO3)
-            exposure_growth_countryPOS = 0;
-            fprintf('** EM-DAT warning: exposure growth for multiple countries not possible: exposure_growth_countryPOS is larger than the number of countries provided **')
+    if isnumeric(exposure_growth_countryPOS)
+        if exposure_growth && iscell(country_ISO3)
+            if exposure_growth_countryPOS > length(country_ISO3)
+                exposure_growth_countryPOS = 0;
+                fprintf('** EM-DAT warning: exposure growth for multiple countries not possible: exposure_growth_countryPOS is larger than the number of countries provided **')
+            end
         end
+    else
+        exposure_growth_country = exposure_growth_countryPOS;
     end
 end
 
@@ -456,8 +461,17 @@ if exposure_growth
             save(GDP_data_file_mat,'GDP'); % save for subsequent calls
         end
         
-        if iscell(country_ISO3) && (exposure_growth_countryPOS>0)
-            country_pos=strmatch(country_ISO3{exposure_growth_countryPOS},GDP.iso); % more tolerant a matching
+        if iscell(country_ISO3)
+            if isnumeric(exposure_growth_countryPOS)
+                if exposure_growth_countryPOS>0
+                    exposure_growth_country = country_ISO3{exposure_growth_countryPOS};
+                    country_pos=strmatch(exposure_growth_country,GDP.iso); % more tolerant a matching
+                else
+                    country_pos=strmatch(country_ISO3,GDP.iso); % more tolerant a matching
+                end
+            else
+                country_pos=strmatch(exposure_growth_country,GDP.iso); % more tolerant a matching
+            end
         else
             country_pos=strmatch(country_ISO3,GDP.iso); % more tolerant a matching
         end

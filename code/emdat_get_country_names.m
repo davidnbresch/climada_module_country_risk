@@ -63,6 +63,7 @@ function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_
 % MODIFICATION HISTORY:
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190104, initial
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fix in the indentification of existing country in emdat and for country SCG
+% Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fixed order of countries for best chances of correction_growth in emdat_read
 %-
 
 global climada_global
@@ -129,17 +130,17 @@ switch country_ISO3
         iso3_climada = {};
     case 'SCG'
         % Serbia and Montenegro: 1 country until 2006
-        sub_countries_ISO3 = {'SCG','SRB','MNE'};
+        sub_countries_ISO3 = {'SRB','SCG','MNE'};
         iso3_climada = {'SRB','MNE'};
         [iso3_emdat_a,changes_list_a]=check_sub_countries(sub_countries_ISO3,peril_ID,years_range);
         [iso3_emdat_b,changes_list_b] = check_larger_country(country_ISO3,'YUG',peril_ID,years_range);
-        iso3_emdat = union(iso3_emdat_a,iso3_emdat_b);
+        iso3_emdat = union(iso3_emdat_a,iso3_emdat_b,'stable');
         changes_list = max(changes_list_a,changes_list_b);
     case {'MNE','SRB'}
         [iso3_emdat_a,changes_list_a] = check_larger_country(country_ISO3,'SCG',peril_ID,years_range);
         iso3_climada = {country_ISO3};
         [iso3_emdat_b,changes_list_b] = check_larger_country(country_ISO3,'YUG',peril_ID,years_range);
-        iso3_emdat = union(iso3_emdat_a,iso3_emdat_b);
+        iso3_emdat = union(iso3_emdat_a,iso3_emdat_b,'stable');
         changes_list = max(changes_list_a,changes_list_b);
     case {'PSE','PSX'}
         % Palestine: somehow different ISO3 codes
