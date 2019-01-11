@@ -56,14 +56,18 @@ function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_
 %            sub-countries, or to choose a time period to avoid this issue.
 %       -1 = the country was not found in both EM-DAT and
 %            climada_country_name. iso3_all will return country_ISO3.
-%       -2 = the country exists in climada but not in EM-DAT, likely simply
-%            no damage data for that country.
+%       -2 = the country exists in climada but not in EM-DAT, likely either
+%            assume no damage data for that country OR ignore the country.
 %       -3 = the country exists in EM-DAT but not in climada. Needs
 %            checking.
+%       -4 = the country exists in climada and in EM-DAT, but there is not
+%            any entry in EM-DAT with damage>0. Likely either assume no
+%            damage data for that country OR ignore the country.
 % MODIFICATION HISTORY:
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190104, initial
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fix in the indentification of existing country in emdat and for country SCG
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fixed order of countries for best chances of correction_growth in emdat_read
+% Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190111, adding changes_list=-4 to distinguish cases without any EM-DAT entry (changes_list=-2) and those with EM-DAT entries but all without 0 damage (changes_list=-4).
 %-
 
 global climada_global
@@ -125,10 +129,11 @@ switch country_ISO3
             changes_list = 0;
         end
     case 'ANT'
-        % TO DO
+        % best to skip as unclear
         fprintf('** warning in emdat_get_country_names: country ANT not found in climada but is in EM-DAT **\n')
-        iso3_emdat = {'BES','CUW','SXM'};
+        iso3_emdat = {'ANT'};
         iso3_climada = {};
+        changes_list = -3;
     case 'SCG'
         % Serbia and Montenegro: 1 country until 2006
         sub_countries_ISO3 = {'SRB','SCG','MNE'};
@@ -200,13 +205,20 @@ switch country_ISO3
         iso3_climada = {country_ISO3};
     otherwise
         % determine emdat_country_name
-        emdat_exists=any_em_data(country_ISO3,'');
+        emdat_exists=~isempty(emdat_read(climada_global.emdat_file,country_ISO3));
+        emdat_exists_damage=any_em_data(country_ISO3,'');
         if ~emdat_exists
             % country in climada but nothing in EM-DAT
             if verbose_mode,fprintf('Country %s not found in emdat_read, but exists in climada\n',country_ISO3);end
             iso3_emdat = {};
             iso3_climada = {country_ISO3};
             changes_list = -2;
+        elseif ~emdat_exists_damage
+            % country in climada and EM-DAT but no damage > 0 in EM-DAT
+            if verbose_mode,fprintf('Country %s found in emdat_read but all damages are 0, and exists in climada\n',country_ISO3);end
+            iso3_emdat = {};
+            iso3_climada = {country_ISO3};
+            changes_list = -4;
         else
             iso3_emdat = country_ISO3;
             % determine climada country name
