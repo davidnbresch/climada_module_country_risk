@@ -122,6 +122,7 @@ switch country_ISO3
             changes_list = 1;
         else
             iso3_emdat = {'IND'};
+            changes_list = 0;
         end
     case 'ANT'
         % TO DO
