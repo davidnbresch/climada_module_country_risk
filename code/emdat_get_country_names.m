@@ -93,6 +93,17 @@ changes_list = -1;
 %     end
 % end
 
+
+
+% check if the country is found in climada or EM-DAT
+country_climada =  climada_country_name(country_ISO3);
+emdat_exists=~isempty(emdat_read(emdat_file,country_ISO3));
+if isempty(country_climada) & ~emdat_exists
+    if verbose_mode,fprintf('Country %s not found in climada_country_name or emdat_read\n',country_ISO3);end
+    return
+end
+
+% make emdat_file readable by sub-functions
 if isfield(climada_global,'emdat_file')
     emdat_file_global = climada_global.emdat_file;
 else
@@ -100,27 +111,11 @@ else
 end
 climada_global.emdat_file = emdat_file;
 
-% check if the country is found in climada or EM-DAT
-country_climada =  climada_country_name(country_ISO3);
-if isempty(country_climada)
-    % check if any data for that country in EM-DAT
-    emdat_i=emdat_read(climada_global.emdat_file,country_ISO3);
-    if isempty(emdat_i)
-        if verbose_mode,fprintf('Country %s not found in climada_country_name or emdat_read\n',country_ISO3);end
-        % reset climada_global if changed
-        if ~isempty(emdat_file_global)
-            climada_global.emdat_file=emdat_file_global;
-        else
-            climada_global = rmfield(climada_global,'emdat_file');
-        end
-        return
-    end
-end
-
 % manual attribution of countries
 switch country_ISO3
     case 'IND'
         % India - is also as 'Ind' in EM-DAT
+        iso3_climada = {'IND'};
         if any_em_data('Ind',peril_ID,years_range)
             iso3_emdat = {'IND','Ind'};
             changes_list = 1;
@@ -205,7 +200,6 @@ switch country_ISO3
         iso3_climada = {country_ISO3};
     otherwise
         % determine emdat_country_name
-        emdat_exists=~isempty(emdat_read(climada_global.emdat_file,country_ISO3));
         emdat_exists_damage=any_em_data(country_ISO3,'');
         if ~emdat_exists
             % country in climada but nothing in EM-DAT
