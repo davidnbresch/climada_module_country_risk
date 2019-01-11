@@ -125,7 +125,7 @@ switch country_ISO3
         end
     case 'ANT'
         % best to skip as unclear
-        fprintf('** warning in emdat_get_country_names: country ANT not found in climada but is in EM-DAT **\n')
+        if verbose_mode,fprintf('** warning in emdat_get_country_names: country ANT not found in climada but is in EM-DAT **\n');end
         iso3_emdat = {'ANT'};
         iso3_climada = {};
         changes_list = -3;
