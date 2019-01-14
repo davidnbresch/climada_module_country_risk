@@ -33,10 +33,12 @@ function [iso3_emdat,iso3_climada,changes_list,emdat_isdata]=emdat_get_country_n
 %   emdat_file: filename of the emdat database, see emdat_read (default='')
 % OUTPUTS:
 %   iso3_emdat,iso3_climada: cell arrays contaning a list of all countries
-%   (according to emdat and to climada_country_name, respectively) that belonged
-%       to the country given as an input at any time (e.g., for Serbia and
+%       (according to emdat and to climada_country_name, respectively) that belonged
+%       to the country at any time (e.g., for Serbia and
 %       Montenegro SCG, since 2006 it is formed of two countries, SRB and
-%       MNE). Empty if this is not possible (i.e., changes_list==99).
+%       MNE). For iso3_emdat, only those with any damage>0 for the given
+%       peril_ID and years_range are included. Empty if the country cannot
+%       be identified.
 %   changes_list: indicates which changes occurred as follows:
 %       0 = no change was detected (country remained stable). The ISO3
 %           names in EM-DAT and climada_country_name might differ.
