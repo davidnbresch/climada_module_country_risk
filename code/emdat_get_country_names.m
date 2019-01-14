@@ -1,4 +1,4 @@
-function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_ISO3,peril_ID,years_range,verbose_mode,emdat_file)
+function [iso3_emdat,iso3_climada,changes_list,emdat_isdata]=emdat_get_country_names(country_ISO3,peril_ID,years_range,verbose_mode,emdat_file)
 % climada country_risk get all countries that fall under that country in EM-DAT
 % MODULE:
 %   country_risk
@@ -33,7 +33,7 @@ function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_
 %   emdat_file: filename of the emdat database, see emdat_read (default='')
 % OUTPUTS:
 %   iso3_emdat,iso3_climada: cell arrays contaning a list of all countries
-%   (according to emdat and to climada_country_name, respectively) that belonged 
+%   (according to emdat and to climada_country_name, respectively) that belonged
 %       to the country given as an input at any time (e.g., for Serbia and
 %       Montenegro SCG, since 2006 it is formed of two countries, SRB and
 %       MNE). Empty if this is not possible (i.e., changes_list==99).
@@ -41,7 +41,7 @@ function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_
 %       0 = no change was detected (country remained stable). The ISO3
 %           names in EM-DAT and climada_country_name might differ.
 %       1 = the country was or is split into several countries, or the
-%           country is listed under various abbreviations in EM-DAT, hence 
+%           country is listed under various abbreviations in EM-DAT, hence
 %           the names of all countries (past or present) composing that
 %           country (and with non-zero damage recorded over the time period
 %           defined by years_range) is returned in iso3_emdat (iso3_climada
@@ -55,19 +55,23 @@ function [iso3_emdat,iso3_climada,changes_list]=emdat_get_country_names(country_
 %            either consider that larger country instead of its
 %            sub-countries, or to choose a time period to avoid this issue.
 %       -1 = the country was not found in both EM-DAT and
-%            climada_country_name. iso3_all will return country_ISO3.
+%            climada_country_name.
 %       -2 = the country exists in climada but not in EM-DAT, likely either
 %            assume no damage data for that country OR ignore the country.
 %       -3 = the country exists in EM-DAT but not in climada. Needs
 %            checking.
-%       -4 = the country exists in climada and in EM-DAT, but there is not
-%            any entry in EM-DAT with damage>0. Likely either assume no
-%            damage data for that country OR ignore the country.
+%   emdat_isdata: indicates whether there is data in EM-DAT as follows:
+%        [] = country not found in EM-DAT
+%        -1 = country found but no entry with damage>0 (any peril and year)
+%        0 = country found but no entry with damage>0 for the requested
+%            peril_ID and years_range.
+%        >0 = country found, number of EVENTS (not years) with damage>0 is returned.
 % MODIFICATION HISTORY:
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190104, initial
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fix in the indentification of existing country in emdat and for country SCG
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, fixed order of countries for best chances of correction_growth in emdat_read
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190111, adding changes_list=-4 to distinguish cases without any EM-DAT entry (changes_list=-2) and those with EM-DAT entries but all without 0 damage (changes_list=-4).
+% Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190114, removing changes_list=-4 and adding an output parameter emdat_isdata.
 %-
 
 global climada_global
@@ -82,6 +86,7 @@ if ~exist('emdat_file','var'),emdat_file='';end
 iso3_emdat = {};
 iso3_climada = {};
 changes_list = -1;
+emdat_isdata = [];
 
 % % if multiple countries provided as input, assume they are part of a region
 % % and their damages will be summed up.
@@ -89,7 +94,7 @@ changes_list = -1;
 %     ratio_emdat = zeros([length(country_ISO3 1]);
 %     for i=1:length(country_ISO3)
 %         [iso3_emdat_i,iso3_climada_i,changes_list_i]=emdat_get_country_names(country_ISO3{i}, peril_ID, years_range, verbose_mode,emdat_file)
-%         
+%
 %     end
 % end
 
@@ -99,7 +104,7 @@ changes_list = -1;
 country_climada =  climada_country_name(country_ISO3);
 emdat_exists=~isempty(emdat_read(emdat_file,country_ISO3));
 if isempty(country_climada) & ~emdat_exists
-    if verbose_mode,fprintf('Country %s not found in climada_country_name or emdat_read\n',country_ISO3);end
+    if verbose_mode,fprintf('Country %s not found in both climada_country_name and emdat_read\n',country_ISO3);end
     return
 end
 
@@ -165,7 +170,7 @@ switch country_ISO3
     case {'DDR','DFR'}
         % Eastern/Western Germany
         [iso3_emdat,changes_list] = check_larger_country(country_ISO3,'DEU',peril_ID,years_range);
-        iso3_climada = {country_ISO3};
+        iso3_climada = {};
     case 'SDN'
         % Sudan (now Sudan and South Sudan)
         sub_countries_ISO3 = {'SDN','SSD'};
@@ -187,7 +192,7 @@ switch country_ISO3
         iso3_climada = {'YEM'};
     case {'YMD','YMN'}
         [iso3_emdat,changes_list] = check_larger_country(country_ISO3,'YEM',peril_ID,years_range);
-        iso3_climada = {country_ISO3};
+        iso3_climada = {'YEM'};
     case 'YUG'
         % Yugoslavia
         sub_countries_ISO3 = {'YUG','HRV','SVN','MKD','BIH','SCG','SRB','MNE'};
@@ -199,34 +204,40 @@ switch country_ISO3
         [iso3_emdat,changes_list] = check_larger_country(country_ISO3,'YUG',peril_ID,years_range);
         iso3_climada = {country_ISO3};
     otherwise
-        % determine emdat_country_name
-        emdat_exists_damage=any_em_data(country_ISO3,'');
+        % other countries: check existing in both EM-DAT and climada
         if ~emdat_exists
             % country in climada but nothing in EM-DAT
             if verbose_mode,fprintf('Country %s not found in emdat_read, but exists in climada\n',country_ISO3);end
             iso3_emdat = {};
             iso3_climada = {country_ISO3};
             changes_list = -2;
-        elseif ~emdat_exists_damage
-            % country in climada and EM-DAT but no damage > 0 in EM-DAT
-            if verbose_mode,fprintf('Country %s found in emdat_read but all damages are 0, and exists in climada\n',country_ISO3);end
-            iso3_emdat = {};
-            iso3_climada = {country_ISO3};
-            changes_list = -4;
+        elseif isempty(country_climada)
+            % country exists in EM-DAT but not in climada
+            if verbose_mode,fprintf('Country %s not found in climada, but exists in emdat_read\n',country_ISO3);end
+            iso3_emdat = {country_ISO3};
+            iso3_climada = {};
+            changes_list = -3;
         else
-            iso3_emdat = country_ISO3;
-            % determine climada country name
-            if isempty(country_climada)
-                % country in EM-DAT but not in climada
-                if verbose_mode,fprintf('Country %s not found in climada, but exists in emdat_read\n',country_ISO3);end
-                iso3_climada = {};
-                changes_list = -3;
-            else
-                % country in both EM-DAT and climada
-                iso3_climada = country_ISO3;
-                changes_list = 0;
-            end
+            % country in both EM-DAT and climada
+            iso3_emdat = {country_ISO3};
+            iso3_climada = {country_ISO3};
+            changes_list = 0;
         end
+end
+
+% now check availability in EM-DAT
+if ~isempty(iso3_emdat)
+    emdat_n_damage_sub=any_em_data(iso3_emdat,peril_ID,years_range);
+    if emdat_n_damage_sub > 0
+        emdat_isdata = emdat_n_damage_sub;
+    else
+        emdat_exists_damage=any_em_data(iso3_emdat);
+        if emdat_exists_damage > 0
+            emdat_isdata = 0;
+        else
+            emdat_isdata = -1;
+        end
+    end
 end
 
 % reset climada_global if changed
@@ -245,11 +256,11 @@ function [data_in]=any_em_data(country_ISO3,peril_ID,years_range)
 global climada_global
 if ~exist('years_range','var'),years_range=[1800 2300];end
 if ~exist('peril_ID','var'),peril_ID='';end
-data_in = false;
+data_in = 0;
 em_data_i=emdat_read(climada_global.emdat_file,country_ISO3,peril_ID);
 if ~isempty(em_data_i)
     yi = (em_data_i.year >= years_range(1)) & (em_data_i.year <= years_range(2));
-    data_in = any(em_data_i.damage(yi)>0);
+    data_in = sum(em_data_i.damage(yi)>0);
 end
 end
 
