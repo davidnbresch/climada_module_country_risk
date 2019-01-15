@@ -47,10 +47,12 @@ function [iso3_emdat,iso3_climada,changes_list,emdat_isdata]=emdat_get_country_n
 %           the names of all countries (past or present) composing that
 %           country (and with non-zero damage recorded over the time period
 %           defined by years_range) is returned in iso3_emdat (iso3_climada
-%           is as country_ISO3).
+%           is as country_ISO3). In principle, damages from all countries
+%           can simply be added up.
 %       2 = the country was or is part of a larger country, but emdat does
 %           not contain any non-zero damage data for the corresponding
-%           peril_ID and time period in that larger country. This is fine.
+%           peril_ID and time period in that larger country. This is fine
+%           and in principle, damages from all countries can be simply added up. 
 %       99 = the country was or is part of a larger country AND emdat
 %            contains damage data for the corresponding peril_ID and time
 %            period in that larger country. In this case it is suggested to
