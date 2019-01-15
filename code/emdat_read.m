@@ -139,6 +139,7 @@ function em_data=emdat_read(emdat_file,country_ISO3,peril_ID,exposure_growth,ver
 % Samuel Eberenz, eberenz@posteo.eu, 20180531, improved handling of missing GDP data for reference year
 % Samuel Eberenz, eberenz@posteo.eu, 20180912, improved handling of double GDP data of country
 % Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190110, exposure_growth_countryPOS added
+% Benoit P. Guillod, benoit.guillod@env.ethz.ch, 20190115, changing peril subtypes for Fire (F1 now FW; F2 now FB) as they were duplicates of Flood entries and would not work and added a check to avoid the same situation to happen in the future
 %-
 
 em_data=[]; % init output
@@ -215,9 +216,16 @@ peril_subtype_match_table={
     'DR' 'Drought'
     'LS' 'Landslide'
     'FF' 'Forest fire'
-    'F1' 'Wildfire' % many original entries were '--'
-    'F2' 'Land fire (Brush, Bush, Pastur'
+    'FW' 'Wildfire' % many original entries were '--'
+    'FB' 'Land fire (Brush, Bush, Pastur'
     };
+% check that peril_subtype_match_table does not contain double entries,
+% otherwise only the first one would be used
+if length(unique(peril_subtype_match_table(:,1))) < length(peril_subtype_match_table(:,1))
+    fprintf('EM-DAT, error: peril_subtype_match_table contains duplicated entries, aborted (must be fixed in the code of emdat_read)\n');
+    em_data=[];
+    return
+end
 %
 peril_type_match_table={
     'DR' 'Drought'
