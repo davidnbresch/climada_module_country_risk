@@ -20,6 +20,10 @@ function [legend_str,legend_handle]=emdat_barplot(em_data,damage_symbol,damage_o
 % EXAMPLE:
 %   em_data=emdat_read('','GBR','-WS',1,1);
 %   emdat_barplot(em_data);
+%   and to add EM-DAT to an exisitng DFC plot:
+%   [~,~,legend_str,legend_handle]=climada_EDS_DFC(EDS);
+%   [legend_str,legend_handle]=emdat_barplot(em_data,'','','EM-DAT indexed',legend_str,legend_handle);
+
 % INPUTS:
 %   em_data: output of emdat_read, see there, needs to contain em_data.DFC
 % OPTIONAL INPUT PARAMETERS:
