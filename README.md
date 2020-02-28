@@ -1,3 +1,7 @@
+PLEASE USE THE PYTHON VERSION: https://github.com/CLIMADA-project/climada_python
+
+The present MATLAB version of CLIMADA is not supported any more.
+
 climada_module_country_risk
 ===========================
 
